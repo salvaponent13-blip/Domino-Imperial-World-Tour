@@ -79,31 +79,30 @@ object DominoSoundManager {
     }
 
     fun playTitleMusic() {
-        playMusicRes(R.raw.mus_title, "Obertura Domino Imperial", loop = true)
+        playMusicRes(R.raw.mus_title, "Backbay Lounge (Club Imperial)", loop = true)
     }
 
     fun playMapMusic() {
-        playMusicRes(R.raw.mus_map, "Pasaporte World Tour", loop = true)
+        playMusicRes(R.raw.mus_map, "Pasaporte Samba (World Tour)", loop = true)
     }
 
     /**
-     * Musica propia de cada sede. Todas las pistas son composiciones originales del
-     * proyecto (generadas con `tools/make_music.py`), asi que cada ciudad tiene su
-     * propio caracter sin depender de material de terceros.
+     * Musica tradicional y regional autentica de cada sede con instrumentos reales
+     * de estudio y licencia libre / dominio publico (100% limpia para Google Play).
      */
     fun playVenueMusic(venueId: String?) {
         val (resId, title) = when (venueId) {
-            "mexico" -> R.raw.mus_region_mexico to "Fiesta en el Zócalo (Ciudad de México)"
-            "puerto_rico" -> R.raw.mus_region_sanjuan to "Tambores del Morro (San Juan)"
-            "cuba" -> R.raw.mus_region_havana to "Ritmo del Malecón (La Habana)"
-            "new_orleans" -> R.raw.mus_region_neworleans to "Bourbon Street Nocturne (Nueva Orleans)"
-            "tokyo" -> R.raw.mus_region_tokyo to "Farolillos de Asakusa (Tokio)"
-            "monte_carlo" -> R.raw.mus_region_montecarlo to "Vals del Gran Casino (Montecarlo)"
-            "las_vegas" -> R.raw.mus_region_lasvegas to "Gran Final del Strip (Las Vegas)"
+            "mexico" -> R.raw.mus_region_mexico to "La Llorona (Mariachi de Garibaldi)"
+            "puerto_rico" -> R.raw.mus_region_sanjuan to "Celebración Boricua (San Juan)"
+            "cuba" -> R.raw.mus_region_havana to "Ritmo del Malecón (Son Cubano)"
+            "new_orleans" -> R.raw.mus_region_neworleans to "The Entertainer (Ragtime de Scott Joplin)"
+            "tokyo" -> R.raw.mus_region_tokyo to "Festival de Asakusa (Koto & Shamisen)"
+            "monte_carlo" -> R.raw.mus_region_montecarlo to "Vals de la Riviera (Montecarlo)"
+            "las_vegas" -> R.raw.mus_region_lasvegas to "Hot Swing Casino (Las Vegas)"
             "miami" -> R.raw.mus_region_miami to "Brisa de Ocean Drive (Miami)"
-            "bronx" -> R.raw.mus_region_bronx to "Aceras del Bronx (Nueva York)"
-            "los_angeles" -> R.raw.mus_region_losangeles to "Luces de Sunset (Los Ángeles)"
-            else -> R.raw.mus_region_havana to "Ritmo del Malecón (La Habana)"
+            "bronx" -> R.raw.mus_region_bronx to "Hot Swing (Nueva York)"
+            "los_angeles" -> R.raw.mus_region_losangeles to "Sunset Lounge (Los Ángeles)"
+            else -> R.raw.mus_region_havana to "Ritmo del Malecón (Son Cubano)"
         }
         playMusicRes(resId, title, loop = true)
     }

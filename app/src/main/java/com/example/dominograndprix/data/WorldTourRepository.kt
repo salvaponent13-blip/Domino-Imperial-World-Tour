@@ -22,7 +22,7 @@ object WorldTourRepository {
             rivalIntro = "¡Bienvenido a La Habana! Aquí frente al Malecón las fichas suenan duro sobre la caoba. Veamos tu juego.",
             rivalDefeatLine = "¡Qué clase de cierre! Te has ganado el respeto de todo el Malecón.",
             postcardResId = R.drawable.venue_havana,
-            musicTitle = "Ritmo del Malecón (Son Habanero)",
+            musicTitle = "Ritmo del Malecón (Son Cubano)",
             cityLore = "Al caer la tarde sobre el Malecón de La Habana Vieja, los maestros del dominó se reúnen entre coches clásicos del 56 y brisa caribeña.",
             isUnlocked = true
         ),
@@ -40,7 +40,7 @@ object WorldTourRepository {
             rivalIntro = "¡En la Ciudad de México los múltiplos de cinco cantan como mariachi! Si no sumas rápido, te quedas atrás.",
             rivalDefeatLine = "¡Increíble jugada! Tienes verdadera madera de campeón.",
             postcardResId = R.drawable.venue_mexico,
-            musicTitle = "Son de Garibaldi (Ciudad de México)",
+            musicTitle = "La Llorona (Mariachi de Garibaldi)",
             cityLore = "Bajo los arcos coloniales iluminados con papel picado frente a la Catedral, las partidas de múltiplos de 5 exigen cálculo milimétrico.",
             isUnlocked = true
         ),
@@ -58,7 +58,7 @@ object WorldTourRepository {
             rivalIntro = "En las calles adoquinas del Viejo San Juan jugamos al bloqueo puro. ¡Aquí nadie roba del pozo!",
             rivalDefeatLine = "Me cerraste la mesa con precisión quirúrgica...",
             postcardResId = R.drawable.venue_sanjuan,
-            musicTitle = "Brisa del Viejo San Juan (Caribe)",
+            musicTitle = "Celebración Boricua (San Juan)",
             cityLore = "Con vistas a la bahía turquesa y la fortaleza de El Morro, el club de San Juan es famoso por sus duelos de tranca sin cuartel.",
             isUnlocked = true
         ),
@@ -76,7 +76,7 @@ object WorldTourRepository {
             rivalIntro = "Al compás del jazz en Bourbon Street jugamos Fives & Threes. ¡Un múltiplo de 15 te dará puntuación doble!",
             rivalDefeatLine = "No puede ser... ¿cómo calculaste ese doble múltiplo en el último turno?",
             postcardResId = R.drawable.venue_new_orleans,
-            musicTitle = "Bourbon Street Nocturne (Jazz & Blues)",
+            musicTitle = "The Entertainer (Ragtime de Scott Joplin)",
             cityLore = "Entre balcones de hierro forjado y farolas de gas reflejadas sobre el adoquín húmedo, el club de jazz acoge a los mejores estrategas.",
             isUnlocked = true
         ),
@@ -94,7 +94,7 @@ object WorldTourRepository {
             rivalIntro = "Bajo los farolillos rojos de Asakusa cada maestro protege su extremo. Si te bloqueas, conquistaré tu rama.",
             rivalDefeatLine = "Tu disciplina en el tablero es digna de un gran maestro.",
             postcardResId = R.drawable.venue_tokyo,
-            musicTitle = "Farolillos de Asakusa (Tokio Nocturno)",
+            musicTitle = "Festival de Asakusa (Koto & Shamisen)",
             cityLore = "En un callejón tradicional iluminado por linternas rojas y pétalos de cerezo, el silencio solo se rompe con el golpe seco del marfil.",
             isUnlocked = true
         ),
@@ -112,7 +112,7 @@ object WorldTourRepository {
             rivalIntro = "En Montecarlo jugamos Dominó Húngaro: encadena todas las fichas consecutivas que puedas en un solo turno.",
             rivalDefeatLine = "Esa cadena consecutiva fue sencillamente imparable...",
             postcardResId = R.drawable.venue_monte_carlo,
-            musicTitle = "Vals del Gran Casino (Riviera de Mónaco)",
+            musicTitle = "Vals de la Riviera (Montecarlo)",
             cityLore = "Frente al puerto de superyates iluminado bajo la luna mediterránea, el salón privado del Gran Casino reúne a la élite europea.",
             isUnlocked = true
         ),
@@ -130,7 +130,7 @@ object WorldTourRepository {
             rivalIntro = "Llegaste a la Gran Final de Las Vegas. La regla del 7 y los 4 Matadores decidirán quién es el campeón del mundo.",
             rivalDefeatLine = "¡Imposible! Te coronas nuevo Campeón Mundial de Domino Imperial.",
             postcardResId = R.drawable.venue_las_vegas,
-            musicTitle = "Gran Final del Strip (Las Vegas Showtime)",
+            musicTitle = "Hot Swing Casino (Las Vegas)",
             cityLore = "Entre fuentes doradas y reflectores que cruzan el cielo de Nevada, la mesa presidencial decide al campeón absoluto del mundo.",
             isUnlocked = true
         )

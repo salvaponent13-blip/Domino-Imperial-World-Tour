@@ -24,3 +24,4 @@ PLAY_STORE_RELEASE/*.jks
 *.apk
 *.aab
 *.ap_
+PREVIEW_MUSIC/
