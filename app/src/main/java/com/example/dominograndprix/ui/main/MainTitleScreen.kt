@@ -23,6 +23,7 @@ import com.example.dominograndprix.R
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
+import com.example.dominograndprix.ui.components.CreditsButton
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
 
@@ -106,6 +107,9 @@ fun MainTitleScreen(
             ) {
                 // Language Selector Button (ES, EN, FR, IT, PT, DE)
                 LanguageSelectorButton()
+
+                // Audio Credits & Licenses Dialog Button
+                CreditsButton()
 
                 // Audio Toggle Button
                 Surface(

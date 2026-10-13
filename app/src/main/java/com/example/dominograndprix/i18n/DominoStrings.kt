@@ -997,7 +997,54 @@ object DominoStrings {
             else -> venue
         }
     }
+
+    // --- CRÉDITOS & LICENCIAS ---
+    fun creditsBtnLabel(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Créditos"
+        AppLanguage.EN -> "Credits"
+        AppLanguage.FR -> "Crédits"
+        AppLanguage.IT -> "Crediti"
+        AppLanguage.PT -> "Créditos"
+        AppLanguage.DE -> "Credits"
+    }
+
+    fun creditsDialogTitle(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Créditos y Licencias de Audio"
+        AppLanguage.EN -> "Audio Credits & Licenses"
+        AppLanguage.FR -> "Crédits et Licences Audio"
+        AppLanguage.IT -> "Crediti e Licenze Audio"
+        AppLanguage.PT -> "Créditos e Licenças de Áudio"
+        AppLanguage.DE -> "Audio-Credits & Lizenzen"
+    }
+
+    fun musicCreditsSection(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Música y Banda Sonora (CC-BY 4.0)"
+        AppLanguage.EN -> "Soundtrack & Music (CC-BY 4.0)"
+        AppLanguage.FR -> "Bande Sonore & Musique (CC-BY 4.0)"
+        AppLanguage.IT -> "Colonna Sonora & Musica (CC-BY 4.0)"
+        AppLanguage.PT -> "Trilha Sonora & Música (CC-BY 4.0)"
+        AppLanguage.DE -> "Soundtrack & Musik (CC-BY 4.0)"
+    }
+
+    fun proceduralMusicSection(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Música Procedural y Efectos (Dominio Público)"
+        AppLanguage.EN -> "Procedural Music & Sound FX (Public Domain)"
+        AppLanguage.FR -> "Musique Procédurale & Bruitages (Domaine Public)"
+        AppLanguage.IT -> "Musica Procedurale ed Effetti (Pubblico Dominio)"
+        AppLanguage.PT -> "Música Procedural e Efeitos (Domínio Público)"
+        AppLanguage.DE -> "Prozedurale Musik & Soundeffekte (Gemeinfrei)"
+    }
+
+    fun proceduralMusicBody(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Tema de Ciudad de México (Son de Garibaldi) y fanfarrias generados proceduralmente con síntesis de ondas. Efectos de sonido de impacto de fichas de baquelita y acrílico (Dominio Público CC0)."
+        AppLanguage.EN -> "Mexico City theme (Son de Garibaldi) & jingles procedurally synthesized. Acrylic and bakelite domino tile impact sounds (Public Domain CC0)."
+        AppLanguage.FR -> "Thème de Mexico (Son de Garibaldi) et jingles synthétisés de manière procédurale. Bruits d'impact de dominos en bakélite (Domaine Public CC0)."
+        AppLanguage.IT -> "Tema di Città del Messico (Son de Garibaldi) e jingle sintetizzati proceduralmente. Suoni di tessere in bachelite (Pubblico Dominio CC0)."
+        AppLanguage.PT -> "Tema da Cidade do México (Son de Garibaldi) e jingles sintetizados proceduralmente. Sons de impacto de dominós (Domínio Público CC0)."
+        AppLanguage.DE -> "Mexiko-Stadt-Thema (Son de Garibaldi) & Jingles prozedural synthetisiert. Acryl- und Bakelit-Dominogeräusche (Gemeinfrei CC0)."
+    }
 }
+
 
 @Composable
 fun LanguageSelectorButton(modifier: Modifier = Modifier) {

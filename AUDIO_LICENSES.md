@@ -29,9 +29,9 @@ Este documento detalla la procedencia, autoría, tipo de licencia y términos le
   * **URL:** https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100346
 
 * **mus_region_mexico.ogg** (Ciudad de México)
-  * **Título:** *La Llorona* (Versión Mariachi Tradicional)
-  * **Composición:** Dominio Público (Canción folclórica tradicional de Oaxaca, México, Siglo XIX)
-  * **Interpretación:** Grabación tradicional instrumental de mariachi para ambientación cultural.
+  * **Título:** *Son de Garibaldi*
+  * **Origen:** Composición y síntesis procedural matemática (ritmo 3/4 con guitarrón, vihuela y trompeta).
+  * **Derechos:** 100% original / Dominio Público / Generada procedural con `tools/make_music.py`.
 
 * **mus_region_sanjuan.ogg** (San Juan)
   * **Título:** *Beachfront Celebration*
