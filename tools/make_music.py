@@ -6,8 +6,13 @@ filtrado) y se codifica a OGG Vorbis con ffmpeg. No se usa MIDI, ni SoundFonts, 
 samples de terceros: la autoria y los derechos son integros del proyecto.
 
 Uso:
-    python tools/make_music.py            # desde la raiz del repositorio
-    python tools/make_music.py --only cuba tokio
+    python tools/make_music.py                        # regenera TODO en app/src/main/res/raw
+    python tools/make_music.py --only mexico tokio
+    python tools/make_music.py --only mexico --out build/musica_nueva
+
+OJO: el juego puede usar pistas de terceros (ver AUDIO_LICENSES.md). En ese caso NO
+ejecutes el script sin --out, porque sobrescribiria esas pistas con las sintetizadas.
+Con --out, los OGG se escriben en otro directorio y res/raw no se toca.
 
 Escribe los .ogg en app/src/main/res/raw/ y unos espectrogramas de comprobacion en
 build/spectrograms/ (ignorado por git) para poder verificar el resultado sin oir.
@@ -936,13 +941,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--only", nargs="*", help="genera solo estas pistas")
     parser.add_argument("--keep-wav", action="store_true", help="no borra los WAV temporales")
+    parser.add_argument(
+        "--out",
+        metavar="DIRECTORIO",
+        help="escribe los OGG en este directorio en vez de en app/src/main/res/raw. "
+             "IMPRESCINDIBLE si el juego usa pistas de terceros: sin esta opcion, "
+             "regenerar una sola pista sobrescribiria las que ya estan en res/raw.",
+    )
     args = parser.parse_args()
 
     ffmpeg = find_ffmpeg()
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    out_dir = Path(args.out).resolve() if args.out else RAW_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
     PROOF_DIR.mkdir(parents=True, exist_ok=True)
     tmp = REPO / "build" / "music_tmp"
     tmp.mkdir(parents=True, exist_ok=True)
+
+    if args.out:
+        print(f"Modo seguro: los OGG se escriben en {out_dir}")
+        print("(res/raw NO se toca; copia alli solo la pista que quieras sustituir)\n")
 
     names = args.only or list(TRACKS)
     total_ogg = 0
@@ -956,7 +973,7 @@ def main() -> None:
         samples = score.finish()
 
         wav_path = tmp / f"{res_name}.wav"
-        ogg_path = RAW_DIR / f"{res_name}.ogg"
+        ogg_path = out_dir / f"{res_name}.ogg"
         write_wav(wav_path, samples)
         encode_ogg(ffmpeg, wav_path, ogg_path)
         spectrogram_png(samples, PROOF_DIR / f"{res_name}.png", res_name)
@@ -970,7 +987,7 @@ def main() -> None:
 
     if not args.keep_wav:
         shutil.rmtree(tmp, ignore_errors=True)
-    print(f"\nTotal OGG: {total_ogg / 1024:.1f} KB en {len(names)} pistas")
+    print(f"\nTotal OGG: {total_ogg / 1024:.1f} KB en {len(names)} pista(s)")
     print(f"Espectrogramas en: {PROOF_DIR}")
 
 
