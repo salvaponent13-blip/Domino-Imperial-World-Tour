@@ -1,11 +1,15 @@
 package com.example.dominograndprix
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.data.CareerProgressStore
+import com.example.dominograndprix.data.JourneyProgress
 import com.example.dominograndprix.data.WorldTourRepository
 import com.example.dominograndprix.model.CityVenue
 import com.example.dominograndprix.model.GameMode
@@ -29,11 +33,51 @@ enum class AppScreen {
 fun MainNavigation() {
     var currentScreen by remember { mutableStateOf(AppScreen.TITLE) }
 
+    // Persistencia de la carrera World Tour (caja, WRP, ciudades y trofeos vendidos).
+    // El progreso se carga una sola vez al arrancar y se vuelve a escribir en disco
+    // automáticamente cada vez que cambia cualquiera de los cuatro valores.
+    val context = LocalContext.current
+    val savedProgress: JourneyProgress = remember { CareerProgressStore.load(context) }
+
     // Career persistent state
-    var playerCash by remember { mutableStateOf(2500) }
-    var playerWrp by remember { mutableStateOf(1500) }
-    var venues by remember { mutableStateOf(WorldTourRepository.getInitialVenues()) }
-    var trophies by remember { mutableStateOf(WorldTourRepository.getLuxuryPrizes()) }
+    var playerCash by remember { mutableIntStateOf(savedProgress.cash) }
+    var playerWrp by remember { mutableIntStateOf(savedProgress.wrp) }
+    var venues by remember {
+        mutableStateOf(
+            CareerProgressStore.applyToVenues(WorldTourRepository.getInitialVenues(), savedProgress)
+        )
+    }
+    var trophies by remember {
+        mutableStateOf(
+            CareerProgressStore.applyToTrophies(WorldTourRepository.getLuxuryPrizes(), savedProgress)
+        )
+    }
+
+    LaunchedEffect(playerCash, playerWrp, venues, trophies) {
+        CareerProgressStore.save(
+            context,
+            CareerProgressStore.snapshot(
+                cash = playerCash,
+                wrp = playerWrp,
+                venues = venues,
+                trophies = trophies
+            )
+        )
+    }
+
+    // Botón atrás de Android: retrocede a la pantalla anterior en vez de cerrar la app.
+    // En TITLE no se intercepta, para que el gesto/botón salga del juego con normalidad.
+    BackHandler(enabled = currentScreen != AppScreen.TITLE) {
+        DominoSoundManager.playTileTap()
+        currentScreen = when (currentScreen) {
+            AppScreen.WORLD_TOUR,
+            AppScreen.RULES,
+            AppScreen.TROPHIES,
+            AppScreen.TITLE -> AppScreen.TITLE
+            AppScreen.RIVAL_SHOWDOWN,
+            AppScreen.MATCH_TABLE -> AppScreen.WORLD_TOUR
+        }
+    }
 
     // Active match parameters
     var activeMode by remember { mutableStateOf(GameMode.DRAW) }

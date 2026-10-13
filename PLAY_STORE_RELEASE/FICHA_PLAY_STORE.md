@@ -39,15 +39,15 @@
 
 Diseñado para los amantes del auténtico dominó de club y salón, Domino Imperial combina la física visual de las míticas fichas profesionales acrílicas bicapa (marfil pulido sobre base de ébano negro con clavo central dorado esférico) con una gira mundial inolvidable a través de 7 ciudades legendarias.
 
-🌍 GIRA MUNDIAL POR 7 CIUDADES CON MÚSICA Y AMBIENTACIÓN PROPIA
-Viaja de club en club desbloqueando postales ilustradas de bienvenida, rivales con personalidad propia y bandas sonoras regionales que empiezan a sonar en cuanto aterrizas en cada destino:
-• La Habana (Cuba): Juega frente al Malecón al atardecer al ritmo del auténtico son habanero.
-• Ciudad de México (México): Duelos de múltiplos bajo los arcos del Zócalo con música tradicional.
-• San Juan (Puerto Rico): Partidas de tranca pura frente a la bahía y El Morro.
-• Nueva Orleans (EE. UU.): Estrategia nocturna en el French Quarter al compás del jazz de Bourbon Street.
-• Tokio (Japón): Precisión maestra entre los farolillos rojos de Asakusa.
-• Montecarlo (Mónaco): El exclusivo salón imperial de la Riviera frente al puerto de yates.
-• Las Vegas (EE. UU.): La Gran Final Mundial bajo las luces y fuentes doradas del Strip.
+🌍 GIRA MUNDIAL POR 7 CIUDADES CON MÚSICA ORIGINAL Y AMBIENTACIÓN PROPIA
+Viaja de club en club desbloqueando postales ilustradas de bienvenida, rivales con personalidad propia y una banda sonora **compuesta íntegramente para este juego** (autoría propia, sin material de terceros) que arranca en cuanto aterrizas en cada destino, con instrumentación y ritmo característicos de cada ciudad:
+• La Habana (Cuba): Juega frente al Malecón al atardecer con un son de tumbao, clave y tres.
+• Ciudad de México (México): Duelos de múltiplos bajo los arcos del Zócalo con aire de mariachi en 3/4.
+• San Juan (Puerto Rico): Partidas de tranca pura frente a la bahía y El Morro con tambores de bomba.
+• Nueva Orleans (EE. UU.): Estrategia nocturna en el French Quarter con swing, walking bass y séptimas.
+• Tokio (Japón): Precisión maestra entre los farolillos rojos de Asakusa con koto pentatónico.
+• Montecarlo (Mónaco): El exclusivo salón imperial de la Riviera con vals de cuerdas y clavecín.
+• Las Vegas (EE. UU.): La Gran Final Mundial bajo las luces y fuentes doradas del Strip con fanfarria de show.
 
 🎲 FICHAS ACRÍLICAS 3D DE ALTA PRECISIÓN Y SONIDO FÍSICO REAL
 • Renderizado volumétrico 3D multicapa: canto bicapa de ébano y marfil, bisel achaflanado iluminado, surco central tallado en V, clavo central de latón dorado y puntos cóncavos taladrados con brillo de esmalte.
@@ -82,7 +82,7 @@ Domina todas las variantes internacionales del dominó en un solo juego:
 🎉 Lanzamiento de Domino Imperial: World Tour v2.0.0:
 • Selector de 6 idiomas integrado (Español, Inglés, Francés, Italiano, Portugués y Alemán).
 • Fichas 3D fotorrealistas bicapa (marfil pulido, base de ébano, clavo dorado esférico y puntos cóncavos).
-• Postales ilustradas y música regional exclusiva al entrar en cada una de las 7 ciudades del World Tour.
+• Postales ilustradas y banda sonora original exclusiva al entrar en cada una de las 7 ciudades del World Tour.
 • Efectos de sonido físicos de fichas sobre la mesa y 8 modalidades completas de dominó.
 </es-ES>
 <en-US>

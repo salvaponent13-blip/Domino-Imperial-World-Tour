@@ -29,8 +29,8 @@ enum class BoardSide {
 }
 
 /**
- * A placed tile on the board chain, using the exact 240x320 virtual coordinate system
- * and orientation flags from Domino Fever's layout_template_bsprite.
+ * Una ficha ya colocada en la cadena del tablero, con su posición y orientación en el
+ * espacio virtual de 240x320 que usa el renderizado de la mesa.
  */
 data class BoardPlacedTile(
     val tile: DominoTile,
@@ -46,7 +46,7 @@ data class BoardPlacedTile(
 )
 
 /**
- * The 8 authentic game modes from Domino Fever.
+ * Las 8 modalidades de juego incluidas en el juego.
  */
 enum class GameMode(
     val title: String,

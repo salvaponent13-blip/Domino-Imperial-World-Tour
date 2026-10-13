@@ -434,6 +434,36 @@ object DominoStrings {
         AppLanguage.DE -> "$name ist am Zug"
     }
 
+    /** Aviso de encadenamiento del modo Húngaro: puedes seguir tirando en el mismo turno. */
+    fun hungarianChainPrompt(): String = when (currentLanguage) {
+        AppLanguage.ES -> "¡ENCADENA! Sigues tirando (Húngaro): toca otra ficha válida"
+        AppLanguage.EN -> "CHAIN ON! Keep playing (Hungarian): tap another valid tile"
+        AppLanguage.FR -> "ENCHAÎNEZ ! Continuez à jouer (Hongrois) : touchez un autre domino valide"
+        AppLanguage.IT -> "CONCATENA! Continui a giocare (Ungherese): tocca un'altra tessera valida"
+        AppLanguage.PT -> "ENCADEIE! Continue jogando (Húngaro): toque em outra peça válida"
+        AppLanguage.DE -> "WEITER ANLEGEN! Du bist noch dran (Ungarisch): tippe einen weiteren passenden Stein"
+    }
+
+    /** Draw Special: rama asignada al jugador humano. */
+    fun branchAssignment(isLeft: Boolean): String = when (currentLanguage) {
+        AppLanguage.ES -> "Tu rama: ${if (isLeft) "IZQUIERDA" else "DERECHA"}"
+        AppLanguage.EN -> "Your branch: ${if (isLeft) "LEFT" else "RIGHT"}"
+        AppLanguage.FR -> "Votre branche : ${if (isLeft) "GAUCHE" else "DROITE"}"
+        AppLanguage.IT -> "Il tuo ramo: ${if (isLeft) "SINISTRA" else "DESTRA"}"
+        AppLanguage.PT -> "Sua ponta: ${if (isLeft) "ESQUERDA" else "DIREITA"}"
+        AppLanguage.DE -> "Dein Zweig: ${if (isLeft) "LINKS" else "RECHTS"}"
+    }
+
+    /** Draw Special: tu rama está cerrada porque el rival que la posee no ha pasado. */
+    fun branchRestricted(isLeft: Boolean): String = when (currentLanguage) {
+        AppLanguage.ES -> "Rama ${if (isLeft) "izquierda" else "derecha"} bloqueada por el rival"
+        AppLanguage.EN -> "${if (isLeft) "Left" else "Right"} branch locked by opponent"
+        AppLanguage.FR -> "Branche ${if (isLeft) "gauche" else "droite"} bloquée par l'adversaire"
+        AppLanguage.IT -> "Ramo ${if (isLeft) "sinistro" else "destro"} bloccato dall'avversario"
+        AppLanguage.PT -> "Ponta ${if (isLeft) "esquerda" else "direita"} bloqueada pelo rival"
+        AppLanguage.DE -> "${if (isLeft) "Linker" else "Rechter"} Zweig vom Gegner gesperrt"
+    }
+
     fun scoreSummary(you: Int, rival: Int): String = when (currentLanguage) {
         AppLanguage.ES -> "Tú: $you | Rival: $rival"
         AppLanguage.EN -> "You: $you | Rival: $rival"

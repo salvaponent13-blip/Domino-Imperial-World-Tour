@@ -24,7 +24,11 @@ import androidx.compose.ui.unit.sp
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.engine.DominoEngine
 import com.example.dominograndprix.i18n.DominoStrings
-import com.example.dominograndprix.model.*
+import com.example.dominograndprix.model.BoardPlacedTile
+import com.example.dominograndprix.model.BoardSide
+import com.example.dominograndprix.model.DominoTile
+import com.example.dominograndprix.model.GameMode
+import com.example.dominograndprix.model.Player
 import com.example.dominograndprix.ui.components.DominoBackTileView
 import com.example.dominograndprix.ui.components.DominoTileView
 import kotlinx.coroutines.delay
@@ -51,7 +55,7 @@ fun DominoTableScreen(
     var isAIThinking by remember { mutableStateOf(false) }
     var showRoundDialog by remember { mutableStateOf(false) }
 
-    // Vertical camera offset in virtual units (just like aF / aH in Domino Fever b.java!)
+    // Vertical camera offset in virtual units
     var verticalCameraVirtY by remember { mutableFloatStateOf(0f) }
 
     // Show round dialog and play victory/defeat jingle when round finishes
@@ -99,20 +103,42 @@ fun DominoTableScreen(
     }
 
     val isMyTurn = engine.value.currentPlayerIndex == 0 && !engine.value.isRoundOver
+    // Húngaro: tras tirar una ficha válida el turno NO avanza y el jugador puede encadenar.
+    val isChaining = isMyTurn && engine.value.canContinueHungarianTurn
     val human = engine.value.players[0]
-    val playableTiles = remember(engine.value.boardChain.size, human.hand.size, engine.value.currentPlayerIndex, gameStateVersion) {
+    val playableTiles = remember(
+        engine.value.boardChain.size,
+        human.hand.size,
+        engine.value.currentPlayerIndex,
+        engine.value.canContinueHungarianTurn,
+        gameStateVersion
+    ) {
         if (isMyTurn) engine.value.getPlayableTiles(0) else emptyList()
     }
 
-    val canPlaySelectedLeft = selectedTile != null && engine.value.canConnectLeft(selectedTile!!)
-    val canPlaySelectedRight = selectedTile != null && engine.value.canConnectRight(selectedTile!!)
+    val selectedTileSides = if (selectedTile != null) {
+        engine.value.getPlayableSides(0, selectedTile!!)
+    } else {
+        emptySet()
+    }
+    val canPlaySelectedLeft = selectedTileSides.contains(BoardSide.LEFT)
+    val canPlaySelectedRight = selectedTileSides.contains(BoardSide.RIGHT)
+
+    // Draw Special: tu rama asignada y si el rival que la otra posee la tiene abierta.
+    val isBranchGame = gameMode == GameMode.DRAW_SPECIAL
+    val humanBranch = engine.value.branchForPlayer(0) ?: BoardSide.LEFT
+    val otherBranch = if (humanBranch == BoardSide.LEFT) BoardSide.RIGHT else BoardSide.LEFT
+    val otherBranchLocked = isBranchGame && engine.value.isBranchRestrictedFor(0, otherBranch)
 
     // Must player draw from face-down boneyard?
-    val mustDrawFromBoneyard = isMyTurn && playableTiles.isEmpty() && gameMode.allowsDraw && engine.value.boneyard.isNotEmpty()
+    val mustDrawFromBoneyard = isMyTurn && !isChaining && playableTiles.isEmpty() &&
+            gameMode.allowsDraw && engine.value.boneyard.isNotEmpty()
 
     // Auto-Pass when player has no playable tiles and cannot draw
-    LaunchedEffect(isMyTurn, playableTiles.size, engine.value.boneyard.size, gameStateVersion) {
-        if (isMyTurn && playableTiles.isEmpty() && (!gameMode.allowsDraw || engine.value.boneyard.isEmpty())) {
+    LaunchedEffect(isMyTurn, isChaining, playableTiles.size, engine.value.boneyard.size, gameStateVersion) {
+        if (isMyTurn && !isChaining && playableTiles.isEmpty() &&
+            (!gameMode.allowsDraw || engine.value.boneyard.isEmpty())
+        ) {
             logMessage = DominoStrings.autoPassMsg()
             delay(950)
             DominoSoundManager.playPassKnock()
@@ -218,8 +244,8 @@ fun DominoTableScreen(
                     }
             ) {
                 // Virtual coordinate scaling:
-                // In Domino Fever, the chain spans virtX in [45 .. 196] (width 151, center 120.5)
-                // and virtY around 119 (spanning roughly [15 .. 235], height 220).
+                // La cadena ocupa virtX en [45 .. 196] (ancho 151, centro 120.5)
+                // y virtY alrededor de 119 (span aproximado [15 .. 235], alto 220).
                 val unitDp = (maxWidth / 168f).coerceAtMost(maxHeight / 228f)
                 val originVirtX = 36f
                 val originVirtY = 12f
@@ -244,7 +270,7 @@ fun DominoTableScreen(
                         )
                     }
                 } else {
-                    // Render every placed tile at its EXACT Domino Fever (virtX, virtY) coordinate!
+                    // Renderizar cada ficha colocada en su coordenada virtual (virtX, virtY)
                     engine.value.boardChain.forEach { placed ->
                         val tileW = unitDp * (if (placed.isVertical) 17f else 31f)
                         val tileH = unitDp * (if (placed.isVertical) 31f else 17f)
@@ -362,6 +388,33 @@ fun DominoTableScreen(
                     }
                 }
 
+                // Draw Special: recordatorio de la rama asignada y de si el rival la tiene abierta
+                if (isBranchGame) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = DarkNavy.copy(alpha = 0.90f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (otherBranchLocked) Color(0xFFFF8A80) else GoldAccent
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 34.dp)
+                    ) {
+                        Text(
+                            text = if (otherBranchLocked) {
+                                DominoStrings.branchRestricted(otherBranch == BoardSide.LEFT)
+                            } else {
+                                DominoStrings.branchAssignment(humanBranch == BoardSide.LEFT)
+                            },
+                            color = if (otherBranchLocked) Color(0xFFFFCDD2) else GoldAccent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
                 // FACE-DOWN BONEYARD SELECTION OVERLAY (When player has no valid moves and must pick a face-down tile by luck!)
                 if (mustDrawFromBoneyard) {
                     Box(
@@ -470,7 +523,9 @@ fun DominoTableScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isMyTurn) {
+                                text = if (isChaining) {
+                                    DominoStrings.hungarianChainPrompt()
+                                } else if (isMyTurn) {
                                     if (selectedTile != null) DominoStrings.chooseEndPrompt(engine.value.leftOpenPip, engine.value.rightOpenPip)
                                     else DominoStrings.yourTurnPrompt()
                                 } else DominoStrings.turnOfPlayer(engine.value.players[engine.value.currentPlayerIndex].name),
@@ -514,41 +569,32 @@ fun DominoTableScreen(
                                 height = 70.dp,
                                 onClick = {
                                     if (!isMyTurn || !isPlayable) return@DominoTileView
+                                    // Consultar los lados legales en el momento del clic: esto
+                                    // respeta tanto Húngaro (encadenar) como las ramas de Draw Special.
+                                    val sides = engine.value.getPlayableSides(0, tile)
+                                    if (sides.isEmpty()) return@DominoTileView
 
-                                    if (engine.value.boardChain.isEmpty()) {
+                                    if (sides.size == 1) {
+                                        val side = sides.first()
+                                        DominoSoundManager.playTileClack(isDouble = tile.isDouble)
+                                        if (side == BoardSide.LEFT) {
+                                            engine.value.playTileLeft(0, tile)
+                                        } else {
+                                            engine.value.playTileRight(0, tile)
+                                        }
+                                        logMessage = engine.value.roundLog
+                                        selectedTile = null
+                                        gameStateVersion++
+                                    } else if (engine.value.leftOpenPip == engine.value.rightOpenPip) {
+                                        // Ambos extremos valen lo mismo: no hay elección real
                                         DominoSoundManager.playTileClack(isDouble = tile.isDouble)
                                         engine.value.playTileLeft(0, tile)
                                         logMessage = engine.value.roundLog
                                         selectedTile = null
                                         gameStateVersion++
                                     } else {
-                                        val canLeft = engine.value.canConnectLeft(tile)
-                                        val canRight = engine.value.canConnectRight(tile)
-
-                                        if (canLeft && !canRight) {
-                                            DominoSoundManager.playTileClack(isDouble = tile.isDouble)
-                                            engine.value.playTileLeft(0, tile)
-                                            logMessage = engine.value.roundLog
-                                            selectedTile = null
-                                            gameStateVersion++
-                                        } else if (canRight && !canLeft) {
-                                            DominoSoundManager.playTileClack(isDouble = tile.isDouble)
-                                            engine.value.playTileRight(0, tile)
-                                            logMessage = engine.value.roundLog
-                                            selectedTile = null
-                                            gameStateVersion++
-                                        } else if (canLeft && canRight) {
-                                            if (engine.value.leftOpenPip == engine.value.rightOpenPip) {
-                                                DominoSoundManager.playTileClack(isDouble = tile.isDouble)
-                                                engine.value.playTileLeft(0, tile)
-                                                logMessage = engine.value.roundLog
-                                                selectedTile = null
-                                                gameStateVersion++
-                                            } else {
-                                                DominoSoundManager.playTileTap()
-                                                selectedTile = if (isSelected) null else tile
-                                            }
-                                        }
+                                        DominoSoundManager.playTileTap()
+                                        selectedTile = if (isSelected) null else tile
                                     }
                                 }
                             )

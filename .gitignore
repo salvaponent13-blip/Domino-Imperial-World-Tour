@@ -18,3 +18,9 @@ key.properties
 *.jks
 *.keystore
 PLAY_STORE_RELEASE/*.jks
+
+# Artefactos de compilación: nunca deben versionarse (los .aab/.apk se suben a Play
+# Console o se generan con gradlew, no se guardan en el repositorio).
+*.apk
+*.aab
+*.ap_

@@ -10,9 +10,13 @@ import androidx.compose.runtime.setValue
 import com.example.dominograndprix.R
 
 /**
- * Global Audio & Regional Music Manager for Domino Imperial: World Tour.
- * - Plays authentic regional MIDI soundtracks per World Tour destination via MediaPlayer.
- * - Plays crisp physical Fournier acrylic domino sound effects (clack, double slam, draw, tap, pass knock) via SoundPool.
+ * Gestor global de audio y musica regional de Domino Imperial: World Tour.
+ *
+ * - Musica de fondo: pistas OGG originales (ver `tools/make_music.py`, que las sintetiza
+ *   desde cero) reproducidas en bucle con MediaPlayer. Se usa OGG Vorbis porque es un
+ *   formato que Android reproduce de forma nativa y sin licencias.
+ * - Efectos: fichas fisicas de acrilico (golpe, doble, robo, toque y toque de paso)
+ *   mediante SoundPool.
  */
 object DominoSoundManager {
 
@@ -75,33 +79,46 @@ object DominoSoundManager {
     }
 
     fun playTitleMusic() {
-        playMusicRes(R.raw.m_title, "Obertura Domino Imperial", loop = true)
+        playMusicRes(R.raw.mus_title, "Obertura Domino Imperial", loop = true)
     }
 
     fun playMapMusic() {
-        playMusicRes(R.raw.m_map, "Pasaporte World Tour", loop = true)
+        playMusicRes(R.raw.mus_map, "Pasaporte World Tour", loop = true)
     }
 
+    /**
+     * Musica propia de cada sede. Todas las pistas son composiciones originales del
+     * proyecto (generadas con `tools/make_music.py`), asi que cada ciudad tiene su
+     * propio caracter sin depender de material de terceros.
+     */
     fun playVenueMusic(venueId: String?) {
         val (resId, title) = when (venueId) {
-            "mexico" -> R.raw.m_location00_mexico to "Son de Garibaldi (Ciudad de México)"
-            "puerto_rico" -> R.raw.m_location01_puertorico to "Brisa del Viejo San Juan (Puerto Rico)"
-            "cuba" -> R.raw.m_location02_cuba to "Ritmo del Malecón (La Habana)"
-            "new_orleans", "miami" -> R.raw.m_location03_miami to "Bourbon Street Nocturne (Nueva Orleans)"
-            "tokyo", "bronx" -> R.raw.m_location04_bronx to "Farolillos de Asakusa (Tokio)"
-            "monte_carlo", "los_angeles" -> R.raw.m_location05_los_angeles to "Vals del Gran Casino (Montecarlo)"
-            "las_vegas" -> R.raw.m_location06_vegas to "Gran Final del Strip (Las Vegas)"
-            else -> R.raw.m_location02_cuba to "Ritmo del Malecón (La Habana)"
+            "mexico" -> R.raw.mus_region_mexico to "Fiesta en el Zócalo (Ciudad de México)"
+            "puerto_rico" -> R.raw.mus_region_sanjuan to "Tambores del Morro (San Juan)"
+            "cuba" -> R.raw.mus_region_havana to "Ritmo del Malecón (La Habana)"
+            "new_orleans" -> R.raw.mus_region_neworleans to "Bourbon Street Nocturne (Nueva Orleans)"
+            "tokyo" -> R.raw.mus_region_tokyo to "Farolillos de Asakusa (Tokio)"
+            "monte_carlo" -> R.raw.mus_region_montecarlo to "Vals del Gran Casino (Montecarlo)"
+            "las_vegas" -> R.raw.mus_region_lasvegas to "Gran Final del Strip (Las Vegas)"
+            "miami" -> R.raw.mus_region_miami to "Brisa de Ocean Drive (Miami)"
+            "bronx" -> R.raw.mus_region_bronx to "Aceras del Bronx (Nueva York)"
+            "los_angeles" -> R.raw.mus_region_losangeles to "Luces de Sunset (Los Ángeles)"
+            else -> R.raw.mus_region_havana to "Ritmo del Malecón (La Habana)"
         }
         playMusicRes(resId, title, loop = true)
     }
 
     fun playVictoryJingle() {
-        playMusicRes(R.raw.m_win, "¡Victoria en la Mesa!", loop = false)
+        playMusicRes(R.raw.mus_win, "¡Victoria en la Mesa!", loop = false)
     }
 
     fun playDefeatJingle() {
-        playMusicRes(R.raw.m_lose, "Fin de Partida", loop = false)
+        playMusicRes(R.raw.mus_lose, "Fin de Partida", loop = false)
+    }
+
+    /** Cortina de suspense, para los momentos de tension de la partida. */
+    fun playTensionMusic() {
+        playMusicRes(R.raw.mus_tension, "Momento Decisivo", loop = true)
     }
 
     private fun playMusicRes(resId: Int, trackTitle: String, loop: Boolean) {

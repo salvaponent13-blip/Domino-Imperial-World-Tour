@@ -1,6 +1,7 @@
 package com.example.dominograndprix.engine
 
 import com.example.dominograndprix.model.*
+import kotlin.math.abs
 import kotlin.random.Random
 
 data class NextSlotPlacement(
@@ -14,7 +15,7 @@ class DominoEngine(
     val gameMode: GameMode,
     val targetScore: Int = 100,
     val isTeamGame: Boolean = true,
-    val patternIndex: Int = 3 // Default Pattern 3: Symmetric Square-Steps from Domino Fever
+    val patternIndex: Int = 3 // Patrón por defecto: escalones simétricos en S
 ) {
     // Deck & Boneyard
     var boneyard: MutableList<DominoTile> = mutableListOf()
@@ -36,6 +37,16 @@ class DominoEngine(
 
     // Hungarian chaining flag
     var canContinueHungarianTurn: Boolean = false
+
+    // Draw Special: jugador que abrió la mano. Determina qué rama le corresponde
+    // al asiento 0 y, por rotación, a todos los demás.
+    private var openingPlayerIndex: Int = 0
+
+    // Último jugador que pasó y el turno en que lo hizo. Sirve para saber si la rama
+    // de un rival sigue bloqueada y por tanto se puede invadir.
+    private var lastPassingPlayerIndex: Int? = null
+    private var lastPassTurnNumber: Int = -1
+    private var turnNumber: Int = 0
 
     val currentPattern: BoardPatternTemplate
         get() = DominoLayoutTemplates.PATTERNS[patternIndex.coerceIn(0, DominoLayoutTemplates.PATTERNS.lastIndex)]
@@ -61,6 +72,9 @@ class DominoEngine(
         consecutivePasses = 0
         isRoundOver = false
         canContinueHungarianTurn = false
+        lastPassingPlayerIndex = null
+        lastPassTurnNumber = -1
+        turnNumber = 0
 
         // Generate standard Double-6 domino set (28 tiles)
         val deck = mutableListOf<DominoTile>()
@@ -95,6 +109,7 @@ class DominoEngine(
             }
         }
         currentPlayerIndex = startingPlayer
+        openingPlayerIndex = startingPlayer
         val starterName = players[currentPlayerIndex].name
         roundLog = "$starterName abre la mano."
     }
@@ -106,35 +121,95 @@ class DominoEngine(
                 (tile.high == 0 && tile.low == 0)
     }
 
-    fun canConnectLeft(tile: DominoTile): Boolean {
-        if (boardChain.isEmpty()) return true
-        val target = leftOpenPip ?: return false
+    /** ¿La ficha encaja por pura coincidencia de puntos con el extremo indicado? */
+    private fun canConnectByPips(tile: DominoTile, target: Int): Boolean {
         if (gameMode == GameMode.MATADOR) {
             if (isMatadorTile(tile)) return true
             if (target == 0) return isMatadorTile(tile)
             return (tile.high + target == 7 || tile.low + target == 7)
         }
         return tile.hasPip(target)
+    }
+
+    fun canConnectLeft(tile: DominoTile): Boolean {
+        if (boardChain.isEmpty()) return true
+        val target = leftOpenPip ?: return false
+        return canConnectByPips(tile, target)
     }
 
     fun canConnectRight(tile: DominoTile): Boolean {
         if (boardChain.isEmpty()) return true
         val target = rightOpenPip ?: return false
-        if (gameMode == GameMode.MATADOR) {
-            if (isMatadorTile(tile)) return true
-            if (target == 0) return isMatadorTile(tile)
-            return (tile.high + target == 7 || tile.low + target == 7)
-        }
-        return tile.hasPip(target)
+        return canConnectByPips(tile, target)
     }
 
-    fun getPlayableTiles(playerIndex: Int): List<DominoTile> {
-        val player = players[playerIndex]
-        return player.hand.filter { canConnectLeft(it) || canConnectRight(it) }
+    // ---------------------------------------------------------------------
+    // Draw Special: cada asiento tiene una rama asignada. La rama del jugador
+    // que abrió la mano es la izquierda y el resto se reparte por rotación, de
+    // modo que compañeros de equipo (asientos 0 y 2 / 1 y 3) no comparten rama.
+    // ---------------------------------------------------------------------
+
+    /** Rama asignada a un asiento, o `null` antes de que la ronda empiece. */
+    fun branchForPlayer(playerIndex: Int): BoardSide? {
+        if (gameMode != GameMode.DRAW_SPECIAL) return null
+        if (players.isEmpty()) return null
+        val seats = players.size
+        val seat = ((playerIndex - openingPlayerIndex) % seats + seats) % seats
+        return if (seat % 2 == 0) BoardSide.LEFT else BoardSide.RIGHT
+    }
+
+    /** Jugador cuyo turno es inmediatamente anterior al asiento indicado. */
+    private fun previousPlayerIndex(playerIndex: Int): Int {
+        if (players.isEmpty()) return playerIndex
+        val seats = players.size
+        return ((playerIndex - 1) % seats + seats) % seats
     }
 
     /**
-     * Exact Domino Fever b.java (lines 4261-4314) slot calculation for the next tile on a branch.
+     * En Draw Special la rama de un rival solo se puede invadir si ese rival
+     * acaba de pasar (no tenía jugada propia). Si nadie ha pasado, cada jugador
+     * queda confinado a su rama.
+     */
+    private fun isBranchOpenFor(playerIndex: Int, side: BoardSide): Boolean {
+        if (gameMode != GameMode.DRAW_SPECIAL) return true
+        val own = branchForPlayer(playerIndex)
+        if (own == side) return true
+        val blocked = lastPassingPlayerIndex ?: return false
+        if (lastPassTurnNumber != turnNumber) return false
+        if (blocked == playerIndex) return false
+        return branchForPlayer(blocked) == side
+    }
+
+    /**
+     * Lados por los que esta ficha puede jugarse legalmente para este jugador.
+     * Devuelve un conjunto vacío si la ficha no encaja en ningún lado permitido.
+     */
+    fun getPlayableSides(playerIndex: Int, tile: DominoTile): Set<BoardSide> {
+        if (isRoundOver) return emptySet()
+        if (boardChain.isEmpty()) return setOf(BoardSide.LEFT, BoardSide.RIGHT)
+
+        val sides = mutableSetOf<BoardSide>()
+        if (canConnectLeft(tile) && isBranchOpenFor(playerIndex, BoardSide.LEFT)) {
+            sides.add(BoardSide.LEFT)
+        }
+        if (canConnectRight(tile) && isBranchOpenFor(playerIndex, BoardSide.RIGHT)) {
+            sides.add(BoardSide.RIGHT)
+        }
+        return sides
+    }
+
+    /** ¿La rama indicada está cerrada para este jugador por la regla de Draw Special? */
+    fun isBranchRestrictedFor(playerIndex: Int, side: BoardSide): Boolean =
+        gameMode == GameMode.DRAW_SPECIAL && !isBranchOpenFor(playerIndex, side)
+
+    fun getPlayableTiles(playerIndex: Int): List<DominoTile> {
+        val player = players[playerIndex]
+        return player.hand.filter { getPlayableSides(playerIndex, it).isNotEmpty() }
+    }
+
+    /**
+     * Cálculo del siguiente hueco de una rama a partir de la plantilla de recorrido
+     * (coordenadas y orientación en el espacio virtual de 240x320).
      */
     fun getNextSlotForSide(side: BoardSide): NextSlotPlacement {
         if (boardChain.isEmpty()) {
@@ -201,19 +276,20 @@ class DominoEngine(
         val player = players[playerIndex]
         if (!player.hand.contains(tile)) return false
 
-        // Validate connection
-        if (boardChain.isNotEmpty()) {
-            val valid = if (side == BoardSide.LEFT) canConnectLeft(tile) else canConnectRight(tile)
-            if (!valid) return false
-        }
+        // Validación de jugada: coincidencia de puntos con el extremo y, en Draw Special,
+        // que la rama esté realmente disponible para este jugador.
+        if (boardChain.isNotEmpty() && !getPlayableSides(playerIndex, tile).contains(side)) return false
 
         val newHand = player.hand.toMutableList()
         newHand.remove(tile)
         players[playerIndex] = player.copy(hand = newHand)
         consecutivePasses = 0
+        turnNumber++
 
         if (boardChain.isEmpty()) {
-            // First tile on board at exact Domino Fever center (105, 119), horizontal (31x17)
+            // Primera ficha de la mano en el centro del tablero virtual, en horizontal (31x17).
+            // Quien abre de verdad define el reparto de ramas de Draw Special.
+            openingPlayerIndex = playerIndex
             leftOpenPip = tile.high
             rightOpenPip = tile.low
             boardChain.add(
@@ -317,9 +393,11 @@ class DominoEngine(
                 if (sum > 0 && sum % 3 == 0) pointsEarned = sum
             }
             GameMode.FIVES_AND_THREES -> {
+                // Regla clásica: 1 punto por cada 5 y 1 punto por cada 3.
+                // Extremos sumando 15 => 3 (por el 5) + 5 (por el 3) = 8 puntos.
                 val fives = if (sum > 0 && sum % 5 == 0) sum / 5 else 0
                 val threes = if (sum > 0 && sum % 3 == 0) sum / 3 else 0
-                pointsEarned = if (fives > 0 && threes > 0) (fives + threes) * 2 else fives + threes
+                pointsEarned = fives + threes
             }
             else -> {}
         }
@@ -348,6 +426,9 @@ class DominoEngine(
 
     fun passTurn(playerIndex: Int) {
         consecutivePasses++
+        // Registrar el pase: en Draw Special abre la rama de este jugador al resto.
+        lastPassingPlayerIndex = playerIndex
+        lastPassTurnNumber = turnNumber
         val p = players[playerIndex]
         roundLog = "${p.name} pasa."
 
@@ -372,6 +453,9 @@ class DominoEngine(
 
     private fun finishRound(winnerIndex: Int, byDomino: Boolean) {
         isRoundOver = true
+        // La ronda ha terminado: no puede quedar pendiente un encadenamiento húngaro,
+        // o la UI seguiría pidiendo tirar cuando la mano ya está cerrada.
+        canContinueHungarianTurn = false
         winnerPlayerId = winnerIndex
         val winner = players[winnerIndex]
         winningTeam = winner.team
@@ -392,9 +476,13 @@ class DominoEngine(
     }
 
     /**
-     * AI logic: chooses best valid move (left or right). If no move and draw allowed, draws until playable or empty.
+     * IA: elige la mejor jugada válida (izquierda o derecha). Si no tiene jugada y el
+     * modo permite robar, roba del pozo; si no, pasa el turno.
      */
     fun executeAIMove(): Boolean {
+        if (gameMode == GameMode.DRAW_SPECIAL) return executeAISpecialMove()
+
+        val player = players[currentPlayerIndex]
         val playable = getPlayableTiles(currentPlayerIndex)
 
         if (playable.isEmpty()) {
@@ -407,26 +495,73 @@ class DominoEngine(
             }
         }
 
-        val player = players[currentPlayerIndex]
         val chosenTile = when (player.personality) {
             Personality.AGGRESSIVE -> playable.maxByOrNull { it.totalPips } ?: playable.first()
             else -> playable.first()
         }
 
-        val canLeft = canConnectLeft(chosenTile)
-        val canRight = canConnectRight(chosenTile)
+        val sides = getPlayableSides(currentPlayerIndex, chosenTile)
 
-        return if (canLeft && canRight) {
-            // Balance left and right branches so both snake symmetrically
+        return if (sides.size == 2) {
+            // Equilibrar las dos ramas para que la serpiente crezca simétrica
             val firstIdx = boardChain.indexOfFirst { it.isFirstTile }.let { if (it == -1) 0 else it }
             val leftLen = firstIdx
             val rightLen = boardChain.size - 1 - firstIdx
             if (leftLen <= rightLen) playTileLeft(currentPlayerIndex, chosenTile)
             else playTileRight(currentPlayerIndex, chosenTile)
-        } else if (canLeft) {
+        } else if (sides.contains(BoardSide.LEFT)) {
             playTileLeft(currentPlayerIndex, chosenTile)
         } else {
             playTileRight(currentPlayerIndex, chosenTile)
+        }
+    }
+
+    /**
+     * IA para Draw Special: intenta jugar en su propia rama y, si no puede, aprovecha
+     * la rama de un rival que acaba de pasar antes de robar o pasar turno.
+     */
+    private fun executeAISpecialMove(): Boolean {
+        val own = branchForPlayer(currentPlayerIndex) ?: BoardSide.LEFT
+        val invadable = if (lastPassTurnNumber == turnNumber &&
+            lastPassingPlayerIndex != null &&
+            lastPassingPlayerIndex != currentPlayerIndex &&
+            branchForPlayer(lastPassingPlayerIndex!!) != own
+        ) {
+            branchForPlayer(lastPassingPlayerIndex!!)
+        } else {
+            null
+        }
+
+        val playable = getPlayableTiles(currentPlayerIndex)
+        if (playable.isEmpty()) {
+            return if (gameMode.allowsDraw && boneyard.isNotEmpty()) {
+                drawTile(currentPlayerIndex, 0)
+                true
+            } else {
+                passTurn(currentPlayerIndex)
+                true
+            }
+        }
+
+        val preference = listOfNotNull(own, invadable)
+        for (side in preference) {
+            val tile = playable.firstOrNull { getPlayableSides(currentPlayerIndex, it).contains(side) }
+            if (tile != null) {
+                return if (side == BoardSide.LEFT) {
+                    playTileLeft(currentPlayerIndex, tile)
+                } else {
+                    playTileRight(currentPlayerIndex, tile)
+                }
+            }
+        }
+
+        // Sin rama propia disponible: usa la única jugada legal que quede.
+        val tile = playable.first()
+        val sides = getPlayableSides(currentPlayerIndex, tile)
+        return if (sides.contains(BoardSide.LEFT)) {
+            playTileLeft(currentPlayerIndex, tile)
+        } else {
+            playTileRight(currentPlayerIndex, tile)
         }
     }
 }

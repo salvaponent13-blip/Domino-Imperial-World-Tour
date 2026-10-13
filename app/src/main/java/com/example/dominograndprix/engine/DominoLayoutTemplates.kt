@@ -1,12 +1,12 @@
 package com.example.dominograndprix.engine
 
 /**
- * Exact step coordinate from Domino Fever's Resource 13 (layout_template_bsprite).
- * @param dx Relative X coordinate in the 240x320 virtual space
- * @param dy Relative Y coordinate in the 240x320 virtual space
+ * Paso de recorrido del tablero en el espacio virtual de 240x320.
+ * @param dx Desplazamiento X relativo al hueco anterior
+ * @param dy Desplazamiento Y relativo al hueco anterior
  * @param mod 0 = Vertical (17x31), 1 = Horizontal (31x17)
- * @param flags 0 = Forward (top/left connects, bottom/right is open),
- *              1 or 2 = Reversed (bottom/right connects, top/left is open)
+ * @param flags 0 = Hacia delante (conecta arriba/izquierda, queda abierto abajo/derecha),
+ *              1 o 2 = Invertido (conecta abajo/derecha, queda abierto arriba/izquierda)
  */
 data class TemplateStep(
     val dx: Int,
@@ -25,15 +25,14 @@ data class BoardPatternTemplate(
 )
 
 /**
- * All 10 authentic 2-branch board layout patterns extracted byte-for-byte
- * from Gameloft's Domino Fever (layout_template_bsprite, Resource 13).
- * These patterns wind the domino chain into squares and serpentines so all tiles
- * fit inside the 194x208 portrait table with 100% matching face-to-face connections.
+ * Los 5 recorridos de tablero de dos ramas incluidos en el juego. Cada patrón enrolla
+ * la cadena en escalones y serpentinas en S para que todas las fichas quepan en el
+ * tablero vertical de 194x208 con las caras conectadas de forma exacta.
  */
 object DominoLayoutTemplates {
 
     val PATTERNS: List<BoardPatternTemplate> = listOf(
-        // Pattern 0: Classic serpentine
+        // Patrón 0: serpentina clásica
         BoardPatternTemplate(
             id = 0,
             leftBranch = listOf(
@@ -51,7 +50,7 @@ object DominoLayoutTemplates {
                 TemplateStep(28, 58, 1, 0), TemplateStep(57, 58, 1, 0), TemplateStep(71, 73, 0, 0)
             )
         ),
-        // Pattern 1: Serpentine top + Square steps bottom
+        // Patrón 1: serpentina arriba + escalones cuadrados abajo
         BoardPatternTemplate(
             id = 1,
             leftBranch = listOf(
@@ -70,7 +69,7 @@ object DominoLayoutTemplates {
                 TemplateStep(28, 87, 0, 0), TemplateStep(43, 101, 1, 0), TemplateStep(72, 101, 0, 0)
             )
         ),
-        // Pattern 2: Square steps top & bottom
+        // Patrón 2: escalones cuadrados arriba y abajo
         BoardPatternTemplate(
             id = 2,
             leftBranch = listOf(
@@ -94,7 +93,7 @@ object DominoLayoutTemplates {
                 TemplateStep(72, 163, 0, 0)
             )
         ),
-        // Pattern 3: Symmetric Square-Steps (as shown in preview!)
+        // Patrón 3: escalones simétricos (el que se usa por defecto)
         BoardPatternTemplate(
             id = 3,
             leftBranch = listOf(
@@ -114,7 +113,7 @@ object DominoLayoutTemplates {
                 TemplateStep(29, 88, 1, 0), TemplateStep(58, 88, 1, 0), TemplateStep(72, 103, 0, 0)
             )
         ),
-        // Pattern 4: Wide Square-Steps
+        // Patrón 4: escalones anchos
         BoardPatternTemplate(
             id = 4,
             leftBranch = listOf(

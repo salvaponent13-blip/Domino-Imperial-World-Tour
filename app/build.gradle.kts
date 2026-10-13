@@ -22,6 +22,7 @@ android {
         targetSdk = 36
         versionCode = 2
         versionName = "2.0.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -38,6 +39,21 @@ android {
 
     buildTypes {
         release {
+            // NOTA SOBRE R8 / MINIFICACION (leer antes de activar):
+            //
+            // Las reglas de app/proguard-rules.pro ya estan escritas y cubren
+            // kotlinx.serialization (que es lo unico reflectivo que usa la app: la
+            // persistencia de la carrera). Pero mientras no se pueda EJECUTAR el APK
+            // minificado en un dispositivo real, activar R8 es un riesgo a ciegas:
+            // los tests unitarios corren sobre codigo sin ofuscar y no dicen nada al
+            // respecto.
+            //
+            // Para activarlo con seguridad:
+            //   1. Poner isMinifyEnabled = true
+            //   2. ./gradlew :app:connectedDebugAndroidTest  (instala en un dispositivo
+            //      o emulador y ejecuta CareerProgressInstrumentedTest, que comprueba
+            //      que la persistencia sobrevive a la ofuscacion)
+            //   3. Verificar ademas que la app abre y suena con normalidad
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -99,8 +115,7 @@ dependencies {
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
 
-  // Navigation
-  implementation(libs.androidx.navigation3.ui)
-  implementation(libs.androidx.navigation3.runtime)
-  implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+  // Persistencia del progreso de la carrera (JSON en SharedPreferences).
+  // La versión la gestiona el BOM de kotlinx.serialization que ya arrastra androidx.lifecycle.
+  implementation(libs.kotlinx.serialization.json)
 }
