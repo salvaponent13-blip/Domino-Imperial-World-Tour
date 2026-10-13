@@ -16,15 +16,18 @@
 
 ## 2. Definición Corta (Descripción Breve — máx. 80 caracteres)
 
-**Español (`es-ES` / `es-419`) — 79 caracteres:**
-```text
-Dominó 3D con fichas bicapa reales, 8 modos clásicos y gira mundial con música.
-```
-
-**Inglés (`en-US`) — 78 caracteres:**
-```text
-3D Dominoes with realistic bi-layer tiles, 8 classic rules & World Tour music.
-```
+- **🇪🇸 Español (`es-ES` / `es-419`):**
+  `Dominó 3D con fichas bicapa reales, 8 modos clásicos y gira mundial con música.`
+- **🇬🇧 English (`en-US`):**
+  `3D Dominoes with realistic bi-layer tiles, 8 classic rules & World Tour music.`
+- **🇫🇷 Français (`fr-FR`):**
+  `Dominos 3D bicouches réalistes, 8 modes classiques et World Tour en musique.`
+- **🇮🇹 Italiano (`it-IT`):**
+  `Domino 3D con tessere realistiche, 8 modalità classiche e World Tour musicale.`
+- **🇵🇹 Português (`pt-BR` / `pt-PT`):**
+  `Dominó 3D com peças reais dupla camada, 8 modos clássicos e música pelo mundo.`
+- **🇩🇪 Deutsch (`de-DE`):**
+  `3D-Domino mit realistischen Steinen, 8 Spielmodi & Welttournee mit Musik.`
 
 ---
 
@@ -62,10 +65,9 @@ Domina todas las variantes internacionales del dominó en un solo juego:
 7. Draw Special (Rama Propia): Protege tu extremo asignado y conquista el del rival cuando se bloquee.
 8. Block Hungarian (Dominó Húngaro): ¡Encadena y juega todas las fichas consecutivas que puedas en un mismo turno!
 
-✨ CONTROLES TÁCTILES DIRECTOS Y 100% SIN CONEXIÓN
+🌐 6 IDIOMAS INTEGRADOS Y 100% SIN CONEXIÓN
+• Selector instantáneo de idioma dentro del juego: Español, Inglés (English), Francés (Français), Italiano, Portugués y Alemán (Deutsch).
 • Jugada con 1 solo toque cuando tu ficha conecta con un único extremo.
-• Huecos iluminados en el tablero cuando una ficha puede jugarse por ambos lados.
-• Selección interactiva de fichas boca abajo en el pozo cuando necesitas robar.
 • Funciona 100% offline (sin necesidad de internet) y respeta tu privacidad al completo.
 
 ¡Toma asiento en la mesa de La Habana y comienza tu camino hacia la Copa Mundial de Domino Imperial!
@@ -75,25 +77,20 @@ Domina todas las variantes internacionales del dominó en un solo juego:
 
 ## 4. Notas de la Versión (Release Notes — máx. 500 caracteres)
 
-### Español (`<es-ES>`)
 ```text
 <es-ES>
 🎉 Lanzamiento de Domino Imperial: World Tour v2.0.0:
-• Nuevas fichas 3D fotorrealistas bicapa (marfil pulido, base de ébano, clavo dorado esférico y puntos cóncavos).
-• Postales ilustradas de bienvenida y música regional exclusiva al entrar en cada una de las 7 ciudades (La Habana, México, San Juan, Nueva Orleans, Tokio, Montecarlo y Las Vegas).
-• Efectos de sonido físicos de fichas sobre la mesa y pozo interactivo.
-• 8 modalidades completas de dominó en formato vertical.
+• Selector de 6 idiomas integrado (Español, Inglés, Francés, Italiano, Portugués y Alemán).
+• Fichas 3D fotorrealistas bicapa (marfil pulido, base de ébano, clavo dorado esférico y puntos cóncavos).
+• Postales ilustradas y música regional exclusiva al entrar en cada una de las 7 ciudades del World Tour.
+• Efectos de sonido físicos de fichas sobre la mesa y 8 modalidades completas de dominó.
 </es-ES>
-```
-
-### Inglés (`<en-US>`)
-```text
 <en-US>
 🎉 Domino Imperial: World Tour v2.0.0 Release:
-• Brand-new photorealistic 3D bi-layer domino tiles with polished ivory, ebony base, gold spinner pin, and concave pips.
-• Illustrated city arrival postcards and regional music themes for all 7 World Tour destinations (Havana, Mexico City, San Juan, New Orleans, Tokyo, Monte Carlo, and Las Vegas).
-• Authentic physical domino sound effects and interactive boneyard picker.
-• 8 complete domino game modes in portrait orientation.
+• Built-in 6-language selector (Spanish, English, French, Italian, Portuguese, and German).
+• Photorealistic 3D bi-layer domino tiles with polished ivory, ebony base, gold spinner pin, and concave pips.
+• Illustrated city arrival postcards and regional music themes for all 7 World Tour destinations.
+• Authentic physical domino sound effects and 8 complete game modes.
 </en-US>
 ```
 

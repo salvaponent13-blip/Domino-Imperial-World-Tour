@@ -11,12 +11,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.theme.DominoGrandPrixTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        DominoStrings.init(this)
         DominoSoundManager.init(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)

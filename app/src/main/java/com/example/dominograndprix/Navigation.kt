@@ -103,8 +103,9 @@ fun MainNavigation() {
                     venue = venue,
                     onAcceptMatch = {
                         DominoSoundManager.playTileClack(isDouble = true)
+                        val locVenue = com.example.dominograndprix.i18n.DominoStrings.localizeVenue(venue)
                         activeMode = venue.defaultMode
-                        activeCityName = venue.name
+                        activeCityName = locVenue.name
                         activeBet = venue.entryBet
                         activeTargetScore = venue.targetScore
                         activeVenueId = venue.id

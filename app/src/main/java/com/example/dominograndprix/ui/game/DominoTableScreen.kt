@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.engine.DominoEngine
+import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.*
 import com.example.dominograndprix.ui.components.DominoBackTileView
 import com.example.dominograndprix.ui.components.DominoTileView
@@ -112,7 +113,7 @@ fun DominoTableScreen(
     // Auto-Pass when player has no playable tiles and cannot draw
     LaunchedEffect(isMyTurn, playableTiles.size, engine.value.boneyard.size, gameStateVersion) {
         if (isMyTurn && playableTiles.isEmpty() && (!gameMode.allowsDraw || engine.value.boneyard.isEmpty())) {
-            logMessage = "No tienes jugada válida — Pasando turno automáticamente..."
+            logMessage = DominoStrings.autoPassMsg()
             delay(950)
             DominoSoundManager.playPassKnock()
             engine.value.passTurn(0)
@@ -164,7 +165,7 @@ fun DominoTableScreen(
                         }
                         Column {
                             Text(cityName.uppercase(), color = GoldAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            Text("${gameMode.title} • Meta $targetScore", color = Color.LightGray, fontSize = 9.sp)
+                            Text(DominoStrings.ruleAndTarget(gameMode.title, targetScore), color = Color.LightGray, fontSize = 9.sp)
                         }
                     }
 
@@ -230,15 +231,14 @@ fun DominoTableScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "MESA DE DOMINÓ",
+                            text = DominoStrings.emptyTableTitle(),
                             color = Color.White.copy(alpha = 0.55f),
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (isMyTurn) "Toca cualquier ficha de tu mano para abrir la partida"
-                            else "Esperando apertura...",
+                            text = DominoStrings.emptyTableSub(isMyTurn),
                             color = GoldAccent,
                             fontSize = 12.sp
                         )
@@ -334,7 +334,7 @@ fun DominoTableScreen(
                             border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f))
                         ) {
                             Text(
-                                text = "Pozo: ${engine.value.boneyard.size}",
+                                text = DominoStrings.boneyardCount(engine.value.boneyard.size),
                                 color = GoldAccent,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
@@ -352,7 +352,7 @@ fun DominoTableScreen(
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
                         ) {
                             Text(
-                                text = "Extremos: [${engine.value.leftOpenPip}] y [${engine.value.rightOpenPip}]",
+                                text = DominoStrings.openEndsBadge(engine.value.leftOpenPip, engine.value.rightOpenPip),
                                 color = Color.White,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -383,14 +383,14 @@ fun DominoTableScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
-                                    text = "NO TIENES FICHA PARA JUGAR",
+                                    text = DominoStrings.noPlayableTileTitle(),
                                     color = GoldAccent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Escoge una ficha boca abajo del pozo al azar:",
+                                    text = DominoStrings.pickFromBoneyardSub(),
                                     color = Color.White,
                                     fontSize = 12.sp,
                                     textAlign = TextAlign.Center
@@ -414,7 +414,7 @@ fun DominoTableScreen(
                                                 DominoSoundManager.playDrawTile()
                                                 val drawn = engine.value.drawTile(0, idx)
                                                 if (drawn != null) {
-                                                    logMessage = "Robaste la ficha $drawn del pozo"
+                                                    logMessage = DominoStrings.drewTileMsg(drawn.toString())
                                                     gameStateVersion++
                                                 }
                                             }
@@ -436,7 +436,7 @@ fun DominoTableScreen(
                         .padding(horizontal = 10.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = if (isAIThinking) "Jugando rival..." else logMessage,
+                        text = if (isAIThinking) DominoStrings.rivalPlayingMsg() else logMessage,
                         color = if (isAIThinking) GoldAccent else Color.White,
                         fontSize = 10.sp
                     )
@@ -471,9 +471,9 @@ fun DominoTableScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = if (isMyTurn) {
-                                    if (selectedTile != null) "Elige extremo [${engine.value.leftOpenPip}] o [${engine.value.rightOpenPip}] en la mesa"
-                                    else "TU TURNO: Toca tu ficha para jugarla"
-                                } else "Turno de ${engine.value.players[engine.value.currentPlayerIndex].name}",
+                                    if (selectedTile != null) DominoStrings.chooseEndPrompt(engine.value.leftOpenPip, engine.value.rightOpenPip)
+                                    else DominoStrings.yourTurnPrompt()
+                                } else DominoStrings.turnOfPlayer(engine.value.players[engine.value.currentPlayerIndex].name),
                                 color = if (isMyTurn) GoldAccent else Color.LightGray,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp
@@ -483,7 +483,7 @@ fun DominoTableScreen(
                         val teamScore = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
                         val rivalScore = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
                         Text(
-                            text = "Tú: $teamScore | Rival: $rivalScore",
+                            text = DominoStrings.scoreSummary(teamScore, rivalScore),
                             color = GoldAccent,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp
@@ -577,7 +577,7 @@ fun DominoTableScreen(
                                 modifier = Modifier.weight(1f).height(34.dp),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                             ) {
-                                Text("⬅ EXTREMO [${engine.value.leftOpenPip}]", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text(DominoStrings.endChoiceBtn(engine.value.leftOpenPip, true), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
 
                             Button(
@@ -594,7 +594,7 @@ fun DominoTableScreen(
                                 modifier = Modifier.weight(1f).height(34.dp),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
                             ) {
-                                Text("EXTREMO [${engine.value.rightOpenPip}] ➡", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text(DominoStrings.endChoiceBtn(engine.value.rightOpenPip, false), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                     }
@@ -608,7 +608,7 @@ fun DominoTableScreen(
                 onDismissRequest = {},
                 title = {
                     Text(
-                        text = if (engine.value.winningTeam == 0) "¡RONDA GANADA!" else "RONDA TERMINADA",
+                        text = DominoStrings.roundDialogTitle(engine.value.winningTeam == 0),
                         color = if (engine.value.winningTeam == 0) GoldAccent else Color(0xFFFF6B6B),
                         fontWeight = FontWeight.Bold
                     )
@@ -619,8 +619,8 @@ fun DominoTableScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         val scoreTeamA = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
                         val scoreTeamB = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
-                        Text("Tu Equipo: $scoreTeamA pts / Meta: $targetScore")
-                        Text("Rivales: $scoreTeamB pts")
+                        Text(DominoStrings.teamScoreLine(scoreTeamA, targetScore))
+                        Text(DominoStrings.rivalScoreLine(scoreTeamB))
                     }
                 },
                 confirmButton = {
@@ -640,7 +640,7 @@ fun DominoTableScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy)
                     ) {
                         Text(
-                            if (engine.value.isMatchOver) "FINALIZAR PARTIDA" else "SIGUIENTE RONDA",
+                            DominoStrings.nextRoundOrFinishBtn(engine.value.isMatchOver),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -652,7 +652,7 @@ fun DominoTableScreen(
                             onBack()
                         }
                     ) {
-                        Text("SALIR AL MENÚ")
+                        Text(DominoStrings.exitToMenuBtn())
                     }
                 }
             )

@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dominograndprix.i18n.DominoStrings
+import com.example.dominograndprix.i18n.LanguageSelectorButton
 import com.example.dominograndprix.model.LuxuryItem
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
@@ -41,11 +43,17 @@ fun TrophyRoomScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text("💎 SALA DE TROFEOS", color = GoldAccent, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                    Text("PREMIOS Y OBJETOS DE LUJO", color = Color.LightGray, fontSize = 11.sp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(DominoStrings.trophyRoomBtn(), color = GoldAccent, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                    Text(DominoStrings.trophyRoomSub(), color = Color.LightGray, fontSize = 11.sp)
                 }
-                Text("DINERO: $$playerCash", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(DominoStrings.cashLabel(playerCash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    LanguageSelectorButton()
+                }
             }
 
             LazyColumn(
@@ -64,7 +72,7 @@ fun TrophyRoomScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("VOLVER AL MENÚ", fontWeight = FontWeight.Bold)
+                Text(DominoStrings.backToMainMenu(), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -88,8 +96,8 @@ fun TrophyCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.title, color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(text = "Obtenido en: ${item.cityName}", color = Color.LightGray, fontSize = 11.sp)
-                Text(text = "Valor de mercado: $${item.value}", color = Color.White, fontSize = 12.sp)
+                Text(text = DominoStrings.obtainedIn(item.cityName), color = Color.LightGray, fontSize = 11.sp)
+                Text(text = DominoStrings.marketValue(item.value), color = Color.White, fontSize = 12.sp)
             }
 
             if (!item.isSold) {
@@ -99,10 +107,10 @@ fun TrophyCard(
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
-                    Text("EMPEÑAR (+$${item.value})", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(DominoStrings.sellForBtn(item.value), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             } else {
-                Text("VENDIDO", color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text(DominoStrings.soldLabel(), color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
     }

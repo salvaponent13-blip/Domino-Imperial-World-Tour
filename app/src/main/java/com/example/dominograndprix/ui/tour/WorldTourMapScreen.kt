@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dominograndprix.R
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.i18n.DominoStrings
+import com.example.dominograndprix.i18n.LanguageSelectorButton
 import com.example.dominograndprix.model.CityVenue
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
@@ -64,7 +66,7 @@ fun WorldTourMapScreen(
                 .padding(12.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // 1. Header with Player Career Stats + Audio Toggle
+                // 1. Header with Player Career Stats + Language Selector + Audio Toggle
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -80,19 +82,20 @@ fun WorldTourMapScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text("DOMINO IMPERIAL", color = GoldAccent, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
-                            Text("ELIGE TU LOCALIDAD Y MÚSICA", color = Color.LightGray, fontSize = 10.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("DOMINO IMPERIAL", color = GoldAccent, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                            Text(DominoStrings.mapSubtitle(), color = Color.LightGray, fontSize = 10.sp)
                         }
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("CAJA: $$playerCash", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Text("WRP: $playerWrp pts", color = GoldAccent, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                                Text(DominoStrings.cashLabel(playerCash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text("WRP: $playerWrp pts", color = GoldAccent, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
                             }
+                            LanguageSelectorButton()
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = Color.White.copy(alpha = 0.12f),
@@ -102,7 +105,7 @@ fun WorldTourMapScreen(
                                 Text(
                                     text = if (DominoSoundManager.isMuted) "🔇" else "🔊",
                                     fontSize = 14.sp,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                                 )
                             }
                         }
@@ -114,11 +117,12 @@ fun WorldTourMapScreen(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(venues) { venue ->
+                    items(venues) { rawVenue ->
+                        val venue = DominoStrings.localizeVenue(rawVenue)
                         VenueCard(
                             venue = venue,
-                            canAfford = playerCash >= venue.entryBet,
-                            onEnter = { onSelectVenue(venue) }
+                            canAfford = playerCash >= rawVenue.entryBet,
+                            onEnter = { onSelectVenue(rawVenue) }
                         )
                     }
                 }
@@ -133,7 +137,7 @@ fun WorldTourMapScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.15f)),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("VOLVER AL MENÚ PRINCIPAL", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(DominoStrings.backToMainMenu(), color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -186,14 +190,14 @@ fun VenueCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     if (venue.isCompleted) {
-                        Text("✓ GANADO", color = Color(0xFF4CAF50), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(DominoStrings.wonBadge(), color = Color(0xFF4CAF50), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 Text(venue.region, color = GoldAccent, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                 Text("🎵 ${venue.musicTitle}", color = Color(0xFFB3E5FC), fontSize = 10.sp)
                 Text(
-                    "Regla: ${venue.defaultMode.title} • Meta ${venue.targetScore}",
+                    DominoStrings.ruleAndTarget(venue.defaultMode.title, venue.targetScore),
                     color = Color.LightGray,
                     fontSize = 10.sp
                 )
@@ -219,7 +223,7 @@ fun VenueCard(
                     modifier = Modifier.height(32.dp)
                 ) {
                     Text(
-                        text = "VIAJAR",
+                        text = DominoStrings.travelBtn(),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold
                     )

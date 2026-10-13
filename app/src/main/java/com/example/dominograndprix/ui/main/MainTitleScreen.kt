@@ -21,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dominograndprix.R
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.i18n.DominoStrings
+import com.example.dominograndprix.i18n.LanguageSelectorButton
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
 
@@ -60,24 +62,25 @@ fun MainTitleScreen(
                 )
         )
 
-        // Top Header with New Brand Title, 3D Icon Badge & Audio Toggle
+        // Top Header with New Brand Title, 3D Icon Badge, Language Selector & Audio Toggle
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .padding(horizontal = 18.dp, vertical = 20.dp),
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.app_logo_icon),
                     contentDescription = "Domino Imperial Icon",
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(46.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .border(1.5.dp, GoldAccent, RoundedCornerShape(12.dp))
                 )
@@ -86,30 +89,39 @@ fun MainTitleScreen(
                         text = "DOMINO IMPERIAL",
                         color = GoldAccent,
                         fontWeight = FontWeight.Black,
-                        fontSize = 18.sp
+                        fontSize = 17.sp
                     )
                     Text(
-                        text = "WORLD TOUR • EDICIÓN 3D",
+                        text = DominoStrings.editionSubtitle(),
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp
+                        fontSize = 10.sp
                     )
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = DarkNavy.copy(alpha = 0.90f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
-                modifier = Modifier.clickable { DominoSoundManager.toggleMute() }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (DominoSoundManager.isMuted) "🔇 Silencio" else "🔊 Música",
-                    color = GoldAccent,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                )
+                // Language Selector Button (ES, EN, FR, IT, PT, DE)
+                LanguageSelectorButton()
+
+                // Audio Toggle Button
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = DarkNavy.copy(alpha = 0.90f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
+                    modifier = Modifier.clickable { DominoSoundManager.toggleMute() }
+                ) {
+                    Text(
+                        text = if (DominoSoundManager.isMuted) DominoStrings.mutedLabel() else DominoStrings.musicOn(),
+                        color = GoldAccent,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
             }
         }
 
@@ -123,8 +135,8 @@ fun MainTitleScreen(
         ) {
             // World Tour Button
             MenuOptionCard(
-                title = "🌍 WORLD TOUR (7 CIUDADES Y MÚSICA)",
-                subtitle = "Viaja a La Habana, México, San Juan, Nueva Orleans, Tokio, Montecarlo y Las Vegas",
+                title = DominoStrings.worldTourBtnTitle(),
+                subtitle = DominoStrings.worldTourBtnSub(),
                 containerColor = GoldAccent,
                 contentColor = DarkNavy,
                 onClick = onStartWorldTour
@@ -134,8 +146,8 @@ fun MainTitleScreen(
 
             // Quick Play Button (Direct to Havana)
             MenuOptionCard(
-                title = "⚡ JUGAR AHORA EN LA HABANA",
-                subtitle = "Entra directo al Club del Malecón con música cubana y fichas 3D",
+                title = DominoStrings.quickPlayBtnTitle(),
+                subtitle = DominoStrings.quickPlayBtnSub(),
                 containerColor = Color(0xFF1B6B3E),
                 contentColor = Color.White,
                 onClick = onQuickPlay
@@ -159,7 +171,7 @@ fun MainTitleScreen(
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(6.dp)) {
                         Text(
-                            "📖 8 MODALIDADES",
+                            DominoStrings.eightModesBtn(),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
@@ -180,7 +192,7 @@ fun MainTitleScreen(
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(6.dp)) {
                         Text(
-                            "💎 SALA DE TROFEOS",
+                            DominoStrings.trophyRoomBtn(),
                             color = GoldAccent,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
@@ -193,7 +205,7 @@ fun MainTitleScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Domino Imperial: World Tour • Fichas Acrílicas 3D Bicapa",
+                text = DominoStrings.titleFooter(),
                 color = Color.White.copy(alpha = 0.65f),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center

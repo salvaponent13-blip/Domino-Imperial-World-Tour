@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dominograndprix.R
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.i18n.DominoStrings
+import com.example.dominograndprix.i18n.LanguageSelectorButton
 import com.example.dominograndprix.model.CityVenue
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
@@ -34,7 +36,8 @@ fun RivalShowdownScreen(
     onAcceptMatch: () -> Unit = {},
     onCancel: () -> Unit = {}
 ) {
-    val postcardRes = if (venue.postcardResId != 0) venue.postcardResId else R.drawable.venue_havana
+    val localizedVenue = DominoStrings.localizeVenue(venue)
+    val postcardRes = if (localizedVenue.postcardResId != 0) localizedVenue.postcardResId else R.drawable.venue_havana
 
     Box(
         modifier = Modifier
@@ -66,7 +69,7 @@ fun RivalShowdownScreen(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Top Header Bar with Destination Badge + Music Indicator + Mute Toggle
+            // 1. Top Header Bar with Destination Badge + Language Selector + Mute Toggle
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -82,28 +85,35 @@ fun RivalShowdownScreen(
                         border = androidx.compose.foundation.BorderStroke(1.5.dp, GoldAccent)
                     ) {
                         Text(
-                            text = "✈️ DESTINO: ${venue.name.uppercase()}",
+                            text = DominoStrings.destinationHeader(localizedVenue.name),
                             color = GoldAccent,
                             fontWeight = FontWeight.Black,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
 
-                    // Audio toggle button
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = DarkNavy.copy(alpha = 0.92f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.7f)),
-                        modifier = Modifier.clickable { DominoSoundManager.toggleMute() }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = if (DominoSoundManager.isMuted) "🔇 Silencio" else "🔊 Música ON",
-                            color = if (DominoSoundManager.isMuted) Color.LightGray else GoldAccent,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
+                        LanguageSelectorButton()
+
+                        // Audio toggle button
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = DarkNavy.copy(alpha = 0.92f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.7f)),
+                            modifier = Modifier.clickable { DominoSoundManager.toggleMute() }
+                        ) {
+                            Text(
+                                text = if (DominoSoundManager.isMuted) DominoStrings.mutedLabel() else DominoStrings.musicOn(),
+                                color = if (DominoSoundManager.isMuted) Color.LightGray else GoldAccent,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
 
@@ -116,8 +126,8 @@ fun RivalShowdownScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.6f))
                 ) {
                     Text(
-                        text = if (DominoSoundManager.isMuted) "🔇 Audio silenciado"
-                        else "🎵 Sonando ahora: ${venue.musicTitle.ifEmpty { DominoSoundManager.currentTrackTitle }}",
+                        text = if (DominoSoundManager.isMuted) DominoStrings.mutedLabel()
+                        else DominoStrings.nowPlaying(localizedVenue.musicTitle.ifEmpty { DominoSoundManager.currentTrackTitle }),
                         color = Color(0xFFFFF4C2),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -141,7 +151,7 @@ fun RivalShowdownScreen(
                 Box(modifier = Modifier.fillMaxSize()) {
                     Image(
                         painter = painterResource(id = postcardRes),
-                        contentDescription = venue.name,
+                        contentDescription = localizedVenue.name,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -164,15 +174,15 @@ fun RivalShowdownScreen(
                     ) {
                         Column {
                             Text(
-                                text = venue.region,
+                                text = localizedVenue.region,
                                 color = GoldAccent,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 13.sp
                             )
-                            if (venue.cityLore.isNotEmpty()) {
+                            if (localizedVenue.cityLore.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = venue.cityLore,
+                                    text = localizedVenue.cityLore,
                                     color = Color(0xFFF2EFE9),
                                     fontSize = 11.sp,
                                     lineHeight = 15.sp
@@ -201,14 +211,14 @@ fun RivalShowdownScreen(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "RIVAL LOCAL: ${venue.rivalName.uppercase()}",
+                            text = DominoStrings.localRivalHeader(localizedVenue.rivalName),
                             color = GoldAccent,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "\"${venue.rivalIntro}\"",
+                            text = "\"${localizedVenue.rivalIntro}\"",
                             color = Color.White,
                             fontStyle = FontStyle.Italic,
                             fontSize = 12.sp,
@@ -236,13 +246,13 @@ fun RivalShowdownScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Regla: ${venue.defaultMode.title}",
+                                text = DominoStrings.ruleLabel(localizedVenue.defaultMode.title),
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Meta: ${venue.targetScore} pts",
+                                text = DominoStrings.targetLabel(localizedVenue.targetScore),
                                 color = GoldAccent,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.ExtraBold
@@ -250,7 +260,7 @@ fun RivalShowdownScreen(
                         }
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = venue.defaultMode.summary,
+                            text = DominoStrings.modeSummary(localizedVenue.defaultMode),
                             color = Color.LightGray,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Start,
@@ -262,13 +272,13 @@ fun RivalShowdownScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Entrada: $${venue.entryBet}",
+                                text = DominoStrings.entryBetLabel(localizedVenue.entryBet),
                                 color = GoldAccent,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
                             )
                             Text(
-                                text = "Trofeo: ${venue.trophyTitle}",
+                                text = DominoStrings.trophyLabel(localizedVenue.trophyTitle),
                                 color = Color(0xFF90CAF9),
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 11.sp
@@ -290,7 +300,7 @@ fun RivalShowdownScreen(
                             .weight(0.9f)
                             .height(50.dp)
                     ) {
-                        Text("MAPA", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text(DominoStrings.mapBtnShort(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
                     Button(
@@ -305,7 +315,7 @@ fun RivalShowdownScreen(
                             .height(50.dp)
                     ) {
                         Text(
-                            text = "¡JUGAR EN ${venue.name.uppercase()}!",
+                            text = DominoStrings.playInCityBtn(localizedVenue.name),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 13.sp
                         )
