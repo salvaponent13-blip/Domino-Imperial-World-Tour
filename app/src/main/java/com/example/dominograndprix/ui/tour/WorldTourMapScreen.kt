@@ -25,6 +25,7 @@ import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
 import com.example.dominograndprix.model.CityVenue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import com.example.dominograndprix.data.VenueMissionCatalog
 import com.example.dominograndprix.i18n.AchievementStrings
@@ -339,10 +340,13 @@ fun VenueCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Button(
                     onClick = onEnter,
-                    enabled = isEnabled,
+                    // Sin fondos no se puede viajar: seria apostar dinero que no se tiene.
+                    enabled = isEnabled && canAfford,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = GoldAccent,
-                        contentColor = DarkNavy
+                        contentColor = DarkNavy,
+                        disabledContainerColor = Color(0xFF3A4150),
+                        disabledContentColor = Color(0xFF8A97A8)
                     ),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
@@ -352,6 +356,18 @@ fun VenueCard(
                         text = DominoStrings.travelBtn(),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold
+                    )
+                }
+                // Aviso explicito de por que no se puede entrar, en lugar de un boton muerto
+                // sin explicacion.
+                if (isEnabled && !canAfford) {
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = DominoStrings.insufficientFunds(venue.entryBet),
+                        color = Color(0xFFFF8A80),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.End
                     )
                 }
             }

@@ -672,6 +672,53 @@ object DominoStrings {
         AppLanguage.DE -> "Komm morgen für eine neue Herausforderung wieder"
     }
 
+    // --- ECONOMÍA Y QUIEBRA ---
+    /** Aviso en el boton de viajar cuando no se puede pagar la entrada. */
+    fun insufficientFunds(required: Int): String = when (currentLanguage) {
+        AppLanguage.ES -> "Fondos insuficientes (requiere \$$required)"
+        AppLanguage.EN -> "Not enough funds (requires \$$required)"
+        AppLanguage.FR -> "Fonds insuffisants (requiert \$$required)"
+        AppLanguage.IT -> "Fondi insufficienti (richiede \$$required)"
+        AppLanguage.PT -> "Fundos insuficientes (requer \$$required)"
+        AppLanguage.DE -> "Nicht genug Guthaben (erfordert \$$required)"
+    }
+
+    fun bankruptcyTitle(): String = when (currentLanguage) {
+        AppLanguage.ES -> "PRÉSTAMO DE HONOR"
+        AppLanguage.EN -> "LOAN OF HONOUR"
+        AppLanguage.FR -> "PRÊT D'HONNEUR"
+        AppLanguage.IT -> "PRESTITO D'ONORE"
+        AppLanguage.PT -> "EMPRÉSTIMO DE HONRA"
+        AppLanguage.DE -> "EHRENDARLEHEN"
+    }
+
+    fun bankruptcyBody(amount: Int): String = when (currentLanguage) {
+        AppLanguage.ES ->
+            "El Club te concede un préstamo de honor de \$$amount para volver al ruedo. " +
+                "Es la única vez que puede ayudarte: a partir de ahora tendrás que recuperarte " +
+                "en las sedes más baratas."
+        AppLanguage.EN ->
+            "The Club grants you a \$$amount loan of honour to get back in the game. " +
+                "This is the only time it can help you: from now on you will have to recover " +
+                "in the cheaper venues."
+        AppLanguage.FR ->
+            "Le Club vous accorde un prêt d'honneur de \$$amount pour revenir dans la partie. " +
+                "C'est la seule fois qu'il peut vous aider : désormais vous devrez vous refaire " +
+                "dans les villes moins chères."
+        AppLanguage.IT ->
+            "Il Club ti concede un prestito d'onore di \$$amount per tornare in gioco. " +
+                "È l'unica volta che può aiutarti: d'ora in poi dovrai rifarti nelle sedi più " +
+                "economiche."
+        AppLanguage.PT ->
+            "O Clube concede-te um empréstimo de honra de \$$amount para voltares ao jogo. " +
+                "É a única vez que te pode ajudar: a partir de agora terás de recuperar-te nas " +
+                "cidades mais baratas."
+        AppLanguage.DE ->
+            "Der Club gewährt dir ein Ehrendarlehen von \$$amount, um wieder ins Spiel zu " +
+                "kommen. Das ist das einzige Mal, dass er dir helfen kann: ab jetzt musst du " +
+                "dich in den günstigeren Städten erholen."
+    }
+
     // --- VITRINA DE LOGROS ---
     fun achievementsTitle(): String = when (currentLanguage) {
         AppLanguage.ES -> "🏆 LOGROS"

@@ -30,7 +30,15 @@ data class JourneyProgress(
      */
     val unlockedAchievements: Set<String> = emptySet(),
     /** Estadisticas acumuladas de la carrera. */
-    val stats: CareerStats = CareerStats()
+    val stats: CareerStats = CareerStats(),
+    /**
+     * Si el club ya concedio el prestamo de honor por bancarrota.
+     *
+     * Existe para que el rescate sea UNICO: sin esta marca, un jugador con menos de la entrada
+     * de La Habana recibiria el prestamo en cada derrota y el dinero volveria a ser infinito,
+     * que es justo lo que la economia con consecuencias quiere evitar.
+     */
+    val bankruptcyRescueClaimed: Boolean = false
 ) {
     companion object {
         const val DEFAULT_CASH = 2500

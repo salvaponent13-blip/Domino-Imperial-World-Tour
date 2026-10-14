@@ -863,7 +863,12 @@ fun DominoTableScreen(
                                 onMatchFinished(engine.value.winningTeam == 0, betAmount * 2, engine.value)
                             } else {
                                 DominoSoundManager.playVenueMusic(venueId)
-                                engine.value.startNewRound()
+                                // Arrastre de mano: abre quien gano la ronda anterior. Tener la
+                                // salida es una ventaja tactica real, y quitarsela al ganador
+                                // haria que ganar una ronda no sirviera de nada.
+                                engine.value.startNewRound(
+                                    openerOverride = engine.value.nextRoundOpener()
+                                )
                                 selectedTile = null
                                 logMessage = engine.value.roundLog
                                 gameStateVersion++

@@ -343,6 +343,19 @@ class DominoEngine(
     }
 
     fun startNewRound() {
+        startNewRound(openerOverride = null)
+    }
+
+    /**
+     * Empieza una ronda nueva.
+     *
+     * @param openerOverride asiento que abre, o `null` para aplicar la regla del doble mas alto.
+     *   El arrastre de mano ("tener la salida") es una ventaja tactica real en domino, asi que
+     *   quien gana una ronda abre la siguiente. La interfaz pasa aqui el ganador anterior; el
+     *   motor no lo deduce solo porque el llamante puede querer otra cosa (por ejemplo, un test
+     *   que fije el orden de turnos).
+     */
+    fun startNewRound(openerOverride: Int?) {
         boardChain.clear()
         leftOpenPip = null
         rightOpenPip = null
@@ -388,10 +401,34 @@ class DominoEngine(
                 }
             }
         }
+        // Arrastre de mano: si viene un apertura impuesta, manda sobre el doble mas alto.
+        if (openerOverride != null && openerOverride in players.indices) {
+            startingPlayer = openerOverride
+        }
         currentPlayerIndex = startingPlayer
         openingPlayerIndex = startingPlayer
         val starterName = players[currentPlayerIndex].name
         roundLog = "$starterName abre la mano."
+    }
+
+    /**
+     * Asiento que debe abrir la ronda SIGUIENTE a la que acaba de cerrarse.
+     *
+     * Arrastre de mano, regla clasica de club: tener la salida es una ventaja tactica real, asi
+     * que abre quien gano. Si la ronda se cerro por tranca, gana quien menos puntos tiene en la
+     * mano, que es el mismo criterio con el que se resolvio la ronda.
+     *
+     * Devuelve `null` si no hay ronda cerrada de la que sacar conclusion, para que el llamante
+     * deje actuar a la regla por defecto (el doble mas alto).
+     */
+    fun nextRoundOpener(): Int? {
+        if (!isRoundOver) return null
+        if (lastRoundWasBlocked) {
+            // Tranca: abre el que menos pips tiene en la mano, que es quien se llevo la ronda.
+            val minPips = players.minOf { it.hand.sumOf { tile -> tile.totalPips } }
+            return players.first { it.hand.sumOf { tile -> tile.totalPips } == minPips }.id
+        }
+        return winnerPlayerId
     }
 
     fun isMatadorTile(tile: DominoTile): Boolean {
@@ -781,6 +818,9 @@ class DominoEngine(
             if (newScore >= targetScore) {
                 isMatchOver = true
                 winningTeam = p.team
+                // Se rellena tambien el ganador concreto: la pantalla final y el informe de
+                // carrera lo necesitan, y si no, un cierre por puntos quedaba sin ganador.
+                winnerPlayerId = playerIndex
             }
         }
     }

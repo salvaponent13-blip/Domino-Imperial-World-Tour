@@ -3,14 +3,20 @@ package com.example.dominograndprix
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.AchievementCatalog
+import com.example.dominograndprix.data.CareerEconomy
 import com.example.dominograndprix.data.CareerProgressStore
 import com.example.dominograndprix.data.CareerReporter
 import com.example.dominograndprix.data.DailyChallenge
@@ -26,7 +32,9 @@ import com.example.dominograndprix.model.CalendarDate
 import com.example.dominograndprix.model.CityVenue
 import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.GameMode
+import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.DominoTableScreen
+import com.example.dominograndprix.ui.game.GoldAccent
 import com.example.dominograndprix.ui.main.MainTitleScreen
 import com.example.dominograndprix.ui.rival.RivalShowdownScreen
 import com.example.dominograndprix.ui.achievements.AchievementUnlockedBanner
@@ -70,6 +78,9 @@ fun MainNavigation() {
     // Ancla para la respuesta haptica del aviso: usar la vista respeta los ajustes de vibracion
     // y el modo silencio del sistema.
     val hapticAnchor = LocalView.current
+
+    /** Aviso de prestamo de honor, que solo puede aparecer una vez en toda la carrera. */
+    var showBankruptcyNotice by remember { mutableStateOf(false) }
 
     var venues by remember {
         mutableStateOf(
@@ -296,10 +307,13 @@ fun MainNavigation() {
                         // Empezar una partida nueva descarta cualquier guardado anterior:
                         // si no, al entrar se reanudaria la partida vieja de esa sede.
                         MatchSnapshotStore.clear(context)
-                        if (playerCash() >= venue.entryBet) {
-                            careerProgress = careerProgress.copy(cash = playerCash() - venue.entryBet)
+                        // Cobro de inscripcion: la apuesta se descuenta AHORA. Si se pierde, no
+                        // se devuelve, y por eso la sede no debe dejar entrar sin fondos. La
+                        // interfaz ya bloquea el boton; esto es la salvaguarda.
+                        CareerEconomy.chargeEntry(careerProgress, venue)?.let { charged ->
+                            careerProgress = charged
+                            currentScreen = AppScreen.MATCH_TABLE
                         }
-                        currentScreen = AppScreen.MATCH_TABLE
                     },
                     onCancel = {
                         DominoSoundManager.playTileTap()
@@ -367,9 +381,14 @@ fun MainNavigation() {
                                 }
                                 venues = updated
                             }
-                        } else if (careerProgress.cash < 100) {
-                            // Red de seguridad: el jugador siempre debe poder jugar en La Habana.
-                            careerProgress = careerProgress.copy(cash = 300)
+                        } else if (careerProgress.cash < CareerEconomy.MINIMUM_ENTRY_BET) {
+                            // Quiebra: el club concede un prestamo de honor. Se concede UNA sola
+                            // vez en toda la carrera; despues, el jugador tendra que recuperarse
+                            // en sedes mas baratas, que es lo que hace que perder duela.
+                            CareerEconomy.grantBankruptcyRescue(careerProgress)?.let { rescued ->
+                                careerProgress = rescued
+                                showBankruptcyNotice = true
+                            }
                         }
 
                         // Si la partida era el desafio diario, se registra el resultado del
@@ -442,8 +461,39 @@ fun MainNavigation() {
             }
         }
 
-            // El aviso flota sobre la pantalla activa.
-            AchievementUnlockedBanner(
+        // Aviso de prestamo de honor: se muestra una sola vez y explica por que no volvera.
+        if (showBankruptcyNotice) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = {
+                    Text(
+                        text = DominoStrings.bankruptcyTitle(),
+                        color = GoldAccent,
+                        fontWeight = FontWeight.Black
+                    )
+                },
+                text = {
+                    Text(DominoStrings.bankruptcyBody(CareerEconomy.BANKRUPTCY_RESCUE_AMOUNT))
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            DominoSoundManager.playTileTap()
+                            showBankruptcyNotice = false
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GoldAccent,
+                            contentColor = DarkNavy
+                        )
+                    ) {
+                        Text("OK", fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
+
+        // El aviso de logro flota sobre la pantalla activa.
+        AchievementUnlockedBanner(
                 achievementId = pendingAchievement,
                 missionId = pendingMission,
                 hapticsView = hapticAnchor,
