@@ -19,11 +19,10 @@ import kotlin.random.Random
  */
 class PlacementIdentityTest {
 
-    private fun engine(mode: GameMode = GameMode.BLOCK, seed: Long = 1234L) = DominoEngine(
+    private fun engine(mode: GameMode = GameMode.BLOCK, seed: Long = 1234L) = DominoEngine.allAi(
         gameMode = mode,
         targetScore = 300,
-        random = Random(seed),
-        randomSeed = seed
+        seed = seed
     )
 
     @Test

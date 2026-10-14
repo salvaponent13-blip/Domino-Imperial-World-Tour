@@ -30,7 +30,7 @@ class GameModeRulesTest {
     // ------------------------------------------------------------------
 
     private fun engine(mode: GameMode): DominoEngine =
-        DominoEngine(gameMode = mode, targetScore = 500, patternIndex = 3)
+        DominoEngine.allAi(gameMode = mode, targetScore = 500)
 
     private fun tileOf(engine: DominoEngine, playerIndex: Int, high: Int, low: Int): DominoTile =
         engine.players[playerIndex].hand.first { it.high == high && it.low == low }

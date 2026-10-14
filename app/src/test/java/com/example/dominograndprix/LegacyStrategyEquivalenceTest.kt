@@ -31,7 +31,7 @@ import kotlin.random.Random
 class LegacyStrategyEquivalenceTest {
 
     private fun engine(mode: GameMode, seed: Long, targetScore: Int = 400): DominoEngine =
-        DominoEngine(gameMode = mode, targetScore = targetScore, patternIndex = 3, random = Random(seed))
+        DominoEngine.allAi(gameMode = mode, targetScore = targetScore, seed = seed)
 
     /**
      * Motor de control: mismas condiciones, pero todos los asientos resueltos a traves de la

@@ -22,9 +22,9 @@ class EngineReproducibilityTest {
 
     private fun engine(mode: GameMode = GameMode.DRAW, seed: Long? = null): DominoEngine =
         if (seed == null) {
-            DominoEngine(gameMode = mode, targetScore = 100, patternIndex = 3)
+            DominoEngine.allAi(gameMode = mode, targetScore = 100)
         } else {
-            DominoEngine(gameMode = mode, targetScore = 100, patternIndex = 3, random = Random(seed))
+            DominoEngine.allAi(gameMode = mode, targetScore = 100, seed = seed)
         }
 
     private fun handsOf(engine: DominoEngine): List<List<DominoTile>> =

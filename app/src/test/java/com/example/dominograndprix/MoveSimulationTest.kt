@@ -22,7 +22,7 @@ import kotlin.random.Random
 class MoveSimulationTest {
 
     private fun engine(mode: GameMode, seed: Long, targetScore: Int = 400) =
-        DominoEngine(gameMode = mode, targetScore = targetScore, patternIndex = 3, random = Random(seed))
+        DominoEngine.allAi(gameMode = mode, targetScore = targetScore, seed = seed)
 
     /** Resumen textual del estado observable, para comparar antes y despues. */
     private fun stateOf(engine: DominoEngine): String = buildString {

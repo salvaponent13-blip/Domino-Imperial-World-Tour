@@ -42,6 +42,15 @@ data class MatchSnapshot(
     /** Personalidades de los asientos, para reconstruir el rival que estaba en la mesa. */
     val personalities: List<Personality>,
 
+    /**
+     * Asientos ocupados por personas.
+     *
+     * Sin esto, una partida de pass-and-play se reanudaria como si fuera de un solo jugador y
+     * la IA empezaria a mover fichas de los asientos humanos. Tiene valor por defecto para que
+     * los guardados anteriores a esta version sigan cargando.
+     */
+    val humanPlayerIndices: Set<Int> = setOf(0),
+
     // --- Ronda cerrada que el jugador tenia delante ---
     val boardChain: List<BoardPlacedTile>,
     val hands: List<List<DominoTile>>,

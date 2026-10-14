@@ -32,12 +32,10 @@ class MatchSnapshotTest {
         mode: GameMode = GameMode.BLOCK,
         seed: Long = 4242L,
         difficulty: Difficulty = Difficulty.STANDARD
-    ) = DominoEngine(
+    ) = DominoEngine.allAi(
         gameMode = mode,
         targetScore = 300,
-        patternIndex = 3,
-        random = Random(seed),
-        randomSeed = seed,
+        seed = seed,
         difficulty = difficulty
     )
 

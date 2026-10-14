@@ -74,7 +74,10 @@ object AiBenchmarkHarness {
             gameMode = mode,
             targetScore = Int.MAX_VALUE / 2,
             patternIndex = 3,
-            random = Random(seed)
+            random = Random(seed),
+            // Mesa de benchmark: NINGUNA persona. Es esencial declararlo, porque el asiento 0 es
+            // humano por defecto y entonces el motor se negaria a jugar su turno.
+            humanPlayerIndices = emptySet()
         )
         // Una instancia por asiento y con semilla derivada del asiento: misma aleatoriedad
         // para todos, sin que dos asientos compartan generador.

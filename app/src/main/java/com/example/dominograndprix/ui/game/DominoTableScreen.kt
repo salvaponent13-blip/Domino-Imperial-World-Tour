@@ -62,6 +62,13 @@ fun DominoTableScreen(
     targetScore: Int = 100,
     /** Nivel del rival de la sede. Decide con que estrategia juegan los asientos automaticos. */
     difficulty: Difficulty = Difficulty.STANDARD,
+    /**
+     * Asientos que juegan personas. Por defecto solo el 0, que es el modo carrera. En
+     * pass-and-play local se pasa el conjunto de asientos de las personas (1v1: `setOf(0, 2)`).
+     */
+    humanPlayerIndices: Set<Int> = setOf(0),
+    /** Nombres de los asientos. Vacio = los del modo carrera. */
+    playerNames: List<String> = emptyList(),
     /** Partida guardada que hay que reanudar, si la hay. */
     resumeFrom: MatchSnapshot? = null,
     onMatchFinished: (won: Boolean, pointsWon: Int) -> Unit = { _, _ -> },
@@ -79,7 +86,10 @@ fun DominoTableScreen(
                     gameMode = gameMode,
                     targetScore = targetScore,
                     difficulty = difficulty
-                )
+                ).apply {
+                    setHumanPlayerIndices(humanPlayerIndices)
+                    if (playerNames.isNotEmpty()) setPlayerNames(playerNames)
+                }
             }
         )
     }
@@ -92,6 +102,33 @@ fun DominoTableScreen(
 
     // Vista para la respuesta haptica: usarla respeta los ajustes de vibracion del sistema.
     val hapticView = LocalView.current
+
+    // --- Cortina de privacidad del pass-and-play ---
+    // En partidas con varias personas, el traspaso del dispositivo oculta la mano del
+    // siguiente jugador hasta que confirma que le ha llegado. Sin esto, quien pasa el movil
+    // acaba viendo las fichas del otro.
+    val isLocalMatch = engine.value.humanPlayerIndices.size > 1
+    var previousActingSeat by remember { mutableIntStateOf(-1) }
+    var isPrivacyCurtainUp by remember { mutableStateOf(false) }
+
+    LaunchedEffect(engine.value.currentPlayerIndex, engine.value.isRoundOver, engine.value.isMatchOver) {
+        val seat = engine.value.currentPlayerIndex
+        val shouldRaise = PrivacyCurtainRules.shouldRaiseCurtain(
+            humanSeatCount = engine.value.humanPlayerIndices.size,
+            previousActingSeat = previousActingSeat,
+            previousSeatWasHuman = previousActingSeat >= 0 &&
+                previousActingSeat in engine.value.humanPlayerIndices,
+            currentSeat = seat,
+            currentSeatIsHuman = engine.value.isCurrentPlayerHuman,
+            isRoundOver = engine.value.isRoundOver,
+            isMatchOver = engine.value.isMatchOver
+        )
+        if (shouldRaise) {
+            isPrivacyCurtainUp = true
+            selectedTile = null
+        }
+        previousActingSeat = seat
+    }
 
     // Camara vertical en unidades virtuales. Se separa el arrastre manual del encuadre
     // automatico: el arrastre debe responder al dedo al instante, mientras que el reencuadre
@@ -166,10 +203,11 @@ fun DominoTableScreen(
         }
     }
 
-    val isMyTurn = engine.value.currentPlayerIndex == 0 && !engine.value.isRoundOver
+    val isMyTurn = engine.value.isCurrentPlayerHuman && !engine.value.isRoundOver && !isPrivacyCurtainUp
     // Húngaro: tras tirar una ficha válida el turno NO avanza y el jugador puede encadenar.
     val isChaining = isMyTurn && engine.value.canContinueHungarianTurn
-    val human = engine.value.players[0]
+    val actingSeat = engine.value.currentPlayerIndex
+    val human = engine.value.players[actingSeat]
     val playableTiles = remember(
         engine.value.boardChain.size,
         human.hand.size,
@@ -177,11 +215,11 @@ fun DominoTableScreen(
         engine.value.canContinueHungarianTurn,
         gameStateVersion
     ) {
-        if (isMyTurn) engine.value.getPlayableTiles(0) else emptyList()
+        if (isMyTurn) engine.value.getPlayableTiles(actingSeat) else emptyList()
     }
 
     val selectedTileSides = if (selectedTile != null) {
-        engine.value.getPlayableSides(0, selectedTile!!)
+        engine.value.getPlayableSides(actingSeat, selectedTile!!)
     } else {
         emptySet()
     }
@@ -190,9 +228,9 @@ fun DominoTableScreen(
 
     // Draw Special: tu rama asignada y si el rival que la otra posee la tiene abierta.
     val isBranchGame = gameMode == GameMode.DRAW_SPECIAL
-    val humanBranch = engine.value.branchForPlayer(0) ?: BoardSide.LEFT
+    val humanBranch = engine.value.branchForPlayer(actingSeat) ?: BoardSide.LEFT
     val otherBranch = if (humanBranch == BoardSide.LEFT) BoardSide.RIGHT else BoardSide.LEFT
-    val otherBranchLocked = isBranchGame && engine.value.isBranchRestrictedFor(0, otherBranch)
+    val otherBranchLocked = isBranchGame && engine.value.isBranchRestrictedFor(actingSeat, otherBranch)
 
     // Must player draw from face-down boneyard?
     val mustDrawFromBoneyard = isMyTurn && !isChaining && playableTiles.isEmpty() &&
@@ -206,7 +244,7 @@ fun DominoTableScreen(
             logMessage = DominoStrings.autoPassMsg()
             delay(950)
             DominoSoundManager.playPassKnock()
-            engine.value.passTurn(0)
+            engine.value.passTurn(actingSeat)
             logMessage = engine.value.roundLog
             gameStateVersion++
         }
@@ -377,7 +415,7 @@ fun DominoTableScreen(
                                     val t = selectedTile!!
                                     DominoSoundManager.playTileClack(isDouble = t.isDouble)
                                     DominoHaptics.tilePlaced(hapticView)
-                                    engine.value.playTileLeft(0, t)
+                                    engine.value.playTileLeft(actingSeat, t)
                                     selectedTile = null
                                     logMessage = engine.value.roundLog
                                     gameStateVersion++
@@ -404,7 +442,7 @@ fun DominoTableScreen(
                                     val t = selectedTile!!
                                     DominoSoundManager.playTileClack(isDouble = t.isDouble)
                                     DominoHaptics.tilePlaced(hapticView)
-                                    engine.value.playTileRight(0, t)
+                                    engine.value.playTileRight(actingSeat, t)
                                     selectedTile = null
                                     logMessage = engine.value.roundLog
                                     gameStateVersion++
@@ -537,7 +575,7 @@ fun DominoTableScreen(
                                             highlightBorder = true,
                                             onClick = {
                                                 DominoSoundManager.playDrawTile()
-                                                val drawn = engine.value.drawTile(0, idx)
+                                                val drawn = engine.value.drawTile(actingSeat, idx)
                                                 if (drawn != null) {
                                                     logMessage = DominoStrings.drewTileMsg(drawn.toString())
                                                     gameStateVersion++
@@ -638,7 +676,7 @@ fun DominoTableScreen(
                                     if (!isMyTurn || !isPlayable) return@DominoTileView
                                     // Consultar los lados legales en el momento del clic: esto
                                     // respeta tanto Húngaro (encadenar) como las ramas de Draw Special.
-                                    val sides = engine.value.getPlayableSides(0, tile)
+                                    val sides = engine.value.getPlayableSides(actingSeat, tile)
                                     if (sides.isEmpty()) return@DominoTileView
 
                                     if (sides.size == 1) {
@@ -646,9 +684,9 @@ fun DominoTableScreen(
                                         DominoSoundManager.playTileClack(isDouble = tile.isDouble)
                                         DominoHaptics.tilePlaced(hapticView)
                                         if (side == BoardSide.LEFT) {
-                                            engine.value.playTileLeft(0, tile)
+                                            engine.value.playTileLeft(actingSeat, tile)
                                         } else {
-                                            engine.value.playTileRight(0, tile)
+                                            engine.value.playTileRight(actingSeat, tile)
                                         }
                                         logMessage = engine.value.roundLog
                                         selectedTile = null
@@ -657,7 +695,7 @@ fun DominoTableScreen(
                                         // Ambos extremos valen lo mismo: no hay elección real
                                         DominoSoundManager.playTileClack(isDouble = tile.isDouble)
                                         DominoHaptics.tilePlaced(hapticView)
-                                        engine.value.playTileLeft(0, tile)
+                                        engine.value.playTileLeft(actingSeat, tile)
                                         logMessage = engine.value.roundLog
                                         selectedTile = null
                                         gameStateVersion++
@@ -683,7 +721,7 @@ fun DominoTableScreen(
                                     val t = selectedTile!!
                                     DominoSoundManager.playTileClack(isDouble = t.isDouble)
                                     DominoHaptics.tilePlaced(hapticView)
-                                    engine.value.playTileLeft(0, t)
+                                    engine.value.playTileLeft(actingSeat, t)
                                     selectedTile = null
                                     logMessage = engine.value.roundLog
                                     gameStateVersion++
@@ -701,7 +739,7 @@ fun DominoTableScreen(
                                     val t = selectedTile!!
                                     DominoSoundManager.playTileClack(isDouble = t.isDouble)
                                     DominoHaptics.tilePlaced(hapticView)
-                                    engine.value.playTileRight(0, t)
+                                    engine.value.playTileRight(actingSeat, t)
                                     selectedTile = null
                                     logMessage = engine.value.roundLog
                                     gameStateVersion++
@@ -719,7 +757,67 @@ fun DominoTableScreen(
             }
         }
 
-        // 4. ROUND FINISHED DIALOG
+        // 4. CORTINA DE PRIVACIDAD (pass-and-play)
+        // Tapa TODO, incluida la mano, hasta que el nuevo jugador confirma que le ha llegado
+        // el dispositivo. Es lo que impide que el jugador anterior vea sus fichas al pasarlo.
+        if (isPrivacyCurtainUp) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkNavy)
+                    .pointerInput(Unit) { /* se traga cualquier toque: nada de espiar por debajo */ },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier.padding(28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = DominoStrings.passDeviceTitle(),
+                        color = GoldAccent,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 22.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = DominoStrings.passDeviceTo(engine.value.players[engine.value.currentPlayerIndex].name),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        text = DominoStrings.passDeviceHint(),
+                        color = Color.LightGray,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(26.dp))
+                    Button(
+                        onClick = {
+                            DominoSoundManager.playTileTap()
+                            DominoHaptics.softTap(hapticView)
+                            isPrivacyCurtainUp = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                    ) {
+                        Text(
+                            text = DominoStrings.readyBtn(),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // 5. ROUND FINISHED DIALOG
         if (showRoundDialog) {
             AlertDialog(
                 onDismissRequest = {},

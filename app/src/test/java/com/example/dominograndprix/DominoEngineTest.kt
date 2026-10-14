@@ -31,7 +31,7 @@ class DominoEngineTest {
     fun testAllEightModesAndGeometricPhysicalCoupling() {
         for (mode in GameMode.values()) {
             for (patternIdx in 0..4) {
-                val engine = DominoEngine(gameMode = mode, targetScore = 50, patternIndex = patternIdx)
+                val engine = DominoEngine.allAi(gameMode = mode, targetScore = 50, patternIndex = patternIdx)
                 var turns = 0
                 while (!engine.isRoundOver && turns < 100) {
                     turns++
@@ -86,7 +86,7 @@ class DominoEngineTest {
 
     @Test
     fun renderVisualBoardProofFromKotlinEngine() {
-        val engine = DominoEngine(gameMode = GameMode.DRAW, targetScore = 100, patternIndex = 3)
+        val engine = DominoEngine.allAi(gameMode = GameMode.DRAW, targetScore = 100, patternIndex = 3)
         // Play until at least 16 tiles are on the board or round ends
         var steps = 0
         while (!engine.isRoundOver && steps < 60) {

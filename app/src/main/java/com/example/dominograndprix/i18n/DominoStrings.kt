@@ -552,6 +552,70 @@ object DominoStrings {
         AppLanguage.DE -> "ZUM MENÜ"
     }
 
+    // --- PASS-AND-PLAY LOCAL ---
+    fun passDeviceTitle(): String = when (currentLanguage) {
+        AppLanguage.ES -> "PASA EL MÓVIL"
+        AppLanguage.EN -> "PASS THE PHONE"
+        AppLanguage.FR -> "PASSEZ LE TÉLÉPHONE"
+        AppLanguage.IT -> "PASSA IL TELEFONO"
+        AppLanguage.PT -> "PASSE O TELEFONE"
+        AppLanguage.DE -> "GIB DAS HANDY WEITER"
+    }
+
+    fun passDeviceTo(name: String): String = when (currentLanguage) {
+        AppLanguage.ES -> "Le toca a $name"
+        AppLanguage.EN -> "$name's turn"
+        AppLanguage.FR -> "Au tour de $name"
+        AppLanguage.IT -> "Tocca a $name"
+        AppLanguage.PT -> "Vez de $name"
+        AppLanguage.DE -> "$name ist dran"
+    }
+
+    fun passDeviceHint(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Entrega el dispositivo y toca cuando estés listo. La mano queda oculta hasta entonces."
+        AppLanguage.EN -> "Hand over the device and tap when ready. The hand stays hidden until then."
+        AppLanguage.FR -> "Passez l'appareil et touchez quand vous êtes prêt. La main reste cachée jusque-là."
+        AppLanguage.IT -> "Consegna il dispositivo e tocca quando sei pronto. La mano resta nascosta fino ad allora."
+        AppLanguage.PT -> "Entregue o aparelho e toque quando estiver pronto. A mão fica oculta até então."
+        AppLanguage.DE -> "Gib das Gerät weiter und tippe, wenn du bereit bist. Bis dahin bleibt die Hand verdeckt."
+    }
+
+    fun readyBtn(): String = when (currentLanguage) {
+        AppLanguage.ES -> "LISTO, VER MI MANO"
+        AppLanguage.EN -> "READY, SHOW MY HAND"
+        AppLanguage.FR -> "PRÊT, VOIR MA MAIN"
+        AppLanguage.IT -> "PRONTO, MOSTRA LA MIA MANO"
+        AppLanguage.PT -> "PRONTO, VER MINHA MÃO"
+        AppLanguage.DE -> "BEREIT, HAND ANZEIGEN"
+    }
+
+    fun localMatchBtnTitle(): String = when (currentLanguage) {
+        AppLanguage.ES -> "👥 PARTIDA LOCAL (MISMO MÓVIL)"
+        AppLanguage.EN -> "👥 LOCAL MATCH (SAME DEVICE)"
+        AppLanguage.FR -> "👥 PARTIE LOCALE (MÊME APPAREIL)"
+        AppLanguage.IT -> "👥 PARTITA LOCALE (STESSO DISPOSITIVO)"
+        AppLanguage.PT -> "👥 PARTIDA LOCAL (MESMO APARELHO)"
+        AppLanguage.DE -> "👥 LOKALES SPIEL (SELBES GERÄT)"
+    }
+
+    fun localMatchBtnSub(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Dos jugadores por turnos en el mismo teléfono"
+        AppLanguage.EN -> "Two players taking turns on the same phone"
+        AppLanguage.FR -> "Deux joueurs à tour de rôle sur le même téléphone"
+        AppLanguage.IT -> "Due giocatori a turni sullo stesso telefono"
+        AppLanguage.PT -> "Dois jogadores por turnos no mesmo telefone"
+        AppLanguage.DE -> "Zwei Spieler abwechselnd am selben Handy"
+    }
+
+    fun localPlayerName(seat: Int): String = when (currentLanguage) {
+        AppLanguage.ES -> "Jugador ${seat + 1}"
+        AppLanguage.EN -> "Player ${seat + 1}"
+        AppLanguage.FR -> "Joueur ${seat + 1}"
+        AppLanguage.IT -> "Giocatore ${seat + 1}"
+        AppLanguage.PT -> "Jogador ${seat + 1}"
+        AppLanguage.DE -> "Spieler ${seat + 1}"
+    }
+
     // --- PARTIDA EN CURSO GUARDADA ---
     fun resumeMatchTitle(): String = when (currentLanguage) {
         AppLanguage.ES -> "TIENES UNA PARTIDA SIN TERMINAR"

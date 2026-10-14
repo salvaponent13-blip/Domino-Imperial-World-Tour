@@ -46,9 +46,64 @@ class DominoEngine(
     val difficulty: Difficulty = Difficulty.LEGACY,
     /** Personalidades iniciales de los cuatro asientos, en orden. */
     val personalities: List<Personality> = DEFAULT_PERSONALITIES,
-    /** Si el asiento 0 es el jugador humano. Los demas son automaticos. */
-    private val humanSeats: Set<Int> = setOf(0)
+    /**
+     * Nombres de los asientos, en orden. Si se omite, se usan los del modo carrera.
+     *
+     * En pass-and-play local la interfaz pasa "Jugador 1", "Jugador 2"... en el idioma activo,
+     * porque "Tu" o "Carlos" no tienen sentido cuando las cuatro sillas las ocupan personas
+     * que comparten el telefono.
+     */
+    val playerNames: List<String> = SEAT_NAMES,
+    /**
+     * Asientos ocupados por personas.
+     *
+     * Por defecto VACIO: todos los asientos los juega la IA. Ese es el escenario de los
+     * benchmarks y de los tests de reglas, que estudian el juego en si. La interfaz declara
+     * siempre quien juega: el modo carrera pasa `setOf(0)` y el pass-and-play local, el
+     * conjunto de asientos de las personas.
+     *
+     * El motor no decide por los asientos humanos: [executeAIMove] se niega a actuar en ellos
+     * de forma incondicional, porque mover una ficha ajena seria peor que no mover.
+     */
+    humanPlayerIndices: Set<Int> = emptySet()
 ) {
+    /**
+     * Asientos que juegan personas, en lectura publica y escritura controlada.
+     *
+     * Se puede reconfigurar despues de crear el motor (la interfaz lo hace al arrancar la
+     * partida) para no tener que reconstruirlo, pero nadie de fuera puede cambiarlo sin pasar
+     * por [setHumanPlayerIndices].
+     */
+    var humanPlayerIndices: Set<Int> = humanPlayerIndices.toSet()
+        private set
+
+    /**
+     * Declara que asientos juegan personas.
+     *
+     * Refresca tambien la bandera `isHuman` de cada asiento: el reparto inicial se hace en el
+     * constructor y puede haber ocurrido antes de que la interfaz sepa cuantos jugadores hay,
+     * asi que sin esta sincronizacion las banderas quedarian desfasadas respecto al conjunto.
+     */
+    fun setHumanPlayerIndices(seats: Set<Int>) {
+        humanPlayerIndices = seats.toSet()
+        players.indices.forEach { seat ->
+            players[seat] = players[seat].copy(isHuman = seat in humanPlayerIndices)
+        }
+    }
+
+    /**
+     * Renombra los asientos.
+     *
+     * El pass-and-play local usa nombres neutros ("Jugador 1", "Jugador 2") porque "Tu" o
+     * "Carlos" no tienen sentido cuando las sillas las ocupan personas que comparten telefono.
+     */
+    fun setPlayerNames(names: List<String>) {
+        players.indices.forEach { seat ->
+            val name = names.getOrNull(seat) ?: return@forEach
+            players[seat] = players[seat].copy(name = name)
+        }
+    }
+
     companion object {
         /**
          * Personalidades por defecto de los cuatro asientos: el jugador, dos rivales y el
@@ -62,10 +117,32 @@ class DominoEngine(
         )
 
         /** Nombres de los asientos, en orden. */
-        private val SEAT_NAMES = listOf("Tú", "Carlos", "Mateo", "Rodrigo")
+        val SEAT_NAMES = listOf("Tú", "Carlos", "Mateo", "Rodrigo")
 
         /** Equipos: 0 y 2 contra 1 y 3. */
         private val SEAT_TEAMS = listOf(0, 1, 0, 1)
+
+        /**
+         * Motor SIN ninguna persona: todos los asientos los juega la IA.
+         *
+         * Es lo que necesitan los benchmarks y los tests de reglas, que estudian el juego en si
+         * y no la interaccion con un jugador. Existe como fabrica con nombre propio para que no
+         * haya que recordar que el valor por defecto del constructor si tiene una persona.
+         */
+        fun allAi(
+            gameMode: GameMode,
+            targetScore: Int = 100,
+            seed: Long = 0L,
+            patternIndex: Int = 3,
+            difficulty: Difficulty = Difficulty.LEGACY
+        ): DominoEngine = DominoEngine(
+            gameMode = gameMode,
+            targetScore = targetScore,
+            patternIndex = patternIndex,
+            random = Random(seed),
+            randomSeed = seed,
+            difficulty = difficulty
+        )
 
         /**
          * Arranca una partida nueva con una semilla conocida, para que el guardado posterior
@@ -99,7 +176,8 @@ class DominoEngine(
             random = Random(snapshot.randomSeed),
             randomSeed = snapshot.randomSeed,
             difficulty = snapshot.difficulty,
-            personalities = snapshot.personalities
+            personalities = snapshot.personalities,
+            humanPlayerIndices = snapshot.humanPlayerIndices
         ).apply { restoreFrom(snapshot) }
     }
 
@@ -148,6 +226,19 @@ class DominoEngine(
     var lastAiMove: AiMove? = null
         private set
 
+    /**
+     * Si el turno pertenece a una persona. La interfaz lo usa para saber si debe esperar una
+     * jugada del jugador o si el motor puede resolver el turno solo.
+     */
+    val isCurrentPlayerHuman: Boolean
+        get() = currentPlayerIndex in humanPlayerIndices
+
+    /** Asientos automaticos: los que no ocupa una persona. */
+    val aiPlayerIndices: Set<Int>
+        get() = players.indices.toSet() - humanPlayerIndices
+    
+
+
     // Último jugador que pasó y el turno en que lo hizo. Sirve para saber si la rama
     // de un rival sigue bloqueada y por tanto se puede invadir.
     private var lastPassingPlayerIndex: Int? = null
@@ -167,8 +258,8 @@ class DominoEngine(
             players.add(
                 Player(
                     id = seat,
-                    name = SEAT_NAMES[seat],
-                    isHuman = seat in humanSeats,
+                    name = playerNames.getOrElse(seat) { SEAT_NAMES.getOrElse(seat) { "Asiento $seat" } },
+                    isHuman = seat in humanPlayerIndices,
                     personality = personalities.getOrElse(seat) { Personality.NICE },
                     team = SEAT_TEAMS[seat]
                 )
@@ -688,6 +779,11 @@ class DominoEngine(
      * estrategia heredada, para que una estrategia defectuosa no pueda corromper la partida.
      */
     fun executeAIMove(): Boolean {
+        // Salvaguarda incondicional: el motor NO mueve el turno de una persona. Si esto se
+        // dispara, es un fallo de quien llama (la interfaz solo debe pedir turno a la IA), y
+        // no mover es preferible a mover una ficha ajena.
+        if (isCurrentPlayerHuman) return false
+
         val seat = currentPlayerIndex
         val view = viewFor(seat)
         lastAiMove = strategyFor(seat).decide(view)
@@ -750,6 +846,7 @@ class DominoEngine(
             isMatchOver = isMatchOver,
             winningTeam = winningTeam,
             personalities = players.map { it.personality },
+            humanPlayerIndices = humanPlayerIndices,
             boardChain = boardChain.toList(),
             hands = players.map { it.hand },
             leftOpenPip = leftOpenPip,
@@ -774,7 +871,9 @@ class DominoEngine(
                 Player(
                     id = seat,
                     name = SEAT_NAMES.getOrElse(seat) { "Asiento $seat" },
-                    isHuman = seat in humanSeats,
+                    // Los asientos humanos vienen del guardado y no de la configuracion actual:
+                    // una partida local debe reanudarse con las mismas personas en la mesa.
+                    isHuman = seat in snapshot.humanPlayerIndices,
                     personality = snapshot.personalities.getOrElse(seat) { Personality.NICE },
                     hand = hand,
                     score = snapshot.scores.getOrElse(seat) { 0 },
@@ -804,7 +903,7 @@ class DominoEngine(
 
         // El turno se reanuda en un asiento humano: la siguiente accion del jugador es
         // confirmar el fin de ronda y empezar la siguiente.
-        currentPlayerIndex = humanSeats.minOrNull() ?: 0
+        currentPlayerIndex = humanPlayerIndices.minOrNull() ?: 0
         openingPlayerIndex = currentPlayerIndex
         turnNumber = 0
     }

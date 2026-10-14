@@ -13,6 +13,7 @@ import com.example.dominograndprix.data.JourneyProgress
 import com.example.dominograndprix.data.MatchSnapshot
 import com.example.dominograndprix.data.MatchSnapshotStore
 import com.example.dominograndprix.data.WorldTourRepository
+import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.CityVenue
 import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.GameMode
@@ -89,6 +90,10 @@ fun MainNavigation() {
     var activeTargetScore by remember { mutableStateOf(100) }
     var activeVenueId by remember { mutableStateOf<String?>("cuba") }
     var activeDifficulty by remember { mutableStateOf(Difficulty.STANDARD) }
+    /** Asientos que juegan personas en la partida activa. */
+    var activeHumanSeats by remember { mutableStateOf(setOf(0)) }
+    /** Nombres de los asientos de la partida activa, vacio = los del modo carrera. */
+    var activePlayerNames by remember { mutableStateOf(emptyList<String>()) }
     var selectedVenue by remember { mutableStateOf<CityVenue?>(venues.first()) }
 
     // Partida en curso guardada: si existe al arrancar, la app ofrece continuarla en vez de
@@ -116,7 +121,30 @@ fun MainNavigation() {
                         DominoSoundManager.playTileTap()
                         val havana = venues.first()
                         selectedVenue = havana
+                        // Modo carrera: un solo jugador humano en el asiento 0.
+                        activeHumanSeats = setOf(0)
+                        activePlayerNames = emptyList()
                         currentScreen = AppScreen.RIVAL_SHOWDOWN
+                    },
+                    onLocalMatch = {
+                        DominoSoundManager.playTileTap()
+                        // Pass-and-play 1v1: dos personas que comparten el telefono, en los
+                        // asientos 0 y 2, que ademas son equipos distintos.
+                        activeMode = GameMode.DRAW
+                        activeCityName = "Partida local"
+                        activeBet = 0
+                        activeTargetScore = 100
+                        activeVenueId = null
+                        activeDifficulty = Difficulty.STANDARD
+                        activeHumanSeats = setOf(0, 2)
+                        activePlayerNames = listOf(
+                            DominoStrings.localPlayerName(0),
+                            "Carlos",
+                            DominoStrings.localPlayerName(1),
+                            "Rodrigo"
+                        )
+                        MatchSnapshotStore.clear(context)
+                        currentScreen = AppScreen.MATCH_TABLE
                     },
                     onShowRules = {
                         DominoSoundManager.playTileTap()
@@ -183,6 +211,9 @@ fun MainNavigation() {
                         activeTargetScore = venue.targetScore
                         activeVenueId = venue.id
                         activeDifficulty = venue.difficulty
+                        // Modo carrera: un solo jugador humano en el asiento 0.
+                        activeHumanSeats = setOf(0)
+                        activePlayerNames = emptyList()
                         // Empezar una partida nueva descarta cualquier guardado anterior:
                         // si no, al entrar se reanudaria la partida vieja de esa sede.
                         MatchSnapshotStore.clear(context)
@@ -209,6 +240,8 @@ fun MainNavigation() {
                     betAmount = activeBet,
                     targetScore = activeTargetScore,
                     difficulty = activeDifficulty,
+                    humanPlayerIndices = activeHumanSeats,
+                    playerNames = activePlayerNames,
                     resumeFrom = resumeSnapshot,
                     onMatchFinished = { won, reward ->
                         if (won) {

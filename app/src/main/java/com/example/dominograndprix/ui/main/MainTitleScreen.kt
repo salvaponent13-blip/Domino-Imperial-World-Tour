@@ -31,6 +31,7 @@ import com.example.dominograndprix.ui.game.GoldAccent
 fun MainTitleScreen(
     onStartWorldTour: () -> Unit = {},
     onQuickPlay: () -> Unit = {},
+    onLocalMatch: () -> Unit = {},
     onShowRules: () -> Unit = {},
     onShowTrophies: () -> Unit = {}
 ) {
@@ -155,6 +156,17 @@ fun MainTitleScreen(
                 containerColor = Color(0xFF1B6B3E),
                 contentColor = Color.White,
                 onClick = onQuickPlay
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Partida local (pass-and-play): dos personas, mismo dispositivo
+            MenuOptionCard(
+                title = DominoStrings.localMatchBtnTitle(),
+                subtitle = DominoStrings.localMatchBtnSub(),
+                containerColor = Color(0xFF2D3E5E),
+                contentColor = Color.White,
+                onClick = onLocalMatch
             )
 
             Spacer(modifier = Modifier.height(10.dp))
