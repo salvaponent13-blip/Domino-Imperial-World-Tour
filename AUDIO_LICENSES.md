@@ -2,6 +2,13 @@
 
 Este documento detalla la procedencia, autoría, tipo de licencia y términos legales de cada pista de música y efecto de sonido incluidos en el juego *Domino Imperial: World Tour*.
 
+> **Nota sobre el formato de los archivos:** las pistas incluidas en `res/raw` son versiones
+> **recortadas y recodificadas** de las grabaciones originales, para ajustar el peso del APK.
+> El recorte no altera la obra ni sus términos de licencia: solo reduce la duración y cambia el
+> formato (mono a 24 kHz). El proceso está automatizado en `tools/slim_audio.py`, es
+> reproducible, y los nombres de archivo se mantienen estables porque los recursos de la app
+> dependen de ellos.
+
 ---
 
 ## 1. Pistas Musicales (Banda Sonora)
