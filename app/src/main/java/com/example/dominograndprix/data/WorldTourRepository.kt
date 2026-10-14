@@ -2,6 +2,7 @@ package com.example.dominograndprix.data
 
 import com.example.dominograndprix.R
 import com.example.dominograndprix.model.CityVenue
+import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.model.LuxuryItem
 
@@ -15,6 +16,7 @@ object WorldTourRepository {
             entryBet = 100,
             targetScore = 100,
             defaultMode = GameMode.DRAW,
+            difficulty = Difficulty.RELAXED,
             wrpReward = 1500,
             trophyTitle = "Estuche Imperial de Habanos",
             trophyValue = 600,
@@ -33,6 +35,7 @@ object WorldTourRepository {
             entryBet = 200,
             targetScore = 100,
             defaultMode = GameMode.ALL_FIVES,
+            difficulty = Difficulty.RELAXED,
             wrpReward = 1500,
             trophyTitle = "Medalla Azteca de Plata",
             trophyValue = 900,
@@ -51,6 +54,7 @@ object WorldTourRepository {
             entryBet = 350,
             targetScore = 120,
             defaultMode = GameMode.BLOCK,
+            difficulty = Difficulty.STANDARD,
             wrpReward = 1500,
             trophyTitle = "Anillo Real del Caribe",
             trophyValue = 1400,
@@ -69,6 +73,7 @@ object WorldTourRepository {
             entryBet = 500,
             targetScore = 150,
             defaultMode = GameMode.FIVES_AND_THREES,
+            difficulty = Difficulty.STANDARD,
             wrpReward = 1800,
             trophyTitle = "Saxofón de Oro Bourbon St.",
             trophyValue = 2800,
@@ -87,6 +92,7 @@ object WorldTourRepository {
             entryBet = 800,
             targetScore = 150,
             defaultMode = GameMode.DRAW_SPECIAL,
+            difficulty = Difficulty.STANDARD,
             wrpReward = 2000,
             trophyTitle = "Cronógrafo Imperial de Platino",
             trophyValue = 5500,
@@ -105,6 +111,7 @@ object WorldTourRepository {
             entryBet = 1200,
             targetScore = 180,
             defaultMode = GameMode.BLOCK_HUNGARIAN,
+            difficulty = Difficulty.TOUGH,
             wrpReward = 2200,
             trophyTitle = "Deportivo Riviera GT",
             trophyValue = 15000,
@@ -123,6 +130,7 @@ object WorldTourRepository {
             entryBet = 1500,
             targetScore = 200,
             defaultMode = GameMode.MATADOR,
+            difficulty = Difficulty.TOUGH,
             wrpReward = 3500,
             trophyTitle = "Copa Mundial Domino Imperial",
             trophyValue = 50000,

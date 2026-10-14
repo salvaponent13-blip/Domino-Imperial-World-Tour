@@ -552,6 +552,43 @@ object DominoStrings {
         AppLanguage.DE -> "ZUM MENÜ"
     }
 
+    // --- PARTIDA EN CURSO GUARDADA ---
+    fun resumeMatchTitle(): String = when (currentLanguage) {
+        AppLanguage.ES -> "TIENES UNA PARTIDA SIN TERMINAR"
+        AppLanguage.EN -> "YOU HAVE AN UNFINISHED MATCH"
+        AppLanguage.FR -> "VOUS AVEZ UNE PARTIE INACHEVÉE"
+        AppLanguage.IT -> "HAI UNA PARTITA IN CORSO"
+        AppLanguage.PT -> "VOCÊ TEM UMA PARTIDA INACABADA"
+        AppLanguage.DE -> "DU HAST EIN OFFENES SPIEL"
+    }
+
+    fun resumeMatchSub(cityName: String): String = when (currentLanguage) {
+        AppLanguage.ES -> "Se quedó a medias en $cityName"
+        AppLanguage.EN -> "Left unfinished in $cityName"
+        AppLanguage.FR -> "Inachevée à $cityName"
+        AppLanguage.IT -> "Rimasta in sospeso a $cityName"
+        AppLanguage.PT -> "Ficou pela metade em $cityName"
+        AppLanguage.DE -> "Unbeendet in $cityName"
+    }
+
+    fun resumeMatchBtn(): String = when (currentLanguage) {
+        AppLanguage.ES -> "CONTINUAR PARTIDA"
+        AppLanguage.EN -> "CONTINUE MATCH"
+        AppLanguage.FR -> "REPRENDRE LA PARTIE"
+        AppLanguage.IT -> "CONTINUA PARTITA"
+        AppLanguage.PT -> "CONTINUAR PARTIDA"
+        AppLanguage.DE -> "SPIEL FORTSETZEN"
+    }
+
+    fun discardMatchBtn(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Descartar"
+        AppLanguage.EN -> "Discard"
+        AppLanguage.FR -> "Abandonner"
+        AppLanguage.IT -> "Scarta"
+        AppLanguage.PT -> "Descartar"
+        AppLanguage.DE -> "Verwerfen"
+    }
+
     // --- RULES GUIDE SCREEN & GAME MODES ---
     fun rulesGuideTitle(): String = when (currentLanguage) {
         AppLanguage.ES -> "📖 GUÍA DE LAS 8 MODALIDADES"

@@ -33,6 +33,10 @@ fun WorldTourMapScreen(
     venues: List<CityVenue>,
     playerCash: Int = 2500,
     playerWrp: Int = 1500,
+    /** Ciudad de la partida guardada, si hay una a medias. */
+    unfinishedMatchCity: String? = null,
+    onResumeMatch: () -> Unit = {},
+    onDiscardMatch: () -> Unit = {},
     onSelectVenue: (CityVenue) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
@@ -112,7 +116,17 @@ fun WorldTourMapScreen(
                     }
                 }
 
-                // 2. City Venues List with Postcard Thumbnails
+                // 2. Partida sin terminar: se ofrece continuarla antes que la lista de ciudades
+                if (unfinishedMatchCity != null) {
+                    UnfinishedMatchBanner(
+                        cityName = unfinishedMatchCity,
+                        onResume = onResumeMatch,
+                        onDiscard = onDiscardMatch
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // 3. City Venues List with Postcard Thumbnails
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -127,7 +141,7 @@ fun WorldTourMapScreen(
                     }
                 }
 
-                // 3. Bottom Navigation
+                // 4. Bottom Navigation
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
                     onClick = onBack,
@@ -138,6 +152,55 @@ fun WorldTourMapScreen(
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(DominoStrings.backToMainMenu(), color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UnfinishedMatchBanner(
+    cityName: String,
+    onResume: () -> Unit,
+    onDiscard: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF1B3A2B).copy(alpha = 0.96f),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, GoldAccent)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = DominoStrings.resumeMatchTitle(),
+                color = GoldAccent,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 12.sp
+            )
+            Text(
+                text = DominoStrings.resumeMatchSub(cityName),
+                color = Color.White,
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onResume,
+                    colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1.8f).height(38.dp)
+                ) {
+                    Text(DominoStrings.resumeMatchBtn(), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                }
+                Button(
+                    onClick = onDiscard,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.14f)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f).height(38.dp)
+                ) {
+                    Text(DominoStrings.discardMatchBtn(), color = Color.White, fontSize = 11.sp)
                 }
             }
         }

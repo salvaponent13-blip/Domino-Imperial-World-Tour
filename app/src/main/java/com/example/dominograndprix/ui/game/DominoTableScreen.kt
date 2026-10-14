@@ -17,15 +17,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.data.MatchSnapshot
+import com.example.dominograndprix.data.MatchSnapshotStore
 import com.example.dominograndprix.engine.DominoEngine
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.BoardPlacedTile
 import com.example.dominograndprix.model.BoardSide
+import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.DominoTile
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.model.Player
@@ -45,15 +49,35 @@ fun DominoTableScreen(
     venueId: String? = "cuba",
     betAmount: Int = 500,
     targetScore: Int = 100,
+    /** Nivel del rival de la sede. Decide con que estrategia juegan los asientos automaticos. */
+    difficulty: Difficulty = Difficulty.STANDARD,
+    /** Partida guardada que hay que reanudar, si la hay. */
+    resumeFrom: MatchSnapshot? = null,
     onMatchFinished: (won: Boolean, pointsWon: Int) -> Unit = { _, _ -> },
     onBack: () -> Unit = {}
 ) {
-    val engine = remember { mutableStateOf(DominoEngine(gameMode = gameMode, targetScore = targetScore)) }
+    val context = LocalContext.current
+    // Semilla de la partida: se fija al crearla y viaja con el guardado, de modo que el
+    // reparto de la siguiente ronda es coherente al reanudar.
+    val engine = remember {
+        mutableStateOf(
+            if (resumeFrom != null) {
+                DominoEngine.resume(resumeFrom)
+            } else {
+                DominoEngine.newMatch(
+                    gameMode = gameMode,
+                    targetScore = targetScore,
+                    difficulty = difficulty
+                )
+            }
+        )
+    }
     var gameStateVersion by remember { mutableIntStateOf(0) }
     var selectedTile by remember { mutableStateOf<DominoTile?>(null) }
     var logMessage by remember { mutableStateOf(engine.value.roundLog) }
     var isAIThinking by remember { mutableStateOf(false) }
-    var showRoundDialog by remember { mutableStateOf(false) }
+    // Si se reanuda una partida, la ronda ya estaba cerrada: el dialogo debe salir de entrada.
+    var showRoundDialog by remember { mutableStateOf(resumeFrom != null) }
 
     // Vertical camera offset in virtual units
     var verticalCameraVirtY by remember { mutableFloatStateOf(0f) }
@@ -67,6 +91,20 @@ fun DominoTableScreen(
                 DominoSoundManager.playDefeatJingle()
             }
             showRoundDialog = true
+        }
+    }
+
+    // Guardado de la partida al cerrar cada ronda (enfoque 80/20 del plan).
+    LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
+        val current = engine.value
+        if (current.isRoundOver && !current.isMatchOver) {
+            MatchSnapshotStore.save(
+                context,
+                current.toSnapshot(cityName = cityName, venueId = venueId, betAmount = betAmount)
+            )
+        } else if (current.isMatchOver) {
+            // La partida ha terminado: no debe quedar un guardado que la resucite.
+            MatchSnapshotStore.clear(context)
         }
     }
 

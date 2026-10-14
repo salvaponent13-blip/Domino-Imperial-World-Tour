@@ -10,8 +10,11 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.CareerProgressStore
 import com.example.dominograndprix.data.JourneyProgress
+import com.example.dominograndprix.data.MatchSnapshot
+import com.example.dominograndprix.data.MatchSnapshotStore
 import com.example.dominograndprix.data.WorldTourRepository
 import com.example.dominograndprix.model.CityVenue
+import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.ui.game.DominoTableScreen
 import com.example.dominograndprix.ui.main.MainTitleScreen
@@ -85,7 +88,15 @@ fun MainNavigation() {
     var activeBet by remember { mutableStateOf(100) }
     var activeTargetScore by remember { mutableStateOf(100) }
     var activeVenueId by remember { mutableStateOf<String?>("cuba") }
+    var activeDifficulty by remember { mutableStateOf(Difficulty.STANDARD) }
     var selectedVenue by remember { mutableStateOf<CityVenue?>(venues.first()) }
+
+    // Partida en curso guardada: si existe al arrancar, la app ofrece continuarla en vez de
+    // perder el progreso y las monedas cuando el sistema mata el proceso.
+    var resumeSnapshot by remember { mutableStateOf<MatchSnapshot?>(null) }
+    LaunchedEffect(Unit) {
+        resumeSnapshot = MatchSnapshotStore.load(context)
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -126,6 +137,24 @@ fun MainNavigation() {
                     venues = venues,
                     playerCash = playerCash,
                     playerWrp = playerWrp,
+                    unfinishedMatchCity = resumeSnapshot?.cityName,
+                    onResumeMatch = {
+                        DominoSoundManager.playTileClack(isDouble = true)
+                        resumeSnapshot?.let { snapshot ->
+                            activeMode = snapshot.gameMode
+                            activeCityName = snapshot.cityName
+                            activeBet = snapshot.betAmount
+                            activeTargetScore = snapshot.targetScore
+                            activeVenueId = snapshot.venueId
+                            activeDifficulty = snapshot.difficulty
+                            currentScreen = AppScreen.MATCH_TABLE
+                        }
+                    },
+                    onDiscardMatch = {
+                        DominoSoundManager.playTileTap()
+                        MatchSnapshotStore.clear(context)
+                        resumeSnapshot = null
+                    },
                     onSelectVenue = { venue ->
                         DominoSoundManager.playTileTap()
                         selectedVenue = venue
@@ -153,6 +182,10 @@ fun MainNavigation() {
                         activeBet = venue.entryBet
                         activeTargetScore = venue.targetScore
                         activeVenueId = venue.id
+                        activeDifficulty = venue.difficulty
+                        // Empezar una partida nueva descarta cualquier guardado anterior:
+                        // si no, al entrar se reanudaria la partida vieja de esa sede.
+                        MatchSnapshotStore.clear(context)
                         if (playerCash >= venue.entryBet) {
                             playerCash -= venue.entryBet
                         }
@@ -175,6 +208,8 @@ fun MainNavigation() {
                     venueId = activeVenueId,
                     betAmount = activeBet,
                     targetScore = activeTargetScore,
+                    difficulty = activeDifficulty,
+                    resumeFrom = resumeSnapshot,
                     onMatchFinished = { won, reward ->
                         if (won) {
                             playerCash += reward

@@ -1,12 +1,15 @@
 package com.example.dominograndprix.engine
 
+import com.example.dominograndprix.data.MatchSnapshot
 import com.example.dominograndprix.engine.ai.AiMove
 import com.example.dominograndprix.engine.ai.DominoStrategy
+import com.example.dominograndprix.engine.ai.EasyStrategy
 import com.example.dominograndprix.engine.ai.LegacyStrategy
 import com.example.dominograndprix.engine.ai.MediumStrategy
 import com.example.dominograndprix.engine.ai.MediumWeights
 import com.example.dominograndprix.engine.ai.MoveSimulation
 import com.example.dominograndprix.engine.ai.PlayerView
+import com.example.dominograndprix.engine.ai.StrategyCatalog
 import com.example.dominograndprix.model.*
 import kotlin.math.abs
 import kotlin.random.Random
@@ -29,8 +32,77 @@ class DominoEngine(
      * Es la base del benchmark de IA y del desafio diario. En produccion se deja el
      * generador por defecto.
      */
-    private val random: Random = Random.Default
+    private val random: Random = Random.Default,
+    /**
+     * Semilla con la que se construyo [random], si se conoce. Se guarda en la partida para
+     * poder reanudarla (ver `MatchSnapshot`).
+     */
+    var randomSeed: Long = 0L,
+    /**
+     * Nivel del rival. Decide con que estrategia juegan los asientos automaticos: `LEGACY` es
+     * el comportamiento historico (y el valor por defecto, para no alterar tests ni
+     * benchmarks), `RELAXED` juega sin criterio y `STANDARD`/`TOUGH` con la heuristica medida.
+     */
+    val difficulty: Difficulty = Difficulty.LEGACY,
+    /** Personalidades iniciales de los cuatro asientos, en orden. */
+    val personalities: List<Personality> = DEFAULT_PERSONALITIES,
+    /** Si el asiento 0 es el jugador humano. Los demas son automaticos. */
+    private val humanSeats: Set<Int> = setOf(0)
 ) {
+    companion object {
+        /**
+         * Personalidades por defecto de los cuatro asientos: el jugador, dos rivales y el
+         * companero. Se conservan como estaban para no cambiar el comportamiento historico.
+         */
+        val DEFAULT_PERSONALITIES: List<Personality> = listOf(
+            Personality.CONFIDENT, // Tú
+            Personality.AGGRESSIVE, // Carlos
+            Personality.NICE, // Mateo (compañero)
+            Personality.CONFIDENT // Rodrigo
+        )
+
+        /** Nombres de los asientos, en orden. */
+        private val SEAT_NAMES = listOf("Tú", "Carlos", "Mateo", "Rodrigo")
+
+        /** Equipos: 0 y 2 contra 1 y 3. */
+        private val SEAT_TEAMS = listOf(0, 1, 0, 1)
+
+        /**
+         * Arranca una partida nueva con una semilla conocida, para que el guardado posterior
+         * pueda reconstruirla.
+         */
+        fun newMatch(
+            gameMode: GameMode,
+            targetScore: Int,
+            difficulty: Difficulty,
+            seed: Long = System.currentTimeMillis(),
+            patternIndex: Int = 3
+        ): DominoEngine = DominoEngine(
+            gameMode = gameMode,
+            targetScore = targetScore,
+            patternIndex = patternIndex,
+            random = Random(seed),
+            randomSeed = seed,
+            difficulty = difficulty
+        )
+
+        /**
+         * Reanuda la partida descrita por [snapshot].
+         *
+         * El motor nace con la semilla guardada y las identidades de los asientos, y despues
+         * se le aplica el estado. Deja la ronda cerrada, que es el punto en el que se guardo.
+         */
+        fun resume(snapshot: MatchSnapshot): DominoEngine = DominoEngine(
+            gameMode = snapshot.gameMode,
+            targetScore = snapshot.targetScore,
+            patternIndex = snapshot.patternIndex,
+            random = Random(snapshot.randomSeed),
+            randomSeed = snapshot.randomSeed,
+            difficulty = snapshot.difficulty,
+            personalities = snapshot.personalities
+        ).apply { restoreFrom(snapshot) }
+    }
+
     // Deck & Boneyard
     var boneyard: MutableList<DominoTile> = mutableListOf()
     val players: MutableList<Player> = mutableListOf()
@@ -88,11 +160,17 @@ class DominoEngine(
 
     fun setupGame() {
         players.clear()
-        val p1 = Player(0, "Tú", isHuman = true, personality = Personality.CONFIDENT, team = 0)
-        val p2 = Player(1, "Carlos", isHuman = false, personality = Personality.AGGRESSIVE, team = 1)
-        val p3 = Player(2, "Mateo", isHuman = false, personality = Personality.NICE, team = 0)
-        val p4 = Player(3, "Rodrigo", isHuman = false, personality = Personality.CONFIDENT, team = 1)
-        players.addAll(listOf(p1, p2, p3, p4))
+        for (seat in 0 until SEAT_NAMES.size) {
+            players.add(
+                Player(
+                    id = seat,
+                    name = SEAT_NAMES[seat],
+                    isHuman = seat in humanSeats,
+                    personality = personalities.getOrElse(seat) { Personality.NICE },
+                    team = SEAT_TEAMS[seat]
+                )
+            )
+        }
         startNewRound()
     }
 
@@ -243,12 +321,26 @@ class DominoEngine(
     /**
      * Estrategia que debe decidir por el asiento indicado.
      *
-     * Se resuelve en cada turno (no se cachea) a proposito: en los tests se cambian
-     * personalidades y overrides sobre la marcha y el motor debe reflejarlo.
+     * En cada turno se resuelve asi:
+     * 1. Si el asiento tiene una estrategia inyectada (benchmarks y pruebas), se usa.
+     * 2. Si no, se construye la que corresponde a su dificultad y personalidad.
+     *
+     * No se cachea a proposito: en los tests se cambian personalidades y overrides sobre la
+     * marcha y el motor debe reflejarlo.
      */
-    fun strategyFor(playerIndex: Int): DominoStrategy =
-        strategyOverrides[playerIndex]
-            ?: LegacyStrategy(players.getOrNull(playerIndex)?.personality ?: Personality.NICE)
+    fun strategyFor(playerIndex: Int): DominoStrategy {
+        strategyOverrides[playerIndex]?.let { return it }
+        val personality = players.getOrNull(playerIndex)?.personality ?: Personality.NICE
+        return when (difficulty) {
+            // Referencia historica: es la que miden los benchmarks como baseline.
+            Difficulty.LEGACY -> LegacyStrategy(personality)
+            // Rival de iniciacion: no tiene criterio, elige al azar entre sus jugadas.
+            Difficulty.RELAXED -> EasyStrategy(Random(randomSeed + playerIndex))
+            Difficulty.STANDARD, Difficulty.TOUGH -> MediumStrategy(
+                weights = StrategyCatalog.weightsFor(personality, difficulty)
+            ) { move -> simulate(playerIndex, move) }
+        }
+    }
 
     /** Fija la estrategia de un asiento. Sirve para enfrentar dos estrategias en la mesa. */
     fun setStrategyOverride(playerIndex: Int, strategy: DominoStrategy) {
@@ -626,6 +718,87 @@ class DominoEngine(
             passTurn(playerIndex)
         }
         return true
+    }
+
+    // ------------------------------------------------------------------
+    // Guardado y reanudacion de la partida
+    // ------------------------------------------------------------------
+
+    /**
+     * Fotografia de la partida para poder reanudarla.
+     *
+     * Solo tiene sentido llamarlo con la ronda cerrada (`isRoundOver`): es el punto que se
+     * acordo guardar, porque a mitad de jugada hay estados en vuelo (encadenamiento hungaro,
+     * ventana de invasion) que complican la restauracion sin aportar valor al jugador.
+     */
+    fun toSnapshot(cityName: String, venueId: String?, betAmount: Int): MatchSnapshot =
+        MatchSnapshot(
+            gameMode = gameMode,
+            difficulty = difficulty,
+            targetScore = targetScore,
+            patternIndex = patternIndex,
+            cityName = cityName,
+            venueId = venueId,
+            betAmount = betAmount,
+            scores = players.map { it.score },
+            isMatchOver = isMatchOver,
+            winningTeam = winningTeam,
+            personalities = players.map { it.personality },
+            boardChain = boardChain.toList(),
+            hands = players.map { it.hand },
+            leftOpenPip = leftOpenPip,
+            rightOpenPip = rightOpenPip,
+            winnerPlayerId = winnerPlayerId,
+            roundLog = roundLog,
+            randomSeed = randomSeed
+        )
+
+    /**
+     * Reanuda la partida descrita por [snapshot].
+     *
+     * Deja el motor tal y como estaba al cerrar la ronda: marcadores, tablero, manos y el
+     * ganador de esa ronda. `isRoundOver` queda en `true` para que la interfaz muestre el
+     * resultado de la ronda y el jugador continue con la siguiente, que es exactamente el
+     * punto en el que se guardo.
+     */
+    fun restoreFrom(snapshot: MatchSnapshot) {
+        players.clear()
+        snapshot.hands.forEachIndexed { seat, hand ->
+            players.add(
+                Player(
+                    id = seat,
+                    name = SEAT_NAMES.getOrElse(seat) { "Asiento $seat" },
+                    isHuman = seat in humanSeats,
+                    personality = snapshot.personalities.getOrElse(seat) { Personality.NICE },
+                    hand = hand,
+                    score = snapshot.scores.getOrElse(seat) { 0 },
+                    team = SEAT_TEAMS.getOrElse(seat) { 0 }
+                )
+            )
+        }
+
+        boardChain.clear()
+        boardChain.addAll(snapshot.boardChain)
+        boneyard.clear()
+        leftOpenPip = snapshot.leftOpenPip
+        rightOpenPip = snapshot.rightOpenPip
+
+        isRoundOver = true
+        isMatchOver = snapshot.isMatchOver
+        winnerPlayerId = snapshot.winnerPlayerId
+        winningTeam = snapshot.winningTeam
+        roundLog = snapshot.roundLog
+        canContinueHungarianTurn = false
+        consecutivePasses = 0
+        lastPassingPlayerIndex = null
+        lastPassTurnNumber = -1
+        lastPointsEarned = 0
+
+        // El turno se reanuda en un asiento humano: la siguiente accion del jugador es
+        // confirmar el fin de ronda y empezar la siguiente.
+        currentPlayerIndex = humanSeats.minOrNull() ?: 0
+        openingPlayerIndex = currentPlayerIndex
+        turnNumber = 0
     }
 
     /**

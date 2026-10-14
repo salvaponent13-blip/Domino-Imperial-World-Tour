@@ -1,8 +1,11 @@
 package com.example.dominograndprix.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Representation of an individual domino tile (bone).
  */
+@Serializable
 data class DominoTile(
     val high: Int,
     val low: Int
@@ -29,9 +32,33 @@ enum class BoardSide {
 }
 
 /**
+ * Nivel del rival de una sede. Determina la estrategia con la que juega la IA y, por tanto,
+ * la dificultad real de la partida: el resto de la sede (modo, objetivo, apuesta) no cambia
+ * lo dificil que es ganar.
+ */
+enum class Difficulty {
+    /**
+     * Comportamiento historico del juego, sin heuristica. Es el valor por defecto del motor
+     * para no alterar el comportamiento de los tests y benchmarks ya existentes, que miden
+     * contra esta referencia. El juego real nunca lo usa: cada sede asigna un nivel.
+     */
+    LEGACY,
+
+    /** Rival de iniciacion: juega sin criterio, a eleccion aleatoria entre sus jugadas. */
+    RELAXED,
+
+    /** Rival competente: heuristica de pips y tranca. */
+    STANDARD,
+
+    /** Rival duro: heuristica afinada al maximo y castiga los errores. */
+    TOUGH
+}
+
+/**
  * Una ficha ya colocada en la cadena del tablero, con su posición y orientación en el
  * espacio virtual de 240x320 que usa el renderizado de la mesa.
  */
+@Serializable
 data class BoardPlacedTile(
     val tile: DominoTile,
     val pipLeft: Int, // Top half (if vertical) or Left half (if horizontal)
@@ -122,6 +149,8 @@ data class CityVenue(
     val entryBet: Int,
     val targetScore: Int,
     val defaultMode: GameMode,
+    /** Nivel del rival de esta sede. Escala a lo largo de la gira. */
+    val difficulty: Difficulty = Difficulty.STANDARD,
     val wrpReward: Int,
     val trophyTitle: String,
     val trophyValue: Int,
