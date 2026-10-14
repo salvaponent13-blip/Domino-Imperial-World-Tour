@@ -552,6 +552,68 @@ object DominoStrings {
         AppLanguage.DE -> "ZUM MENÜ"
     }
 
+    // --- ACCESIBILIDAD ---
+    /**
+     * Nombre hablado de una ficha, para lectores de pantalla.
+     *
+     * Se deletrea el numero ("seis tres") en lugar de leer "6 3", porque los lectores leen los
+     * digitos de uno en uno y suena a "sesenta y tres" o a una fecha. Los numeros del domino
+     * son valores, no cifras.
+     */
+    fun tileDescription(high: Int, low: Int): String {
+        val a = spokenPip(high)
+        val b = spokenPip(low)
+        return when (currentLanguage) {
+            AppLanguage.ES -> if (high == low) "Ficha doble $a" else "Ficha $a $b"
+            AppLanguage.EN -> if (high == low) "Double $a tile" else "Tile $a $b"
+            AppLanguage.FR -> if (high == low) "Domino double $a" else "Domino $a $b"
+            AppLanguage.IT -> if (high == low) "Tessera doppio $a" else "Tessera $a $b"
+            AppLanguage.PT -> if (high == low) "Peça dupla $a" else "Peça $a $b"
+            AppLanguage.DE -> if (high == low) "Doppel-$a-Stein" else "Stein $a $b"
+        }
+    }
+
+    /** Como se dice cada numero en el idioma activo. */
+    private fun spokenPip(pip: Int): String {
+        val words = when (currentLanguage) {
+            AppLanguage.ES -> listOf("blanco", "uno", "dos", "tres", "cuatro", "cinco", "seis")
+            AppLanguage.EN -> listOf("blank", "one", "two", "three", "four", "five", "six")
+            AppLanguage.FR -> listOf("blanc", "un", "deux", "trois", "quatre", "cinq", "six")
+            AppLanguage.IT -> listOf("bianco", "uno", "due", "tre", "quattro", "cinque", "sei")
+            AppLanguage.PT -> listOf("branco", "um", "dois", "três", "quatro", "cinco", "seis")
+            AppLanguage.DE -> listOf("blank", "eins", "zwei", "drei", "vier", "fünf", "sechs")
+        }
+        return words.getOrElse(pip) { pip.toString() }
+    }
+
+    fun playableLabel(): String = when (currentLanguage) {
+        AppLanguage.ES -> "jugable"
+        AppLanguage.EN -> "playable"
+        AppLanguage.FR -> "jouable"
+        AppLanguage.IT -> "giocabile"
+        AppLanguage.PT -> "jogável"
+        AppLanguage.DE -> "spielbar"
+    }
+
+    fun unplayableLabel(): String = when (currentLanguage) {
+        AppLanguage.ES -> "no jugable"
+        AppLanguage.EN -> "not playable"
+        AppLanguage.FR -> "non jouable"
+        AppLanguage.IT -> "non giocabile"
+        AppLanguage.PT -> "não jogável"
+        AppLanguage.DE -> "nicht spielbar"
+    }
+
+    /** Que ocurre al pulsar una ficha jugable (lo anuncia el lector de pantalla). */
+    fun tileClickAction(): String = when (currentLanguage) {
+        AppLanguage.ES -> "jugar esta ficha"
+        AppLanguage.EN -> "play this tile"
+        AppLanguage.FR -> "jouer ce domino"
+        AppLanguage.IT -> "giocare questa tessera"
+        AppLanguage.PT -> "jogar esta peça"
+        AppLanguage.DE -> "diesen Stein spielen"
+    }
+
     // --- PASS-AND-PLAY LOCAL ---
     fun passDeviceTitle(): String = when (currentLanguage) {
         AppLanguage.ES -> "PASA EL MÓVIL"

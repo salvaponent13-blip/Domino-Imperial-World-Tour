@@ -12,8 +12,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.DominoTile
 
 val SelectedGlow = Color(0xFFFFD700)
@@ -42,8 +47,30 @@ fun DominoTileView(
     height: Dp = if (isHorizontal) 34.dp else 62.dp,
     onClick: (() -> Unit)? = null
 ) {
+    // Semantica para lectores de pantalla. La ficha se dibuja sobre un Canvas, que para
+    // TalkBack es un rectangulo mudo: sin esto, la mano del jugador es inaccesible.
+    //
+    // - contentDescription: que ficha es, con los numeros deletreados ("Ficha seis tres").
+    // - stateDescription: si se puede jugar o no, para no obligar a deducirlo del color.
+    // - onClickLabel: que pasara al pulsarla, que es lo que anuncia el lector.
+    val semanticsMod = Modifier.semantics {
+        contentDescription = DominoStrings.tileDescription(tile.high, tile.low)
+        stateDescription = if (isPlayable) {
+            DominoStrings.playableLabel()
+        } else {
+            DominoStrings.unplayableLabel()
+        }
+        if (isSelected) {
+            selected = true
+        }
+    }
+
     val clickMod = if (onClick != null) {
-        Modifier.clickable(enabled = isPlayable, onClick = onClick)
+        Modifier.clickable(
+            enabled = isPlayable,
+            onClickLabel = if (isPlayable) DominoStrings.tileClickAction() else null,
+            onClick = onClick
+        )
     } else {
         Modifier
     }
@@ -51,6 +78,7 @@ fun DominoTileView(
     Canvas(
         modifier = modifier
             .size(width = width, height = height)
+            .then(semanticsMod)
             .then(clickMod)
     ) {
         val w = size.width
@@ -186,6 +214,28 @@ fun DominoTileView(
             cornerRadius = corner,
             style = Stroke(width = if (isSelected) 2.2.dp.toPx() else (minDim * 0.025f).coerceAtLeast(0.8f))
         )
+
+        // 7b. Senal NO CROMATICA de jugabilidad.
+        //
+        // Hasta ahora lo unico que distinguia una ficha jugable de una que no era el color
+        // (la ficha no jugable se pinta mas apagada), y eso deja fuera a quien no distingue
+        // bien los tonos. Un contorno discontinuo es una senal de forma: se percibe aunque no
+        // se distinga el color, y no tapa el dibujo de la ficha.
+        if (dimUnplayable && !isPlayable && !isSelected) {
+            val dash = (minDim * 0.12f).coerceAtLeast(2.dp.toPx())
+            drawRoundRect(
+                color = Color(0x99FFFFFF),
+                topLeft = Offset.Zero,
+                size = Size(bodyW, bodyH),
+                cornerRadius = corner,
+                style = Stroke(
+                    width = (minDim * 0.045f).coerceAtLeast(1.4f),
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                        floatArrayOf(dash, dash * 0.7f)
+                    )
+                )
+            )
+        }
 
         // 8. 3D Engraved V-Groove Center Divider & Spherical Brass Spinner Pin
         val isVert = !isHorizontal
