@@ -1,12 +1,14 @@
 package com.example.dominograndprix
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.AchievementCatalog
 import com.example.dominograndprix.data.CareerProgressStore
@@ -27,6 +29,8 @@ import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.ui.game.DominoTableScreen
 import com.example.dominograndprix.ui.main.MainTitleScreen
 import com.example.dominograndprix.ui.rival.RivalShowdownScreen
+import com.example.dominograndprix.ui.achievements.AchievementUnlockedBanner
+import com.example.dominograndprix.ui.achievements.AchievementsScreen
 import com.example.dominograndprix.ui.rules.RulesGuideScreen
 import com.example.dominograndprix.ui.tour.WorldTourMapScreen
 import com.example.dominograndprix.ui.vault.TrophyRoomScreen
@@ -37,7 +41,8 @@ enum class AppScreen {
     RIVAL_SHOWDOWN,
     RULES,
     TROPHIES,
-    MATCH_TABLE
+    MATCH_TABLE,
+    ACHIEVEMENTS
 }
 
 @Composable
@@ -56,6 +61,15 @@ fun MainNavigation() {
     // del cuerpo de una funcion. Se leen siempre del progreso, que es la unica contabilidad.
     fun playerCash(): Int = careerProgress.cash
     fun playerWrp(): Int = careerProgress.wrp
+
+    // Aviso emergente del ultimo logro o mision conseguidos. Se guardan por separado porque el
+    // texto y el icono son distintos, y solo se muestra uno a la vez para no tapar la partida.
+    var pendingAchievement by remember { mutableStateOf<String?>(null) }
+    var pendingMission by remember { mutableStateOf<String?>(null) }
+
+    // Ancla para la respuesta haptica del aviso: usar la vista respeta los ajustes de vibracion
+    // y el modo silencio del sistema.
+    val hapticAnchor = LocalView.current
 
     var venues by remember {
         mutableStateOf(
@@ -93,6 +107,7 @@ fun MainNavigation() {
             AppScreen.WORLD_TOUR,
             AppScreen.RULES,
             AppScreen.TROPHIES,
+            AppScreen.ACHIEVEMENTS,
             AppScreen.TITLE -> AppScreen.TITLE
             AppScreen.RIVAL_SHOWDOWN,
             AppScreen.MATCH_TABLE -> AppScreen.WORLD_TOUR
@@ -135,7 +150,10 @@ fun MainNavigation() {
         modifier = Modifier.fillMaxSize(),
         color = Color(0xFF0F1722)
     ) {
-        when (currentScreen) {
+        // El aviso flota sobre la pantalla activa, asi que necesita un Box: dentro del Surface,
+        // en flujo normal, empujaria el contenido hacia abajo en lugar de superponerse.
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (currentScreen) {
             AppScreen.TITLE -> {
                 LaunchedEffect(Unit) {
                     DominoSoundManager.playTitleMusic()
@@ -143,6 +161,10 @@ fun MainNavigation() {
                 MainTitleScreen(
                     dailyChallenge = dailyChallenge,
                     dailyResult = dailyResult,
+                    onShowAchievements = {
+                        DominoSoundManager.playTileTap()
+                        currentScreen = AppScreen.ACHIEVEMENTS
+                    },
                     onStartWorldTour = {
                         DominoSoundManager.playTileTap()
                         currentScreen = AppScreen.WORLD_TOUR
@@ -217,6 +239,11 @@ fun MainNavigation() {
                     venues = venues,
                     playerCash = playerCash(),
                     playerWrp = playerWrp(),
+                    completedIds = careerProgress.unlockedAchievements,
+                    onShowAchievements = {
+                        DominoSoundManager.playTileTap()
+                        currentScreen = AppScreen.ACHIEVEMENTS
+                    },
                     unfinishedMatchCity = resumeSnapshot?.cityName,
                     onResumeMatch = {
                         DominoSoundManager.playTileClack(isDouble = true)
@@ -318,6 +345,17 @@ fun MainNavigation() {
                         )
                         careerProgress = updatedProgress
 
+                        // Se anuncia lo conseguido. Logros y misiones comparten el conjunto
+                        // guardado, asi que se separan por el catalogo al que pertenecen: el
+                        // aviso cambia de icono y de texto segun cual sea.
+                        val achievementIds = AchievementCatalog.ALL.toSet()
+                        newAchievements.firstOrNull { it in achievementIds }?.let {
+                            pendingAchievement = it
+                        }
+                        newAchievements.firstOrNull { it !in achievementIds }?.let {
+                            pendingMission = it
+                        }
+
                         // La sede ganada se marca completada y desbloquea la siguiente.
                         if (won && activeVenueId != null) {
                             val vIndex = venues.indexOfFirst { it.id == activeVenueId }
@@ -388,6 +426,32 @@ fun MainNavigation() {
                     }
                 )
             }
+
+            AppScreen.ACHIEVEMENTS -> {
+                AchievementsScreen(
+                    unlockedIds = careerProgress.unlockedAchievements,
+                    onBack = {
+                        DominoSoundManager.playTileTap()
+                        currentScreen = if (venues.any { it.isCompleted }) {
+                            AppScreen.WORLD_TOUR
+                        } else {
+                            AppScreen.TITLE
+                        }
+                    }
+                )
+            }
+        }
+
+            // El aviso flota sobre la pantalla activa.
+            AchievementUnlockedBanner(
+                achievementId = pendingAchievement,
+                missionId = pendingMission,
+                hapticsView = hapticAnchor,
+                onDismissed = {
+                    pendingAchievement = null
+                    pendingMission = null
+                }
+            )
         }
     }
 }

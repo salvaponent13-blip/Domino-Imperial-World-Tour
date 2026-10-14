@@ -123,8 +123,20 @@ object AchievementCatalog {
         )
 
         val newAchievements = evaluate(updatedProgress, report, dailyStreak)
+
+        // Las misiones de sede se guardan en el mismo conjunto que los logros: una mision
+        // completada y un logro conseguido son la misma clase de hecho ("este jugador hizo
+        // esto"), y separarlos obligaria a migrar el guardado sin ganar nada.
+        val newMissions = report.venueId?.let { venueId ->
+            VenueMissionCatalog.newlyFulfilled(
+                venueId = venueId,
+                report = report,
+                completed = updatedProgress.unlockedAchievements
+            )
+        }.orEmpty()
+
         return updatedProgress.copy(
-            unlockedAchievements = updatedProgress.unlockedAchievements + newAchievements
-        ) to newAchievements
+            unlockedAchievements = updatedProgress.unlockedAchievements + newAchievements + newMissions
+        ) to (newAchievements + newMissions)
     }
 }

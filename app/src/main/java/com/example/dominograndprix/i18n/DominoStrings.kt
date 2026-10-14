@@ -672,6 +672,82 @@ object DominoStrings {
         AppLanguage.DE -> "Komm morgen für eine neue Herausforderung wieder"
     }
 
+    // --- VITRINA DE LOGROS ---
+    fun achievementsTitle(): String = when (currentLanguage) {
+        AppLanguage.ES -> "🏆 LOGROS"
+        AppLanguage.EN -> "🏆 ACHIEVEMENTS"
+        AppLanguage.FR -> "🏆 SUCCÈS"
+        AppLanguage.IT -> "🏆 OBIETTIVI"
+        AppLanguage.PT -> "🏆 CONQUISTAS"
+        AppLanguage.DE -> "🏆 ERFOLGE"
+    }
+
+    /** Cabecera de progreso: "Logros: 4 / 15 desbloqueados (27%)". */
+    fun achievementsProgress(unlocked: Int, total: Int, percent: Int): String = when (currentLanguage) {
+        AppLanguage.ES -> "Logros: $unlocked / $total desbloqueados ($percent%)"
+        AppLanguage.EN -> "Achievements: $unlocked / $total unlocked ($percent%)"
+        AppLanguage.FR -> "Succès : $unlocked / $total débloqués ($percent%)"
+        AppLanguage.IT -> "Obiettivi: $unlocked / $total sbloccati ($percent%)"
+        AppLanguage.PT -> "Conquistas: $unlocked / $total desbloqueadas ($percent%)"
+        AppLanguage.DE -> "Erfolge: $unlocked / $total freigeschaltet ($percent%)"
+    }
+
+    fun achievementUnlockedBadge(): String = when (currentLanguage) {
+        AppLanguage.ES -> "✓ CONSEGUIDO"
+        AppLanguage.EN -> "✓ UNLOCKED"
+        AppLanguage.FR -> "✓ OBTENU"
+        AppLanguage.IT -> "✓ OTTENUTO"
+        AppLanguage.PT -> "✓ CONQUISTADA"
+        AppLanguage.DE -> "✓ ERREICHT"
+    }
+
+    fun achievementLockedBadge(): String = when (currentLanguage) {
+        AppLanguage.ES -> "🔒 BLOQUEADO"
+        AppLanguage.EN -> "🔒 LOCKED"
+        AppLanguage.FR -> "🔒 VERROUILLÉ"
+        AppLanguage.IT -> "🔒 BLOCCATO"
+        AppLanguage.PT -> "🔒 BLOQUEADA"
+        AppLanguage.DE -> "🔒 GESPERRT"
+    }
+
+    /** Aviso emergente al conseguir un logro. */
+    fun achievementUnlockedToast(name: String): String = when (currentLanguage) {
+        AppLanguage.ES -> "¡LOGRO DESBLOQUEADO!  $name"
+        AppLanguage.EN -> "ACHIEVEMENT UNLOCKED!  $name"
+        AppLanguage.FR -> "SUCCÈS DÉBLOQUÉ !  $name"
+        AppLanguage.IT -> "OBIETTIVO SBLOCCATO!  $name"
+        AppLanguage.PT -> "CONQUISTA DESBLOQUEADA!  $name"
+        AppLanguage.DE -> "ERFOLG FREIGESCHALTET!  $name"
+    }
+
+    fun missionCompletedToast(name: String): String = when (currentLanguage) {
+        AppLanguage.ES -> "✓ MISIÓN CUMPLIDA  $name"
+        AppLanguage.EN -> "✓ MISSION COMPLETE  $name"
+        AppLanguage.FR -> "✓ MISSION ACCOMPLIE  $name"
+        AppLanguage.IT -> "✓ MISSIONE COMPIUTA  $name"
+        AppLanguage.PT -> "✓ MISSÃO CUMPRIDA  $name"
+        AppLanguage.DE -> "✓ MISSION ERFÜLLT  $name"
+    }
+
+    fun achievementsBtn(): String = when (currentLanguage) {
+        AppLanguage.ES -> "LOGROS"
+        AppLanguage.EN -> "ACHIEVEMENTS"
+        AppLanguage.FR -> "SUCCÈS"
+        AppLanguage.IT -> "OBIETTIVI"
+        AppLanguage.PT -> "CONQUISTAS"
+        AppLanguage.DE -> "ERFOLGE"
+    }
+
+    /** Misiones de una sede en su tarjeta del mapa. */
+    fun venueMissionsHeader(completed: Int, total: Int): String = when (currentLanguage) {
+        AppLanguage.ES -> "MISIONES ($completed/$total)"
+        AppLanguage.EN -> "MISSIONS ($completed/$total)"
+        AppLanguage.FR -> "MISSIONS ($completed/$total)"
+        AppLanguage.IT -> "MISSIONI ($completed/$total)"
+        AppLanguage.PT -> "MISSÕES ($completed/$total)"
+        AppLanguage.DE -> "MISSIONEN ($completed/$total)"
+    }
+
     // --- PASS-AND-PLAY LOCAL ---
     fun passDeviceTitle(): String = when (currentLanguage) {
         AppLanguage.ES -> "PASA EL MÓVIL"

@@ -45,6 +45,8 @@ object CareerReporter {
             dominos = engine.matchDominos,
             trancasWon = engine.matchTrancasWon,
             pointsScored = engine.matchPointsScored,
+            bestRoundPoints = engine.matchBestRoundPoints,
+            drewFromBoneyard = engine.matchDrewFromBoneyard,
             wonWithSingleTileLeft = engine.matchWinsWithSingleTile > 0,
             isDailyChallenge = isDailyChallenge
         )

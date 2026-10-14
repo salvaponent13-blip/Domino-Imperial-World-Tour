@@ -252,6 +252,20 @@ class DominoEngine(
     var matchPointsScored: Int = 0
         private set
 
+    /**
+     * Marcador mas alto alcanzado por el bando del jugador en una sola ronda de esta partida.
+     *
+     * Lo necesitan las misiones de sede del tipo "consigue N puntos en una ronda": el total
+     * acumulado no sirve, porque premiaria arrastrar puntos de muchas rondas en lugar de
+     * conseguir una ronda buena.
+     */
+    var matchBestRoundPoints: Int = 0
+        private set
+
+    /** Si el jugador robo alguna vez del pozo en esta partida. */
+    var matchDrewFromBoneyard: Boolean = false
+        private set
+
     // Hungarian chaining flag
     var canContinueHungarianTurn: Boolean = false
 
@@ -308,6 +322,8 @@ class DominoEngine(
         matchTrancasWon = 0
         matchWinsWithSingleTile = 0
         matchPointsScored = 0
+        matchBestRoundPoints = 0
+        matchDrewFromBoneyard = false
         isMatchOver = false
         winnerPlayerId = null
         winningTeam = null
@@ -775,6 +791,9 @@ class DominoEngine(
         val drawn = boneyard.removeAt(safeIdx)
         val p = players[playerIndex]
         players[playerIndex] = p.copy(hand = p.hand + drawn)
+        // Se recuerda para las misiones de sede del tipo "gana sin robar del pozo": hay que
+        // saber si el jugador robo ALGUNA VEZ, no si le quedaban fichas al terminar.
+        matchDrewFromBoneyard = true
         roundLog = "${p.name} robó ficha del pozo."
         return drawn
     }
@@ -853,6 +872,7 @@ class DominoEngine(
             // porque quien cierra con domino se queda sin ninguna.
             if (winner.hand.size == 1) matchWinsWithSingleTile++
             matchPointsScored += lastPointsEarned
+            if (lastPointsEarned > matchBestRoundPoints) matchBestRoundPoints = lastPointsEarned
         }
         if (!byDomino) matchBlockedRounds++
     }
@@ -1034,7 +1054,9 @@ class DominoEngine(
         val matchDominos: Int,
         val matchTrancasWon: Int,
         val matchWinsWithSingleTile: Int,
-        val matchPointsScored: Int
+        val matchPointsScored: Int,
+        val matchBestRoundPoints: Int,
+        val matchDrewFromBoneyard: Boolean
     )
 
     private fun snapshot(): StateSnapshot = StateSnapshot(
@@ -1062,7 +1084,9 @@ class DominoEngine(
         matchDominos = matchDominos,
         matchTrancasWon = matchTrancasWon,
         matchWinsWithSingleTile = matchWinsWithSingleTile,
-        matchPointsScored = matchPointsScored
+        matchPointsScored = matchPointsScored,
+        matchBestRoundPoints = matchBestRoundPoints,
+        matchDrewFromBoneyard = matchDrewFromBoneyard
     )
 
     private fun restore(snapshot: StateSnapshot) {
@@ -1094,6 +1118,8 @@ class DominoEngine(
         matchTrancasWon = snapshot.matchTrancasWon
         matchWinsWithSingleTile = snapshot.matchWinsWithSingleTile
         matchPointsScored = snapshot.matchPointsScored
+        matchBestRoundPoints = snapshot.matchBestRoundPoints
+        matchDrewFromBoneyard = snapshot.matchDrewFromBoneyard
     }
 
     /**

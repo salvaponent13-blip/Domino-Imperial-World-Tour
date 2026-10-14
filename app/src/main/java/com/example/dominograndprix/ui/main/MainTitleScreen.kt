@@ -34,6 +34,8 @@ fun MainTitleScreen(
     onStartWorldTour: () -> Unit = {},
     onQuickPlay: () -> Unit = {},
     onLocalMatch: () -> Unit = {},
+    /** Abre la vitrina de logros. */
+    onShowAchievements: () -> Unit = {},
     /** Reto de hoy. Si es null, no se muestra la tarjeta. */
     dailyChallenge: DailyChallenge? = null,
     /** Resultado del reto de hoy, si ya se ha disputado. */
@@ -113,6 +115,20 @@ fun MainTitleScreen(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Vitrina de logros
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = DarkNavy.copy(alpha = 0.90f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clickable(onClick = onShowAchievements)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(text = "🏆", fontSize = 18.sp)
+                    }
+                }
+
                 // Language Selector Button (ES, EN, FR, IT, PT, DE)
                 LanguageSelectorButton()
 

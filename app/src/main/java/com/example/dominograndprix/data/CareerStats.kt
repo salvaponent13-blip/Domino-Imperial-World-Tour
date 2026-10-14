@@ -69,6 +69,10 @@ data class MatchReport(
     val trancasWon: Int,
     /** Puntos de extremos que anoto el jugador. */
     val pointsScored: Int,
+    /** Mejor marcador del jugador en UNA sola ronda (lo piden las misiones de sede). */
+    val bestRoundPoints: Int = 0,
+    /** Si el jugador robo alguna vez del pozo en esta partida. */
+    val drewFromBoneyard: Boolean = false,
     /** Si gano alguna ronda con una sola ficha en la mano. */
     val wonWithSingleTileLeft: Boolean,
     /** Si gano el desafio diario. */

@@ -25,6 +25,9 @@ import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
 import com.example.dominograndprix.model.CityVenue
+import androidx.compose.ui.text.style.TextDecoration
+import com.example.dominograndprix.data.VenueMissionCatalog
+import com.example.dominograndprix.i18n.AchievementStrings
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
 
@@ -38,7 +41,11 @@ fun WorldTourMapScreen(
     onResumeMatch: () -> Unit = {},
     onDiscardMatch: () -> Unit = {},
     onSelectVenue: (CityVenue) -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    /** Logros y misiones ya conseguidos, para marcar las misiones de cada sede. */
+    completedIds: Set<String> = emptySet(),
+    /** Abre la vitrina de logros desde la barra superior. */
+    onShowAchievements: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -100,6 +107,20 @@ fun WorldTourMapScreen(
                                 Text("WRP: $playerWrp pts", color = GoldAccent, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
                             }
                             LanguageSelectorButton()
+                            // Vitrina de logros, tambien desde el mapa para no tener que volver
+                            // al menu principal solo para consultarla.
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color.White.copy(alpha = 0.12f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
+                                modifier = Modifier.clickable(onClick = onShowAchievements)
+                            ) {
+                                Text(
+                                    text = "🏆",
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                                )
+                            }
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = Color.White.copy(alpha = 0.12f),
@@ -136,7 +157,8 @@ fun WorldTourMapScreen(
                         VenueCard(
                             venue = venue,
                             canAfford = playerCash >= rawVenue.entryBet,
-                            onEnter = { onSelectVenue(rawVenue) }
+                            onEnter = { onSelectVenue(rawVenue) },
+                            completedIds = completedIds
                         )
                     }
                 }
@@ -208,10 +230,47 @@ fun UnfinishedMatchBanner(
 }
 
 @Composable
+fun VenueMissionLines(venueId: String, completedIds: Set<String>) {
+    val missions = VenueMissionCatalog.missionsFor(venueId)
+    if (missions.isEmpty()) return
+
+    val completed = VenueMissionCatalog.completedCountFor(venueId, completedIds)
+
+    Spacer(modifier = Modifier.height(5.dp))
+    Text(
+        text = DominoStrings.venueMissionsHeader(completed, missions.size),
+        color = Color(0xFF9FB0C4),
+        fontWeight = FontWeight.Bold,
+        fontSize = 9.sp
+    )
+    for (mission in missions) {
+        val isDone = mission.id in completedIds
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // La marca es un simbolo ademas del color: se distingue sin depender del tono.
+            Text(
+                text = if (isDone) "✓" else "○",
+                color = if (isDone) Color(0xFF4CAF50) else Color(0xFF6B7A8F),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = AchievementStrings.missionTitleFor(mission, DominoStrings.currentLanguage),
+                color = if (isDone) Color(0xFF8BC34A) else Color(0xFF8A97A8),
+                fontSize = 9.sp,
+                textDecoration = if (isDone) TextDecoration.LineThrough else null
+            )
+        }
+    }
+}
+
+@Composable
 fun VenueCard(
     venue: CityVenue,
     canAfford: Boolean,
-    onEnter: () -> Unit
+    onEnter: () -> Unit,
+    /** Logros y misiones ya conseguidos, para marcar las misiones de esta sede. */
+    completedIds: Set<String> = emptySet()
 ) {
     val isEnabled = venue.isUnlocked
     val postcardRes = if (venue.postcardResId != 0) venue.postcardResId else R.drawable.venue_havana
@@ -264,6 +323,10 @@ fun VenueCard(
                     color = Color.LightGray,
                     fontSize = 10.sp
                 )
+
+                // Misiones de la sede: es el motivo concreto para volver a una ciudad ya
+                // completada, asi que se muestran en la propia tarjeta y no en un submenu.
+                VenueMissionLines(venueId = venue.id, completedIds = completedIds)
             }
 
             Column(horizontalAlignment = Alignment.End) {
