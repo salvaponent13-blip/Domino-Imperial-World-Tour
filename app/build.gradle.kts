@@ -81,6 +81,16 @@ kotlin {
     jvmToolchain(17)
 }
 
+/**
+ * Propaga la propiedad `benchmark.full` al JVM de los tests, para poder ampliar la muestra
+ * del benchmark de IA sin tocar codigo:
+ *   ./gradlew test -Dbenchmark.full=true
+ * Sin la propiedad, el banco juega 2000 rondas (lo que corre en CI); con ella, 4800.
+ */
+tasks.withType<Test>().configureEach {
+    systemProperty("benchmark.full", providers.systemProperty("benchmark.full").getOrElse("false"))
+}
+
 dependencies {
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)

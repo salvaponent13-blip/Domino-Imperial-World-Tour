@@ -1,6 +1,8 @@
 package com.example.dominograndprix.engine
 
 import com.example.dominograndprix.engine.ai.AiMove
+import com.example.dominograndprix.engine.ai.DominoStrategy
+import com.example.dominograndprix.engine.ai.LegacyStrategy
 import com.example.dominograndprix.engine.ai.PlayerView
 import com.example.dominograndprix.model.*
 import kotlin.math.abs
@@ -50,6 +52,19 @@ class DominoEngine(
     // Draw Special: jugador que abrió la mano. Determina qué rama le corresponde
     // al asiento 0 y, por rotación, a todos los demás.
     private var openingPlayerIndex: Int = 0
+
+    /**
+     * Estrategia por asiento, para benchmarks y pruebas.
+     *
+     * Vacio (lo normal en el juego): cada asiento usa [LegacyStrategy] con su personalidad,
+     * que es el comportamiento historico. Relleno: el asiento indicado usa la estrategia
+     * inyectada, lo que permite enfrentar dos estrategias en la misma mesa.
+     */
+    private val strategyOverrides: MutableMap<Int, DominoStrategy> = mutableMapOf()
+
+    /** Ultima decision tomada por una IA. Util para depurar y para los tests. */
+    var lastAiMove: AiMove? = null
+        private set
 
     // Último jugador que pasó y el turno en que lo hizo. Sirve para saber si la rama
     // de un rival sigue bloqueada y por tanto se puede invadir.
@@ -215,6 +230,31 @@ class DominoEngine(
     fun getPlayableTiles(playerIndex: Int): List<DominoTile> {
         val player = players[playerIndex]
         return player.hand.filter { getPlayableSides(playerIndex, it).isNotEmpty() }
+    }
+
+    /**
+     * Estrategia que debe decidir por el asiento indicado.
+     *
+     * Se resuelve en cada turno (no se cachea) a proposito: en los tests se cambian
+     * personalidades y overrides sobre la marcha y el motor debe reflejarlo.
+     */
+    fun strategyFor(playerIndex: Int): DominoStrategy =
+        strategyOverrides[playerIndex]
+            ?: LegacyStrategy(players.getOrNull(playerIndex)?.personality ?: Personality.NICE)
+
+    /** Fija la estrategia de un asiento. Sirve para enfrentar dos estrategias en la mesa. */
+    fun setStrategyOverride(playerIndex: Int, strategy: DominoStrategy) {
+        strategyOverrides[playerIndex] = strategy
+    }
+
+    /** Deja el asiento sin estrategia inyectada: vuelve a la referencia historica. */
+    fun clearStrategyOverride(playerIndex: Int) {
+        strategyOverrides.remove(playerIndex)
+    }
+
+    /** Quita todas las estrategias inyectadas. */
+    fun clearAllStrategyOverrides() {
+        strategyOverrides.clear()
     }
 
     /**
@@ -517,92 +557,48 @@ class DominoEngine(
     }
 
     /**
-     * IA: elige la mejor jugada válida (izquierda o derecha). Si no tiene jugada y el
-     * modo permite robar, roba del pozo; si no, pasa el turno.
+     * Turno de un jugador automatico: pide la decision a su estrategia y la aplica.
+     *
+     * La estrategia solo propone; aqui se valida y se ejecuta. Si devuelve una jugada que
+     * no esta entre las legales, se descarta y se cae al comportamiento por defecto de la
+     * estrategia heredada, para que una estrategia defectuosa no pueda corromper la partida.
      */
     fun executeAIMove(): Boolean {
-        if (gameMode == GameMode.DRAW_SPECIAL) return executeAISpecialMove()
+        val seat = currentPlayerIndex
+        val view = viewFor(seat)
+        lastAiMove = strategyFor(seat).decide(view)
 
-        val player = players[currentPlayerIndex]
-        val playable = getPlayableTiles(currentPlayerIndex)
-
-        if (playable.isEmpty()) {
-            if (gameMode.allowsDraw && boneyard.isNotEmpty()) {
-                drawTile(currentPlayerIndex, 0)
-                return true
+        val play = lastAiMove as? AiMove.Play
+        if (play != null && view.playableMoves.contains(play)) {
+            return if (play.side == BoardSide.LEFT) {
+                playTileLeft(seat, play.tile)
             } else {
-                passTurn(currentPlayerIndex)
-                return true
+                playTileRight(seat, play.tile)
             }
         }
 
-        val chosenTile = when (player.personality) {
-            Personality.AGGRESSIVE -> playable.maxByOrNull { it.totalPips } ?: playable.first()
-            else -> playable.first()
+        // Jugada no legal (o una estrategia que no supo que hacer): se usa la referencia.
+        if (play != null && view.playableMoves.isNotEmpty()) {
+            val fallback = LegacyStrategy(players[seat].personality).decide(view)
+            lastAiMove = fallback
+            val safe = fallback as? AiMove.Play ?: return fallbackTurn(seat)
+            return if (safe.side == BoardSide.LEFT) {
+                playTileLeft(seat, safe.tile)
+            } else {
+                playTileRight(seat, safe.tile)
+            }
         }
 
-        val sides = getPlayableSides(currentPlayerIndex, chosenTile)
-
-        return if (sides.size == 2) {
-            // Equilibrar las dos ramas para que la serpiente crezca simétrica
-            val firstIdx = boardChain.indexOfFirst { it.isFirstTile }.let { if (it == -1) 0 else it }
-            val leftLen = firstIdx
-            val rightLen = boardChain.size - 1 - firstIdx
-            if (leftLen <= rightLen) playTileLeft(currentPlayerIndex, chosenTile)
-            else playTileRight(currentPlayerIndex, chosenTile)
-        } else if (sides.contains(BoardSide.LEFT)) {
-            playTileLeft(currentPlayerIndex, chosenTile)
-        } else {
-            playTileRight(currentPlayerIndex, chosenTile)
-        }
+        return fallbackTurn(seat)
     }
 
-    /**
-     * IA para Draw Special: intenta jugar en su propia rama y, si no puede, aprovecha
-     * la rama de un rival que acaba de pasar antes de robar o pasar turno.
-     */
-    private fun executeAISpecialMove(): Boolean {
-        val own = branchForPlayer(currentPlayerIndex) ?: BoardSide.LEFT
-        val invadable = if (lastPassTurnNumber == turnNumber &&
-            lastPassingPlayerIndex != null &&
-            lastPassingPlayerIndex != currentPlayerIndex &&
-            branchForPlayer(lastPassingPlayerIndex!!) != own
-        ) {
-            branchForPlayer(lastPassingPlayerIndex!!)
+    /** Robar si se puede y si no pasar, para cuando la estrategia no devolvio una jugada util. */
+    private fun fallbackTurn(playerIndex: Int): Boolean {
+        if (gameMode.allowsDraw && boneyard.isNotEmpty()) {
+            drawTile(playerIndex, 0)
         } else {
-            null
+            passTurn(playerIndex)
         }
-
-        val playable = getPlayableTiles(currentPlayerIndex)
-        if (playable.isEmpty()) {
-            return if (gameMode.allowsDraw && boneyard.isNotEmpty()) {
-                drawTile(currentPlayerIndex, 0)
-                true
-            } else {
-                passTurn(currentPlayerIndex)
-                true
-            }
-        }
-
-        val preference = listOfNotNull(own, invadable)
-        for (side in preference) {
-            val tile = playable.firstOrNull { getPlayableSides(currentPlayerIndex, it).contains(side) }
-            if (tile != null) {
-                return if (side == BoardSide.LEFT) {
-                    playTileLeft(currentPlayerIndex, tile)
-                } else {
-                    playTileRight(currentPlayerIndex, tile)
-                }
-            }
-        }
-
-        // Sin rama propia disponible: usa la única jugada legal que quede.
-        val tile = playable.first()
-        val sides = getPlayableSides(currentPlayerIndex, tile)
-        return if (sides.contains(BoardSide.LEFT)) {
-            playTileLeft(currentPlayerIndex, tile)
-        } else {
-            playTileRight(currentPlayerIndex, tile)
-        }
+        return true
     }
 }
