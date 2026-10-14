@@ -140,11 +140,40 @@ pierde el sentido. Es la comprobación más importante de esta sección.
 
 | # | Comprobación | Resultado |
 |---|---|---|
+| 7.0 | **La mano de abajo es SIEMPRE la mía** (regresión corregida): con el turno de la IA debe verse mi mano, no la suya; y mis fichas deben verse con relieve, sin lavarse | ☐ |
 | 7.1 | El nombre de la app sale en el idioma del móvil (probar cambiando el idioma del sistema a inglés y francés) | ☐ |
 | 7.2 | La app no se cierra en ningún punto del recorrido completo | ☐ |
 | 7.3 | Guardado y reanudación de partida en curso | ☐ |
 | 7.4 | Desafío diario: se juega una vez y no deja reanudar | ☐ |
 | 7.5 | Una partida completa de principio a fin sin cierres forzados | ☐ |
+
+---
+
+## Defectos encontrados en la sesión anterior (ya corregidos)
+
+### Mano del asiento activo mostrada en el rack del jugador
+
+**Síntoma reportado:** *"Cada vez que cambia el turno me salen sus fichas en mi posición. Cuando
+le toca a la IA se muestran sus fichas claras y nítidas, pero cuando llega mi turno se muestran
+mis fichas y se ven turbias y borrosas."*
+
+**Causa:** un solo defecto con dos síntomas. La pantalla usaba `currentPlayerIndex` (el asiento
+que **tiene el turno**) para pintar la mano de abajo, en lugar del asiento del jugador. Eso
+pasó al parametrizar los asientos en el Sprint 6: se sustituyó un `0` fijo por el asiento activo,
+confundiendo "quién juega" con "quién mira".
+
+- Con el turno de la IA se pintaba **su mano** en el rack del jugador: fuga de información.
+- Con el turno del jugador, sus fichas no jugables se pintaban con el atenuado de "no jugable",
+  que les quita el modelado (contraste de cara medido: **1,06** frente a **1,60** de una ficha
+  normal). Una ficha sin relieve se percibe como desenfocada.
+
+**Corrección:**
+- `HandViewRules` separa el asiento que **actúa** del que **mira**, con 9 tests, incluido un
+  barrido que comprueba que la mano mostrada **siempre** pertenece a una persona.
+- La paleta atenuada conserva ahora el modelado (contraste 1,33) en lugar de quedar plana.
+
+**Pendiente de confirmar en el dispositivo:** que con el turno de la IA ya no aparezca ninguna
+ficha ajena y que las no jugables se lean con volumen (punto 7.0).
 
 ---
 

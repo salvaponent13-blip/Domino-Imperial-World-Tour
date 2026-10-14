@@ -223,20 +223,44 @@ fun DominoTableScreen(
     val isMyTurn = engine.value.isCurrentPlayerHuman && !engine.value.isRoundOver && !isPrivacyCurtainUp
     // Húngaro: tras tirar una ficha válida el turno NO avanza y el jugador puede encadenar.
     val isChaining = isMyTurn && engine.value.canContinueHungarianTurn
+
+    // --- Asiento que ACTUA y asiento que MIRA: son cosas distintas ---
+    //
+    // `actingSeat` es quien tiene el turno (puede ser una persona o la maquina).
+    // `viewingSeat` es de quien se muestra la mano abajo. Nunca son lo mismo cuando juega la
+    // IA: si se pintara la mano del asiento activo, se estarian ensenando las fichas secretas
+    // del rival y el jugador veria su propia mano cambiando sola en cada turno.
     val actingSeat = engine.value.currentPlayerIndex
-    val human = engine.value.players[actingSeat]
+    var lastHumanSeat by remember { mutableIntStateOf(0) }
+    LaunchedEffect(actingSeat, isLocalMatch) {
+        if (isLocalMatch && engine.value.isCurrentPlayerHuman && !engine.value.isRoundOver) {
+            lastHumanSeat = actingSeat
+        }
+    }
+    // La decision vive en HandViewRules, con sus propios tests: confundir el asiento que actua
+    // con el que mira fue el defecto que llego a produccion.
+    val viewingSeat = HandViewRules.handSeat(
+        isLocalMatch = isLocalMatch,
+        currentSeat = actingSeat,
+        currentSeatIsHuman = engine.value.isCurrentPlayerHuman,
+        lastHumanSeat = lastHumanSeat,
+        humanSeats = engine.value.humanPlayerIndices
+    )
+    val viewer = engine.value.players[viewingSeat]
+    val viewerHuman = viewingSeat in engine.value.humanPlayerIndices
     val playableTiles = remember(
         engine.value.boardChain.size,
-        human.hand.size,
+        viewer.hand.size,
         engine.value.currentPlayerIndex,
         engine.value.canContinueHungarianTurn,
         gameStateVersion
     ) {
-        if (isMyTurn) engine.value.getPlayableTiles(actingSeat) else emptyList()
+        if (isMyTurn) engine.value.getPlayableTiles(viewingSeat) else emptyList()
     }
 
     val selectedTileSides = if (selectedTile != null) {
-        engine.value.getPlayableSides(actingSeat, selectedTile!!)
+        // La ficha seleccionada es de quien MIRA la mano, no de quien tiene el turno.
+        engine.value.getPlayableSides(viewingSeat, selectedTile!!)
     } else {
         emptySet()
     }
@@ -245,9 +269,9 @@ fun DominoTableScreen(
 
     // Draw Special: tu rama asignada y si el rival que la otra posee la tiene abierta.
     val isBranchGame = gameMode == GameMode.DRAW_SPECIAL
-    val humanBranch = engine.value.branchForPlayer(actingSeat) ?: BoardSide.LEFT
-    val otherBranch = if (humanBranch == BoardSide.LEFT) BoardSide.RIGHT else BoardSide.LEFT
-    val otherBranchLocked = isBranchGame && engine.value.isBranchRestrictedFor(actingSeat, otherBranch)
+    val viewerBranch = engine.value.branchForPlayer(viewingSeat) ?: BoardSide.LEFT
+    val otherBranch = if (viewerBranch == BoardSide.LEFT) BoardSide.RIGHT else BoardSide.LEFT
+    val otherBranchLocked = isBranchGame && engine.value.isBranchRestrictedFor(viewingSeat, otherBranch)
 
     // Must player draw from face-down boneyard?
     val mustDrawFromBoneyard = isMyTurn && !isChaining && playableTiles.isEmpty() &&
@@ -261,7 +285,7 @@ fun DominoTableScreen(
             logMessage = DominoStrings.autoPassMsg()
             delay(950)
             DominoSoundManager.playPassKnock()
-            engine.value.passTurn(actingSeat)
+            engine.value.passTurn(viewingSeat)
             logMessage = engine.value.roundLog
             gameStateVersion++
         }
@@ -532,7 +556,7 @@ fun DominoTableScreen(
                             text = if (otherBranchLocked) {
                                 DominoStrings.branchRestricted(otherBranch == BoardSide.LEFT)
                             } else {
-                                DominoStrings.branchAssignment(humanBranch == BoardSide.LEFT)
+                                DominoStrings.branchAssignment(viewerBranch == BoardSide.LEFT)
                             },
                             color = if (otherBranchLocked) Color(0xFFFFCDD2) else GoldAccent,
                             fontSize = 10.sp,
@@ -677,7 +701,7 @@ fun DominoTableScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        human.hand.forEach { tile ->
+                        viewer.hand.forEach { tile ->
                             val isPlayable = playableTiles.contains(tile)
                             val isSelected = selectedTile == tile
 
@@ -685,7 +709,9 @@ fun DominoTableScreen(
                                 tile = tile,
                                 isSelected = isSelected,
                                 isPlayable = isMyTurn && isPlayable,
-                                dimUnplayable = isMyTurn,
+                                // El apagado solo tiene sentido para fichas de una persona que
+                                // puede actuar. En una mano de la maquina no se apaga nada.
+                                dimUnplayable = isMyTurn && viewerHuman,
                                 isHorizontal = false,
                                 width = 38.dp,
                                 height = 70.dp,
@@ -693,7 +719,7 @@ fun DominoTableScreen(
                                     if (!isMyTurn || !isPlayable) return@DominoTileView
                                     // Consultar los lados legales en el momento del clic: esto
                                     // respeta tanto Húngaro (encadenar) como las ramas de Draw Special.
-                                    val sides = engine.value.getPlayableSides(actingSeat, tile)
+                                    val sides = engine.value.getPlayableSides(viewingSeat, tile)
                                     if (sides.isEmpty()) return@DominoTileView
 
                                     if (sides.size == 1) {

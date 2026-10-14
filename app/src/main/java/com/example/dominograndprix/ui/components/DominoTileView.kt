@@ -132,9 +132,14 @@ fun DominoTileView(
         )
 
         // 4. Outer 3D Chamfered Bevel Slope (Top-Left lit white -> Bottom-Right warm shadow)
+        //
+        // La version apagada conserva el modelado (luz arriba-izquierda, sombra abajo-derecha)
+        // aunque este atenuada. Antes usaba dos grises casi iguales (contraste 1,06): la ficha
+        // se leia como una mancha plana, y eso es lo que el jugador describio como "borrosa".
+        // Una ficha desenfocada y una sin relieve se perciben igual.
         val bevelBrush = if (dimUnplayable && !isPlayable) {
             Brush.linearGradient(
-                colors = listOf(Color(0xFFE0DACB), Color(0xFFABA08A)),
+                colors = listOf(Color(0xFFC8C2B4), Color(0xFF8A8272)),
                 start = Offset(0f, 0f),
                 end = Offset(bodyW, bodyH)
             )
@@ -165,7 +170,7 @@ fun DominoTileView(
         )
         val faceBrush = if (dimUnplayable && !isPlayable) {
             Brush.linearGradient(
-                colors = listOf(Color(0xFFDAD4C4), Color(0xFFC2B9A5)),
+                colors = listOf(Color(0xFFD6D0C0), Color(0xFFB0A894)),
                 start = Offset(bevelInset, bevelInset),
                 end = Offset(bodyW - bevelInset, bodyH - bevelInset)
             )
