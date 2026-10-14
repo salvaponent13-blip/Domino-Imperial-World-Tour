@@ -45,6 +45,11 @@ private val KEVIN_MACLEOD_CREDITS = listOf(
         usageNotes = "La Habana • Miami"
     ),
     AudioCreditItem(
+        title = "No Frills Cumbia",
+        attribution = "No Frills Cumbia Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License",
+        usageNotes = "Ciudad de México"
+    ),
+    AudioCreditItem(
         title = "Beachfront Celebration",
         attribution = "Beachfront Celebration Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License",
         usageNotes = "San Juan (Puerto Rico)"

@@ -778,7 +778,7 @@ object DominoStrings {
                     name = "Mexico City",
                     region = "Mexico • Zócalo Royal Terrace",
                     trophyTitle = "Silver Aztec Medal",
-                    musicTitle = "Garibaldi Son (Mariachi)",
+                    musicTitle = "Garibaldi Cumbia (Mexico City)",
                     cityLore = "Beneath colonial stone arches decorated with festive papel picado overlooking the Cathedral, All Fives matches demand sharp calculation.",
                     rivalIntro = "In Mexico City, multiples of five sing like mariachi! Score fast or get left behind."
                 )
@@ -786,7 +786,7 @@ object DominoStrings {
                     name = "Mexico",
                     region = "Mexique • Terrasse Royale du Zócalo",
                     trophyTitle = "Médaille Aztèque d'Argent",
-                    musicTitle = "Son de Garibaldi (Mariachi)",
+                    musicTitle = "Cumbia de Garibaldi (Mexico)",
                     cityLore = "Sous les arches coloniales décorées de papel picado face à la Cathédrale, les parties de multiples de 5 exigent une précision absolue.",
                     rivalIntro = "À Mexico, les multiples de cinq chantent comme les mariachis ! Comptez vite ou restez derrière."
                 )
@@ -794,7 +794,7 @@ object DominoStrings {
                     name = "Città del Messico",
                     region = "Messico • Terrazza Reale dello Zócalo",
                     trophyTitle = "Medaglia Azteca d'Argento",
-                    musicTitle = "Son di Garibaldi (Mariachi)",
+                    musicTitle = "Cumbia di Garibaldi (Città del Messico)",
                     cityLore = "Sotto gli archi coloniali illuminati di fronte alla Cattedrale, le sfide sui multipli di 5 richiedono calcolo millimetrico.",
                     rivalIntro = "A Città del Messico i multipli di cinque cantano come mariachi! Calcola veloce o resterai indietro."
                 )
@@ -802,7 +802,7 @@ object DominoStrings {
                     name = "Cidade do México",
                     region = "México • Terraço Real do Zócalo",
                     trophyTitle = "Medalha Asteca de Prata",
-                    musicTitle = "Son de Garibaldi (Mariachi)",
+                    musicTitle = "Cumbia de Garibaldi (Cidade do México)",
                     cityLore = "Sob os arcos coloniais iluminados em frente à Catedral, as partidas de múltiplos de 5 exigem cálculo rápido.",
                     rivalIntro = "Na Cidade do México os múltiplos de cinco cantam como mariachi! Some rápido para vencer."
                 )
@@ -810,7 +810,7 @@ object DominoStrings {
                     name = "Mexiko-Stadt",
                     region = "Mexiko • Königliche Zócalo-Terrasse",
                     trophyTitle = "Silberne Azteken-Medaille",
-                    musicTitle = "Klänge von Garibaldi (Mariachi)",
+                    musicTitle = "Garibaldi-Cumbia (Mexiko-Stadt)",
                     cityLore = "Unter kolonialen Steinbögen mit Blick auf die Kathedrale erfordern die All-Fives-Partien präzises Kopfrechnen.",
                     rivalIntro = "In Mexiko-Stadt zählen die Fünfer wie Mariachi-Musik! Rechne schnell, sonst bleibst du zurück."
                 )
@@ -1073,12 +1073,12 @@ object DominoStrings {
     }
 
     fun proceduralMusicBody(): String = when (currentLanguage) {
-        AppLanguage.ES -> "Tema de Ciudad de México (Son de Garibaldi) y fanfarrias generados proceduralmente con síntesis de ondas. Efectos de sonido de impacto de fichas de baquelita y acrílico (Dominio Público CC0)."
-        AppLanguage.EN -> "Mexico City theme (Son de Garibaldi) & jingles procedurally synthesized. Acrylic and bakelite domino tile impact sounds (Public Domain CC0)."
-        AppLanguage.FR -> "Thème de Mexico (Son de Garibaldi) et jingles synthétisés de manière procédurale. Bruits d'impact de dominos en bakélite (Domaine Public CC0)."
-        AppLanguage.IT -> "Tema di Città del Messico (Son de Garibaldi) e jingle sintetizzati proceduralmente. Suoni di tessere in bachelite (Pubblico Dominio CC0)."
-        AppLanguage.PT -> "Tema da Cidade do México (Son de Garibaldi) e jingles sintetizados proceduralmente. Sons de impacto de dominós (Domínio Público CC0)."
-        AppLanguage.DE -> "Mexiko-Stadt-Thema (Son de Garibaldi) & Jingles prozedural synthetisiert. Acryl- und Bakelit-Dominogeräusche (Gemeinfrei CC0)."
+        AppLanguage.ES -> "Fanfarrias y jingles generados proceduralmente con síntesis de ondas. Efectos de sonido de impacto de fichas de baquelita y acrílico (Dominio Público CC0)."
+        AppLanguage.EN -> "Jingles and victory fanfares procedurally synthesized. Acrylic and bakelite domino tile impact sounds (Public Domain CC0)."
+        AppLanguage.FR -> "Jingles et fanfares synthétisés de manière procédurale. Bruits d'impact de dominos en bakélite (Domaine Public CC0)."
+        AppLanguage.IT -> "Jingle e fanfare sintetizzati proceduralmente. Suoni di tessere in bachelite (Pubblico Dominio CC0)."
+        AppLanguage.PT -> "Jingles e fanfarras sintetizados proceduralmente. Sons de impacto de dominós (Domínio Público CC0)."
+        AppLanguage.DE -> "Jingles und Fanfaren prozedural synthetisiert. Acryl- und Bakelit-Dominogeräusche (Gemeinfrei CC0)."
     }
 }
 

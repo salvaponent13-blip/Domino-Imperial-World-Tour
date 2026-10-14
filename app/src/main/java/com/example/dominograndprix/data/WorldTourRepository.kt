@@ -43,7 +43,7 @@ object WorldTourRepository {
             rivalIntro = "¡En la Ciudad de México los múltiplos de cinco cantan como mariachi! Si no sumas rápido, te quedas atrás.",
             rivalDefeatLine = "¡Increíble jugada! Tienes verdadera madera de campeón.",
             postcardResId = R.drawable.venue_mexico,
-            musicTitle = "La Llorona (Mariachi de Garibaldi)",
+            musicTitle = "Cumbia de Garibaldi (Ciudad de México)",
             cityLore = "Bajo los arcos coloniales iluminados con papel picado frente a la Catedral, las partidas de múltiplos de 5 exigen cálculo milimétrico.",
             isUnlocked = true
         ),
