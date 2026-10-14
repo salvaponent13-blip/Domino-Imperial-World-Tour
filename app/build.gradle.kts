@@ -82,13 +82,15 @@ kotlin {
 }
 
 /**
- * Propaga la propiedad `benchmark.full` al JVM de los tests, para poder ampliar la muestra
- * del benchmark de IA sin tocar codigo:
- *   ./gradlew test -Dbenchmark.full=true
- * Sin la propiedad, el banco juega 2000 rondas (lo que corre en CI); con ella, 4800.
+ * Propaga propiedades del sistema al JVM de los tests, para poder ampliar la muestra o
+ * activar mediciones exploratorias sin tocar codigo:
+ *   ./gradlew test -Dbenchmark.full=true      # benchmark de IA a escala completa (4800 rondas)
+ *   ./gradlew test -Dbenchmark.tuning=true    # ajuste exploratorio de pesos
+ * Sin propiedades, el banco juega 2000 rondas (lo que corre en CI).
  */
 tasks.withType<Test>().configureEach {
     systemProperty("benchmark.full", providers.systemProperty("benchmark.full").getOrElse("false"))
+    systemProperty("benchmark.tuning", providers.systemProperty("benchmark.tuning").getOrElse("false"))
 }
 
 dependencies {

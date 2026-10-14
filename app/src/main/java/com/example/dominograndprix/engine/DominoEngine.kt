@@ -3,6 +3,9 @@ package com.example.dominograndprix.engine
 import com.example.dominograndprix.engine.ai.AiMove
 import com.example.dominograndprix.engine.ai.DominoStrategy
 import com.example.dominograndprix.engine.ai.LegacyStrategy
+import com.example.dominograndprix.engine.ai.MediumStrategy
+import com.example.dominograndprix.engine.ai.MediumWeights
+import com.example.dominograndprix.engine.ai.MoveSimulation
 import com.example.dominograndprix.engine.ai.PlayerView
 import com.example.dominograndprix.model.*
 import kotlin.math.abs
@@ -45,6 +48,10 @@ class DominoEngine(
     var winnerPlayerId: Int? = null
     var winningTeam: Int? = null
     var roundLog: String = ""
+
+    /** Puntos que otorgo la ultima jugada (0 en modos que no puntuan extremos). */
+    var lastPointsEarned: Int = 0
+        private set
 
     // Hungarian chaining flag
     var canContinueHungarianTurn: Boolean = false
@@ -99,6 +106,7 @@ class DominoEngine(
         lastPassingPlayerIndex = null
         lastPassTurnNumber = -1
         turnNumber = 0
+        lastPointsEarned = 0
 
         // Generate standard Double-6 domino set (28 tiles)
         val deck = mutableListOf<DominoTile>()
@@ -256,6 +264,22 @@ class DominoEngine(
     fun clearAllStrategyOverrides() {
         strategyOverrides.clear()
     }
+
+    /**
+     * Crea una estrategia MEDIA enlazada con la simulacion de ESTE motor y atada a un asiento.
+     *
+     * El asiento es obligatorio para simular: una estrategia decide para un jugador concreto,
+     * y si simulara para el jugador que tiene el turno en ese instante, la evaluacion seria
+     * sobre otra mano. Atarlo aqui hace imposible ese error.
+     *
+     * La estrategia no puede simular por su cuenta porque necesita las reglas de colocacion,
+     * que viven en el motor; esta fabrica es el punto de union, y evita que la estrategia
+     * reciba una referencia al motor entero con capacidad de mutarlo.
+     */
+    fun newMediumStrategy(
+        playerIndex: Int,
+        weights: MediumWeights = MediumWeights.ALL
+    ): MediumStrategy = MediumStrategy(weights) { move -> simulate(playerIndex, move) }
 
     /**
      * Construye la vista que necesita una estrategia de IA para decidir.
@@ -465,6 +489,7 @@ class DominoEngine(
     private fun evaluatePointScoring(playerIndex: Int) {
         val sum = (leftOpenPip ?: 0) + (rightOpenPip ?: 0)
         var pointsEarned = 0
+        lastPointsEarned = 0
 
         when (gameMode) {
             GameMode.ALL_FIVES -> {
@@ -484,6 +509,7 @@ class DominoEngine(
         }
 
         if (pointsEarned > 0) {
+            lastPointsEarned = pointsEarned
             val p = players[playerIndex]
             val newScore = p.score + pointsEarned
             players[playerIndex] = p.copy(score = newScore)
@@ -600,5 +626,130 @@ class DominoEngine(
             passTurn(playerIndex)
         }
         return true
+    }
+
+    /**
+     * Instantanea de todo el estado mutable del motor.
+     *
+     * Se copia TODO lo que puede cambiar una jugada, no solo lo evidente. Si algun dia se
+     * anade un campo de estado y se olvida incluirlo aqui, la simulacion lo filtraria a la
+     * partida real: por eso hay un test que compara el estado antes y despues de simular.
+     */
+    private class StateSnapshot(
+        val players: List<Player>,
+        val boardChain: List<BoardPlacedTile>,
+        val boneyard: List<DominoTile>,
+        val leftOpenPip: Int?,
+        val rightOpenPip: Int?,
+        val currentPlayerIndex: Int,
+        val consecutivePasses: Int,
+        val isRoundOver: Boolean,
+        val isMatchOver: Boolean,
+        val winnerPlayerId: Int?,
+        val winningTeam: Int?,
+        val roundLog: String,
+        val lastPointsEarned: Int,
+        val canContinueHungarianTurn: Boolean,
+        val openingPlayerIndex: Int,
+        val lastPassingPlayerIndex: Int?,
+        val lastPassTurnNumber: Int,
+        val turnNumber: Int
+    )
+
+    private fun snapshot(): StateSnapshot = StateSnapshot(
+        players = players.toList(),
+        boardChain = boardChain.toList(),
+        boneyard = boneyard.toList(),
+        leftOpenPip = leftOpenPip,
+        rightOpenPip = rightOpenPip,
+        currentPlayerIndex = currentPlayerIndex,
+        consecutivePasses = consecutivePasses,
+        isRoundOver = isRoundOver,
+        isMatchOver = isMatchOver,
+        winnerPlayerId = winnerPlayerId,
+        winningTeam = winningTeam,
+        roundLog = roundLog,
+        lastPointsEarned = lastPointsEarned,
+        canContinueHungarianTurn = canContinueHungarianTurn,
+        openingPlayerIndex = openingPlayerIndex,
+        lastPassingPlayerIndex = lastPassingPlayerIndex,
+        lastPassTurnNumber = lastPassTurnNumber,
+        turnNumber = turnNumber
+    )
+
+    private fun restore(snapshot: StateSnapshot) {
+        players.clear()
+        players.addAll(snapshot.players)
+        boardChain.clear()
+        boardChain.addAll(snapshot.boardChain)
+        boneyard.clear()
+        boneyard.addAll(snapshot.boneyard)
+        leftOpenPip = snapshot.leftOpenPip
+        rightOpenPip = snapshot.rightOpenPip
+        currentPlayerIndex = snapshot.currentPlayerIndex
+        consecutivePasses = snapshot.consecutivePasses
+        isRoundOver = snapshot.isRoundOver
+        isMatchOver = snapshot.isMatchOver
+        winnerPlayerId = snapshot.winnerPlayerId
+        winningTeam = snapshot.winningTeam
+        roundLog = snapshot.roundLog
+        lastPointsEarned = snapshot.lastPointsEarned
+        canContinueHungarianTurn = snapshot.canContinueHungarianTurn
+        openingPlayerIndex = snapshot.openingPlayerIndex
+        lastPassingPlayerIndex = snapshot.lastPassingPlayerIndex
+        lastPassTurnNumber = snapshot.lastPassTurnNumber
+        turnNumber = snapshot.turnNumber
+    }
+
+    /**
+     * Aplica [move] sobre una copia del estado y devuelve sus consecuencias observables,
+     * dejando la partida exactamente como estaba.
+     *
+     * Es lo que permite a una estrategia razonar sobre el FUTURO (¿esta jugada tranca la
+     * mesa? ¿gana la ronda? ¿cuantos puntos da?) sin duplicar las reglas de colocacion, que
+     * viven aqui y solo aqui.
+     */
+    fun simulate(playerIndex: Int, move: AiMove.Play): MoveSimulation {
+        val snapshot = snapshot()
+        try {
+            val applied = if (move.side == BoardSide.LEFT) {
+                playTileLeft(playerIndex, move.tile)
+            } else {
+                playTileRight(playerIndex, move.tile)
+            }
+            check(applied) { "No se puede simular una jugada ilegal: $move" }
+
+            val hand = players[playerIndex].hand
+            val opponents = players.filter { it.team != players[playerIndex].team }
+                .sumOf { player -> player.hand.sumOf { it.totalPips } }
+
+            return MoveSimulation(
+                move = move,
+                myRemainingTiles = hand.size,
+                myRemainingPips = hand.sumOf { it.totalPips },
+                myRemainingDoubles = hand.count { it.isDouble },
+                opponentsPips = opponents,
+                ownTeamPips = players.filter { it.team == players[playerIndex].team }
+                    .sumOf { player -> player.hand.sumOf { it.totalPips } },
+                leftOpenPip = leftOpenPip,
+                rightOpenPip = rightOpenPip,
+                blocksTheBoard = isBoardBlocked(),
+                pointsEarned = lastPointsEarned,
+                winsTheRound = isRoundOver
+            )
+        } finally {
+            restore(snapshot)
+        }
+    }
+
+    /**
+     * ¿La mesa esta trancada? Es decir: nadie puede jugar y, en los modos con robo, tampoco
+     * puede nadie seguir sacando fichas del pozo. Sin la comprobacion del pozo, un modo de
+     * robo en el que todos tuvieran que robar se reportaria como trancado sin serlo.
+     */
+    private fun isBoardBlocked(): Boolean {
+        val anyoneCanPlay = players.indices.any { getPlayableTiles(it).isNotEmpty() }
+        if (anyoneCanPlay) return false
+        return !gameMode.allowsDraw || boneyard.isEmpty()
     }
 }
