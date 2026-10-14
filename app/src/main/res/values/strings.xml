@@ -1,3 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Recursos de SISTEMA: lo que Android muestra fuera de la app (lanzador, gestor de tareas,
+    ajustes, servicios de accesibilidad). Son independientes de los textos internos del juego,
+    que viven en DominoStrings.
+
+    El espanol es el idioma por defecto, asi que este fichero no lleva sufijo de idioma. Si un
+    jugador tiene el telefono en un idioma que no esta entre los seis, vera estos textos.
+-->
 <resources>
     <string name="app_name">Domino Imperial: World Tour</string>
+
+    <!-- Descripción larga: la usan el lanzador y los servicios de accesibilidad. -->
+    <string name="app_description">Dominó imperial por el mundo: gana el circuito, colecciona trofeos y supera el reto diario.</string>
 </resources>

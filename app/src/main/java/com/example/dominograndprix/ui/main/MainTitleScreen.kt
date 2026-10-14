@@ -89,7 +89,9 @@ fun MainTitleScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.app_logo_icon),
-                    contentDescription = "Domino Imperial Icon",
+                    // Antes decia "Domino Imperial Icon" en ingles: lo lee un lector de pantalla,
+                    // asi que no puede estar en un idioma fijo distinto del de la interfaz.
+                    contentDescription = DominoStrings.appIconLabel(),
                     modifier = Modifier
                         .size(46.dp)
                         .clip(RoundedCornerShape(12.dp))

@@ -615,6 +615,8 @@ object DominoStrings {
     }
 
     // --- DESAFÍO DIARIO ---
+    /** Nombre del juego para el icono de la pantalla de inicio. Es marca: no se traduce. */
+    fun appIconLabel(): String = "Domino Imperial"
     fun dailyChallengeTitle(): String = when (currentLanguage) {
         AppLanguage.ES -> "🎯 DESAFÍO DIARIO"
         AppLanguage.EN -> "🎯 DAILY CHALLENGE"
