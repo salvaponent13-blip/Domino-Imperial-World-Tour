@@ -1,5 +1,7 @@
 package com.example.dominograndprix.engine
 
+import com.example.dominograndprix.engine.ai.AiMove
+import com.example.dominograndprix.engine.ai.PlayerView
 import com.example.dominograndprix.model.*
 import kotlin.math.abs
 import kotlin.random.Random
@@ -15,7 +17,14 @@ class DominoEngine(
     val gameMode: GameMode,
     val targetScore: Int = 100,
     val isTeamGame: Boolean = true,
-    val patternIndex: Int = 3 // Patrón por defecto: escalones simétricos en S
+    val patternIndex: Int = 3, // Patrón por defecto: escalones simétricos en S
+    /**
+     * Generador aleatorio del motor. Se inyecta para poder reproducir una partida entera:
+     * con la misma semilla, dos motores reparten las mismas manos ronda tras ronda.
+     * Es la base del benchmark de IA y del desafio diario. En produccion se deja el
+     * generador por defecto.
+     */
+    private val random: Random = Random.Default
 ) {
     // Deck & Boneyard
     var boneyard: MutableList<DominoTile> = mutableListOf()
@@ -83,7 +92,8 @@ class DominoEngine(
                 deck.add(DominoTile(j, i))
             }
         }
-        deck.shuffle(Random(System.currentTimeMillis()))
+        // Barajado con el generador inyectado: fijando su semilla, la partida es reproducible.
+        deck.shuffle(random)
 
         // In Draw modes with 4 players, deal 5 tiles each so 8 tiles remain in the boneyard (pozo) to draw!
         // In Block modes, deal 7 tiles each.
@@ -205,6 +215,37 @@ class DominoEngine(
     fun getPlayableTiles(playerIndex: Int): List<DominoTile> {
         val player = players[playerIndex]
         return player.hand.filter { getPlayableSides(playerIndex, it).isNotEmpty() }
+    }
+
+    /**
+     * Construye la vista que necesita una estrategia de IA para decidir.
+     *
+     * Incluye lo publico (cadena, extremos, pozo, marcadores) y las jugadas legales ya
+     * resueltas por el motor, pero nunca las manos de los demas. La legalidad se calcula
+     * aqui, en el unico sitio que conoce las reglas de todas las modalidades.
+     */
+    fun viewFor(playerIndex: Int): PlayerView {
+        val player = players[playerIndex]
+        val moves = player.hand.flatMap { tile ->
+            getPlayableSides(playerIndex, tile).map { side -> AiMove.Play(tile, side) }
+        }
+        return PlayerView(
+            playerIndex = playerIndex,
+            myHand = player.hand,
+            boardChain = boardChain.toList(),
+            leftOpenPip = leftOpenPip,
+            rightOpenPip = rightOpenPip,
+            boneyardSize = boneyard.size,
+            gameMode = gameMode,
+            isTeamGame = isTeamGame,
+            scores = players.map { it.score },
+            turnNumber = turnNumber,
+            consecutivePasses = consecutivePasses,
+            playableMoves = moves,
+            ownBranch = branchForPlayer(playerIndex),
+            lastPassTurnNumber = if (lastPassingPlayerIndex != null) lastPassTurnNumber else null,
+            lastPassingPlayerIndex = lastPassingPlayerIndex
+        )
     }
 
     /**
