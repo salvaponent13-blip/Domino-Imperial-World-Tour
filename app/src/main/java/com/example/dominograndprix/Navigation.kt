@@ -8,7 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.data.AchievementCatalog
 import com.example.dominograndprix.data.CareerProgressStore
+import com.example.dominograndprix.data.CareerReporter
 import com.example.dominograndprix.data.DailyChallenge
 import com.example.dominograndprix.data.DailyChallengeManager
 import com.example.dominograndprix.data.DailyChallengeResult
@@ -42,32 +44,41 @@ enum class AppScreen {
 fun MainNavigation() {
     var currentScreen by remember { mutableStateOf(AppScreen.TITLE) }
 
-    // Persistencia de la carrera World Tour (caja, WRP, ciudades y trofeos vendidos).
-    // El progreso se carga una sola vez al arrancar y se vuelve a escribir en disco
-    // automáticamente cada vez que cambia cualquiera de los cuatro valores.
+    // Persistencia de la carrera World Tour. El progreso se carga una sola vez al arrancar y se
+    // vuelve a escribir en disco automaticamente cada vez que cambia.
+    //
+    // La caja y los WRP viven DENTRO de este progreso y no en variables aparte: con dos
+    // contabilidades acabarian desincronizandose, y un jugador que ve una cifra en pantalla y
+    // otra en disco es un fallo dificil de rastrear.
     val context = LocalContext.current
-    val savedProgress: JourneyProgress = remember { CareerProgressStore.load(context) }
+    var careerProgress by remember { mutableStateOf(CareerProgressStore.load(context)) }
+    // Funciones locales y no propiedades: en Kotlin, una `val` con getter no puede vivir dentro
+    // del cuerpo de una funcion. Se leen siempre del progreso, que es la unica contabilidad.
+    fun playerCash(): Int = careerProgress.cash
+    fun playerWrp(): Int = careerProgress.wrp
 
-    // Career persistent state
-    var playerCash by remember { mutableIntStateOf(savedProgress.cash) }
-    var playerWrp by remember { mutableIntStateOf(savedProgress.wrp) }
     var venues by remember {
         mutableStateOf(
-            CareerProgressStore.applyToVenues(WorldTourRepository.getInitialVenues(), savedProgress)
+            CareerProgressStore.applyToVenues(
+                WorldTourRepository.getInitialVenues(),
+                careerProgress
+            )
         )
     }
     var trophies by remember {
         mutableStateOf(
-            CareerProgressStore.applyToTrophies(WorldTourRepository.getLuxuryPrizes(), savedProgress)
+            CareerProgressStore.applyToTrophies(
+                WorldTourRepository.getLuxuryPrizes(),
+                careerProgress
+            )
         )
     }
 
-    LaunchedEffect(playerCash, playerWrp, venues, trophies) {
+    LaunchedEffect(careerProgress, venues, trophies) {
         CareerProgressStore.save(
             context,
             CareerProgressStore.snapshot(
-                cash = playerCash,
-                wrp = playerWrp,
+                progress = careerProgress,
                 venues = venues,
                 trophies = trophies
             )
@@ -204,8 +215,8 @@ fun MainNavigation() {
                 }
                 WorldTourMapScreen(
                     venues = venues,
-                    playerCash = playerCash,
-                    playerWrp = playerWrp,
+                    playerCash = playerCash(),
+                    playerWrp = playerWrp(),
                     unfinishedMatchCity = resumeSnapshot?.cityName,
                     onResumeMatch = {
                         DominoSoundManager.playTileClack(isDouble = true)
@@ -258,8 +269,8 @@ fun MainNavigation() {
                         // Empezar una partida nueva descarta cualquier guardado anterior:
                         // si no, al entrar se reanudaria la partida vieja de esa sede.
                         MatchSnapshotStore.clear(context)
-                        if (playerCash >= venue.entryBet) {
-                            playerCash -= venue.entryBet
+                        if (playerCash() >= venue.entryBet) {
+                            careerProgress = careerProgress.copy(cash = playerCash() - venue.entryBet)
                         }
                         currentScreen = AppScreen.MATCH_TABLE
                     },
@@ -285,25 +296,44 @@ fun MainNavigation() {
                     humanPlayerIndices = activeHumanSeats,
                     playerNames = activePlayerNames,
                     resumeFrom = resumeSnapshot,
-                    onMatchFinished = { won, reward ->
-                        if (won) {
-                            playerCash += reward
-                            playerWrp += 1500
-                            activeVenueId?.let { vId ->
-                                val vIndex = venues.indexOfFirst { it.id == vId }
-                                if (vIndex != -1) {
-                                    val updated = venues.toMutableList()
-                                    updated[vIndex] = updated[vIndex].copy(isCompleted = true)
-                                    if (vIndex + 1 < updated.size) {
-                                        updated[vIndex + 1] = updated[vIndex + 1].copy(isUnlocked = true)
-                                    }
-                                    venues = updated
+                    onMatchFinished = { won, reward, finishedEngine ->
+                        // El informe resume la partida y alimenta estadísticas y logros. Se
+                        // construye con datos del motor, no con suposiciones de la interfaz.
+                        val report = CareerReporter.reportFor(
+                            engine = finishedEngine,
+                            venueId = activeVenueId,
+                            won = won,
+                            reward = reward,
+                            bet = activeBet,
+                            difficulty = activeDifficulty,
+                            isDailyChallenge = runningDailyDay != null
+                        )
+
+                        // El informe se aplica sobre el progreso actual, que ya incluye la
+                        // apuesta descontada al entrar.
+                        val (updatedProgress, newAchievements) = AchievementCatalog.applyReport(
+                            progress = careerProgress,
+                            report = report,
+                            dailyStreak = dailyResult?.streak ?: 0
+                        )
+                        careerProgress = updatedProgress
+
+                        // La sede ganada se marca completada y desbloquea la siguiente.
+                        if (won && activeVenueId != null) {
+                            val vIndex = venues.indexOfFirst { it.id == activeVenueId }
+                            if (vIndex != -1) {
+                                val updated = venues.toMutableList()
+                                updated[vIndex] = updated[vIndex].copy(isCompleted = true)
+                                if (vIndex + 1 < updated.size) {
+                                    updated[vIndex + 1] = updated[vIndex + 1].copy(isUnlocked = true)
                                 }
+                                venues = updated
                             }
-                        } else if (playerCash < 100) {
-                            // Ensure player always has enough minimum bankroll for Havana ($100)
-                            playerCash = 300
+                        } else if (careerProgress.cash < 100) {
+                            // Red de seguridad: el jugador siempre debe poder jugar en La Habana.
+                            careerProgress = careerProgress.copy(cash = 300)
                         }
+
                         // Si la partida era el desafio diario, se registra el resultado del
                         // dia y se calcula la racha. Un reto diario solo cuenta una vez.
                         runningDailyDay?.let { day ->
@@ -341,7 +371,7 @@ fun MainNavigation() {
             AppScreen.TROPHIES -> {
                 TrophyRoomScreen(
                     items = trophies,
-                    playerCash = playerCash,
+                    playerCash = playerCash(),
                     onSellItem = { item ->
                         DominoSoundManager.playTileClack()
                         val index = trophies.indexOf(item)
@@ -349,7 +379,7 @@ fun MainNavigation() {
                             val updated = trophies.toMutableList()
                             updated[index] = item.copy(isSold = true)
                             trophies = updated
-                            playerCash += item.value
+                            careerProgress = careerProgress.copy(cash = playerCash() + item.value)
                         }
                     },
                     onBack = {

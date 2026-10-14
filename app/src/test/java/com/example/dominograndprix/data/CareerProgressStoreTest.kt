@@ -86,8 +86,7 @@ class CareerProgressStoreTest {
     @Test
     fun snapshot_onlyCapturesCompletedUnlockedAndSoldIds() {
         val progress = CareerProgressStore.snapshot(
-            cash = 1200,
-            wrp = 3000,
+            progress = JourneyProgress(cash = 1200, wrp = 3000),
             venues = listOf(
                 venue("cuba", unlocked = true, completed = true),
                 venue("mexico", unlocked = true),
@@ -173,8 +172,7 @@ class CareerProgressStoreTest {
         )
 
         val saved = CareerProgressStore.snapshot(
-            cash = 4400,
-            wrp = 7500,
+            progress = JourneyProgress(cash = 4400, wrp = 7500),
             venues = listOf(
                 venue("cuba", unlocked = true, completed = true),
                 venue("mexico", unlocked = true),

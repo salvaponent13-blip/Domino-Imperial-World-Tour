@@ -202,8 +202,54 @@ class DominoEngine(
     /** Contador de colocaciones, para dar un identificador unico a cada ficha puesta. */
     private var placementCounter: Int = 0
 
+    /**
+     * Si la ronda que acaba de cerrarse termino con la mesa trancada (nadie podia jugar) en
+     * lugar de porque alguien vaciara la mano. Lo usan las estadisticas de carrera.
+     */
+    var lastRoundWasBlocked: Boolean = false
+        private set
+
     /** Puntos que otorgo la ultima jugada (0 en modos que no puntuan extremos). */
     var lastPointsEarned: Int = 0
+        private set
+
+    // --- Acumuladores de la PARTIDA ---
+    //
+    // Los indicadores de ronda (lastRoundWasBlocked, winnerPlayerId) solo describen la ULTIMA
+    // ronda. Estos acumulan lo ocurrido en toda la partida, que es lo que necesitan las
+    // estadisticas de carrera: sin ellos, una partida de cinco rondas se contaria como una.
+
+    /** Rondas ganadas por el bando humano en esta partida. */
+    var matchRoundsWon: Int = 0
+        private set
+
+    /**
+     * Rondas cerradas en esta partida, las gane quien las gane.
+     *
+     * Es un contador aparte y no `matchRoundsWon + matchBlockedRounds`: una ronda que gana el
+     * rival no es ninguna de las dos, asi que aquella suma no da el total de rondas jugadas.
+     */
+    var matchRoundsPlayed: Int = 0
+        private set
+
+    /** Rondas que termino la mesa trancada en esta partida. */
+    var matchBlockedRounds: Int = 0
+        private set
+
+    /** Rondas que gano el bando humano vaciando la mano. */
+    var matchDominos: Int = 0
+        private set
+
+    /** Rondas que gano el bando humano con la mesa trancada. */
+    var matchTrancasWon: Int = 0
+        private set
+
+    /** Rondas que gano un asiento humano con una sola ficha en la mano. */
+    var matchWinsWithSingleTile: Int = 0
+        private set
+
+    /** Puntos de extremos anotados por los asientos humanos en toda la partida. */
+    var matchPointsScored: Int = 0
         private set
 
     // Hungarian chaining flag
@@ -253,6 +299,18 @@ class DominoEngine(
     }
 
     fun setupGame() {
+        // Los acumuladores de partida se reinician aqui, que es donde empieza una partida nueva.
+        // No en startNewRound(): eso borraria las estadisticas en cada ronda.
+        matchRoundsWon = 0
+        matchRoundsPlayed = 0
+        matchBlockedRounds = 0
+        matchDominos = 0
+        matchTrancasWon = 0
+        matchWinsWithSingleTile = 0
+        matchPointsScored = 0
+        isMatchOver = false
+        winnerPlayerId = null
+        winningTeam = null
         players.clear()
         for (seat in 0 until SEAT_NAMES.size) {
             players.add(
@@ -279,6 +337,7 @@ class DominoEngine(
         lastPassTurnNumber = -1
         turnNumber = 0
         lastPointsEarned = 0
+        lastRoundWasBlocked = false
 
         // Generate standard Double-6 domino set (28 tiles)
         val deck = mutableListOf<DominoTile>()
@@ -741,6 +800,7 @@ class DominoEngine(
     }
 
     private fun resolveBlockedRound() {
+        lastRoundWasBlocked = true
         val minPips = players.minOf { it.hand.sumOf { tile -> tile.totalPips } }
         val winner = players.first { it.hand.sumOf { tile -> tile.totalPips } == minPips }
         roundLog = "¡Cerrado! Gana ${winner.name} ($minPips pts en mano)."
@@ -748,7 +808,11 @@ class DominoEngine(
     }
 
     private fun finishRound(winnerIndex: Int, byDomino: Boolean) {
+        // Una ronda solo se cierra una vez. Sin esta guarda, cerrar dos veces contaria dos
+        // rondas y corromperia las estadisticas de carrera.
+        if (isRoundOver) return
         isRoundOver = true
+        lastRoundWasBlocked = !byDomino
         // La ronda ha terminado: no puede quedar pendiente un encadenamiento húngaro,
         // o la UI seguiría pidiendo tirar cuando la mano ya está cerrada.
         canContinueHungarianTurn = false
@@ -769,6 +833,28 @@ class DominoEngine(
         if (newScore >= targetScore) {
             isMatchOver = true
         }
+
+        // --- Acumuladores de la PARTIDA (no de la ronda) ---
+        //
+        // Hacen falta porque los indicadores de ronda (lastRoundWasBlocked, winnerPlayerId)
+        // solo describen la ULTIMA ronda. Sin esto, una partida de cinco rondas se contaria
+        // como una sola en las estadisticas de carrera.
+        //
+        // El "bando del jugador" es SIEMPRE el equipo del asiento 0, que es el punto de vista
+        // de la carrera y del pass-and-play (los asientos 0 y 2 son equipos distintos). Se usa
+        // esto y no "el equipo de un asiento humano" porque en los benchmarks y los tests de
+        // reglas no hay ningun asiento humano y el contador quedaria muerto.
+        val playerTeam = players.firstOrNull()?.team ?: 0
+        matchRoundsPlayed++
+        if (winner.team == playerTeam) {
+            matchRoundsWon++
+            if (byDomino) matchDominos++ else matchTrancasWon++
+            // Una sola ficha en la mano: victoria apurada. Solo puede pasar ganando por tranca,
+            // porque quien cierra con domino se queda sin ninguna.
+            if (winner.hand.size == 1) matchWinsWithSingleTile++
+            matchPointsScored += lastPointsEarned
+        }
+        if (!byDomino) matchBlockedRounds++
     }
 
     /**
@@ -779,6 +865,10 @@ class DominoEngine(
      * estrategia heredada, para que una estrategia defectuosa no pueda corromper la partida.
      */
     fun executeAIMove(): Boolean {
+        // Con la partida o la ronda ya cerradas no hay turno que jugar. Seguir moviendo fichas
+        // aqui inflaria las estadisticas de la partida y ademas no tendria sentido.
+        if (isMatchOver || isRoundOver) return false
+
         // Salvaguarda incondicional: el motor NO mueve el turno de una persona. Si esto se
         // dispara, es un fallo de quien llama (la interfaz solo debe pedir turno a la IA), y
         // no mover es preferible a mover una ficha ajena.
@@ -933,7 +1023,18 @@ class DominoEngine(
         val openingPlayerIndex: Int,
         val lastPassingPlayerIndex: Int?,
         val lastPassTurnNumber: Int,
-        val turnNumber: Int
+        val turnNumber: Int,
+        // Los acumuladores de partida entran en la instantanea porque `simulate()` aplica
+        // jugadas de verdad sobre el motor y las deshace despues. Si no se guardaran y
+        // restauraran, una simulacion que cierra una ronda contaria una ronda que nunca
+        // ocurrio: dos cierres reales se contaban como cuatro.
+        val matchRoundsPlayed: Int,
+        val matchRoundsWon: Int,
+        val matchBlockedRounds: Int,
+        val matchDominos: Int,
+        val matchTrancasWon: Int,
+        val matchWinsWithSingleTile: Int,
+        val matchPointsScored: Int
     )
 
     private fun snapshot(): StateSnapshot = StateSnapshot(
@@ -954,7 +1055,14 @@ class DominoEngine(
         openingPlayerIndex = openingPlayerIndex,
         lastPassingPlayerIndex = lastPassingPlayerIndex,
         lastPassTurnNumber = lastPassTurnNumber,
-        turnNumber = turnNumber
+        turnNumber = turnNumber,
+        matchRoundsPlayed = matchRoundsPlayed,
+        matchRoundsWon = matchRoundsWon,
+        matchBlockedRounds = matchBlockedRounds,
+        matchDominos = matchDominos,
+        matchTrancasWon = matchTrancasWon,
+        matchWinsWithSingleTile = matchWinsWithSingleTile,
+        matchPointsScored = matchPointsScored
     )
 
     private fun restore(snapshot: StateSnapshot) {
@@ -979,6 +1087,13 @@ class DominoEngine(
         lastPassingPlayerIndex = snapshot.lastPassingPlayerIndex
         lastPassTurnNumber = snapshot.lastPassTurnNumber
         turnNumber = snapshot.turnNumber
+        matchRoundsPlayed = snapshot.matchRoundsPlayed
+        matchRoundsWon = snapshot.matchRoundsWon
+        matchBlockedRounds = snapshot.matchBlockedRounds
+        matchDominos = snapshot.matchDominos
+        matchTrancasWon = snapshot.matchTrancasWon
+        matchWinsWithSingleTile = snapshot.matchWinsWithSingleTile
+        matchPointsScored = snapshot.matchPointsScored
     }
 
     /**

@@ -78,7 +78,11 @@ fun DominoTableScreen(
     dailySeed: Long? = null,
     /** Partida guardada que hay que reanudar, si la hay. */
     resumeFrom: MatchSnapshot? = null,
-    onMatchFinished: (won: Boolean, pointsWon: Int) -> Unit = { _, _ -> },
+    /**
+     * Fin de partida. Recibe el motor ya cerrado para que quien llama pueda construir su
+     * informe (estadisticas, logros) con datos reales en lugar de suposiciones.
+     */
+    onMatchFinished: (won: Boolean, pointsWon: Int, engine: DominoEngine) -> Unit = { _, _, _ -> },
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -856,7 +860,7 @@ fun DominoTableScreen(
                         onClick = {
                             showRoundDialog = false
                             if (engine.value.isMatchOver) {
-                                onMatchFinished(engine.value.winningTeam == 0, betAmount * 2)
+                                onMatchFinished(engine.value.winningTeam == 0, betAmount * 2, engine.value)
                             } else {
                                 DominoSoundManager.playVenueMusic(venueId)
                                 engine.value.startNewRound()

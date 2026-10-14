@@ -21,7 +21,16 @@ data class JourneyProgress(
     val wrp: Int = DEFAULT_WRP,
     val completedVenueIds: Set<String> = emptySet(),
     val unlockedVenueIds: Set<String> = emptySet(),
-    val soldTrophyIds: Set<String> = emptySet()
+    val soldTrophyIds: Set<String> = emptySet(),
+    /**
+     * Logros conseguidos, por identificador del catalogo.
+     *
+     * Tiene valor por defecto para que los guardados anteriores a esta version carguen sin
+     * fallos: quien ya tenga progreso seguira teniendolo y empezara sin logros.
+     */
+    val unlockedAchievements: Set<String> = emptySet(),
+    /** Estadisticas acumuladas de la carrera. */
+    val stats: CareerStats = CareerStats()
 ) {
     companion object {
         const val DEFAULT_CASH = 2500
@@ -84,15 +93,18 @@ object CareerProgressStore {
     private fun prefs(context: Context): SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    /** Captura el estado actual de la carrera en un [JourneyProgress] listo para guardar. */
+    /**
+     * Captura el estado actual de la carrera en un [JourneyProgress] listo para guardar.
+     *
+     * [progress] aporta lo que NO vive en las listas del catalogo: caja, WRP, estadisticas y
+     * logros. Las ciudades y los trofeos se derivan de las listas, que son la fuente de verdad
+     * de su estado.
+     */
     fun snapshot(
-        cash: Int,
-        wrp: Int,
+        progress: JourneyProgress,
         venues: List<CityVenue>,
         trophies: List<LuxuryItem>
-    ): JourneyProgress = JourneyProgress(
-        cash = cash,
-        wrp = wrp,
+    ): JourneyProgress = progress.copy(
         completedVenueIds = venues.filter { it.isCompleted }.map { it.id }.toSet(),
         unlockedVenueIds = venues.filter { it.isUnlocked }.map { it.id }.toSet(),
         soldTrophyIds = trophies.filter { it.isSold }.map { it.id }.toSet()
