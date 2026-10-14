@@ -9,11 +9,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.CareerProgressStore
+import com.example.dominograndprix.data.DailyChallenge
+import com.example.dominograndprix.data.DailyChallengeManager
+import com.example.dominograndprix.data.DailyChallengeResult
+import com.example.dominograndprix.data.DailyChallengeStore
 import com.example.dominograndprix.data.JourneyProgress
 import com.example.dominograndprix.data.MatchSnapshot
 import com.example.dominograndprix.data.MatchSnapshotStore
 import com.example.dominograndprix.data.WorldTourRepository
 import com.example.dominograndprix.i18n.DominoStrings
+import com.example.dominograndprix.model.CalendarDate
 import com.example.dominograndprix.model.CityVenue
 import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.GameMode
@@ -90,6 +95,8 @@ fun MainNavigation() {
     var activeTargetScore by remember { mutableStateOf(100) }
     var activeVenueId by remember { mutableStateOf<String?>("cuba") }
     var activeDifficulty by remember { mutableStateOf(Difficulty.STANDARD) }
+    /** Semilla del desafio diario en curso, o null si la partida es normal. */
+    var activeDailySeed by remember { mutableStateOf<Long?>(null) }
     /** Asientos que juegan personas en la partida activa. */
     var activeHumanSeats by remember { mutableStateOf(setOf(0)) }
     /** Nombres de los asientos de la partida activa, vacio = los del modo carrera. */
@@ -103,6 +110,16 @@ fun MainNavigation() {
         resumeSnapshot = MatchSnapshotStore.load(context)
     }
 
+    // Desafío diario: el reto de hoy y el resultado si ya se ha disputado.
+    var dailyChallenge by remember { mutableStateOf<DailyChallenge?>(null) }
+    var dailyResult by remember { mutableStateOf<DailyChallengeResult?>(null) }
+    /** Si la partida en curso es el desafío diario del día. */
+    var runningDailyDay by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(Unit) {
+        dailyChallenge = DailyChallengeManager.today()
+        dailyResult = DailyChallengeStore.load(context)
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xFF0F1722)
@@ -113,6 +130,8 @@ fun MainNavigation() {
                     DominoSoundManager.playTitleMusic()
                 }
                 MainTitleScreen(
+                    dailyChallenge = dailyChallenge,
+                    dailyResult = dailyResult,
                     onStartWorldTour = {
                         DominoSoundManager.playTileTap()
                         currentScreen = AppScreen.WORLD_TOUR
@@ -124,6 +143,8 @@ fun MainNavigation() {
                         // Modo carrera: un solo jugador humano en el asiento 0.
                         activeHumanSeats = setOf(0)
                         activePlayerNames = emptyList()
+                        activeDailySeed = null
+                        activeDailySeed = null
                         currentScreen = AppScreen.RIVAL_SHOWDOWN
                     },
                     onLocalMatch = {
@@ -136,6 +157,7 @@ fun MainNavigation() {
                         activeTargetScore = 100
                         activeVenueId = null
                         activeDifficulty = Difficulty.STANDARD
+                        activeDailySeed = null
                         activeHumanSeats = setOf(0, 2)
                         activePlayerNames = listOf(
                             DominoStrings.localPlayerName(0),
@@ -145,6 +167,25 @@ fun MainNavigation() {
                         )
                         MatchSnapshotStore.clear(context)
                         currentScreen = AppScreen.MATCH_TABLE
+                    },
+                    onPlayDaily = {
+                        DominoSoundManager.playTileClack(isDouble = true)
+                        dailyChallenge?.let { challenge ->
+                            activeMode = challenge.mode
+                            activeCityName = DominoStrings.dailyChallengeTitle()
+                            activeBet = 0
+                            activeTargetScore = challenge.targetScore
+                            activeVenueId = null
+                            activeDifficulty = challenge.difficulty
+                            activeHumanSeats = setOf(0)
+                            activePlayerNames = emptyList()
+                            // El reto se juega con una semilla fija y viaja por el motor, no por
+                            // el snapshot: no debe guardarse a medias ni reanudarse.
+                            activeDailySeed = challenge.seed
+                            runningDailyDay = challenge.dayNumber
+                            MatchSnapshotStore.clear(context)
+                            currentScreen = AppScreen.MATCH_TABLE
+                        }
                     },
                     onShowRules = {
                         DominoSoundManager.playTileTap()
@@ -240,6 +281,7 @@ fun MainNavigation() {
                     betAmount = activeBet,
                     targetScore = activeTargetScore,
                     difficulty = activeDifficulty,
+                    dailySeed = activeDailySeed,
                     humanPlayerIndices = activeHumanSeats,
                     playerNames = activePlayerNames,
                     resumeFrom = resumeSnapshot,
@@ -261,6 +303,22 @@ fun MainNavigation() {
                         } else if (playerCash < 100) {
                             // Ensure player always has enough minimum bankroll for Havana ($100)
                             playerCash = 300
+                        }
+                        // Si la partida era el desafio diario, se registra el resultado del
+                        // dia y se calcula la racha. Un reto diario solo cuenta una vez.
+                        runningDailyDay?.let { day ->
+                            val date = dailyChallenge?.date ?: CalendarDate.today()
+                            val points = if (won) reward else 0
+                            val streak = DailyChallengeManager.nextStreak(dailyResult, date, won)
+                            val result = DailyChallengeResult(
+                                dayNumber = day,
+                                won = won,
+                                points = points,
+                                streak = streak
+                            )
+                            DailyChallengeStore.save(context, result)
+                            dailyResult = result
+                            runningDailyDay = null
                         }
                         currentScreen = AppScreen.WORLD_TOUR
                     },

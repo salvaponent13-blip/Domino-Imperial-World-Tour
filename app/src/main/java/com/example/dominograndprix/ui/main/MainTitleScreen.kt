@@ -20,6 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dominograndprix.R
+import com.example.dominograndprix.data.DailyChallenge
+import com.example.dominograndprix.data.DailyChallengeResult
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
@@ -32,6 +34,11 @@ fun MainTitleScreen(
     onStartWorldTour: () -> Unit = {},
     onQuickPlay: () -> Unit = {},
     onLocalMatch: () -> Unit = {},
+    /** Reto de hoy. Si es null, no se muestra la tarjeta. */
+    dailyChallenge: DailyChallenge? = null,
+    /** Resultado del reto de hoy, si ya se ha disputado. */
+    dailyResult: DailyChallengeResult? = null,
+    onPlayDaily: () -> Unit = {},
     onShowRules: () -> Unit = {},
     onShowTrophies: () -> Unit = {}
 ) {
@@ -160,6 +167,16 @@ fun MainTitleScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Desafío diario: la misma partida para todo el mundo hoy
+            if (dailyChallenge != null) {
+                DailyChallengeCard(
+                    challenge = dailyChallenge,
+                    result = dailyResult,
+                    onPlay = onPlayDaily
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
             // Partida local (pass-and-play): dos personas, mismo dispositivo
             MenuOptionCard(
                 title = DominoStrings.localMatchBtnTitle(),
@@ -226,6 +243,86 @@ fun MainTitleScreen(
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+/**
+ * Tarjeta del desafio diario.
+ *
+ * Muestra el reto de hoy y, si ya se ha disputado, el resultado y la racha en lugar del boton
+ * de jugar: un reto diario que se puede repetir sin limite no es un reto, es una partida mas.
+ */
+@Composable
+fun DailyChallengeCard(
+    challenge: DailyChallenge,
+    result: DailyChallengeResult?,
+    onPlay: () -> Unit
+) {
+    val alreadyPlayed = result != null && result.dayNumber == challenge.dayNumber
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF3A2E12),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, GoldAccent),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (alreadyPlayed) Modifier else Modifier.clickable(onClick = onPlay))
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = DominoStrings.dailyChallengeTitle(),
+                    color = GoldAccent,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                if (alreadyPlayed && result != null && result.won && result.streak > 0) {
+                    Text(
+                        text = "🔥 ${result.streak}",
+                        color = Color(0xFFFF8A65),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = DominoStrings.dailyChallengeSub(
+                    label = challenge.label,
+                    modeTitle = challenge.mode.title,
+                    target = challenge.targetScore
+                ),
+                color = Color.White,
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            if (alreadyPlayed && result != null) {
+                Text(
+                    text = DominoStrings.dailyResultSummary(result.won, result.points, result.streak),
+                    color = if (result.won) Color(0xFF8BC34A) else Color(0xFFFF8A80),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = DominoStrings.dailyComeBackTomorrow(),
+                    color = Color.LightGray,
+                    fontSize = 10.sp
+                )
+            } else {
+                Text(
+                    text = DominoStrings.dailyPlayBtn(),
+                    color = DarkNavy,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(GoldAccent, RoundedCornerShape(8.dp))
+                        .padding(vertical = 8.dp)
+                )
+            }
         }
     }
 }

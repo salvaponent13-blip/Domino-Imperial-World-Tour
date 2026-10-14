@@ -614,6 +614,64 @@ object DominoStrings {
         AppLanguage.DE -> "diesen Stein spielen"
     }
 
+    // --- DESAFÍO DIARIO ---
+    fun dailyChallengeTitle(): String = when (currentLanguage) {
+        AppLanguage.ES -> "🎯 DESAFÍO DIARIO"
+        AppLanguage.EN -> "🎯 DAILY CHALLENGE"
+        AppLanguage.FR -> "🎯 DÉFI QUOTIDIEN"
+        AppLanguage.IT -> "🎯 SFIDA GIORNALIERA"
+        AppLanguage.PT -> "🎯 DESAFIO DIÁRIO"
+        AppLanguage.DE -> "🎯 TÄGLICHE HERAUSFORDERUNG"
+    }
+
+    /** Detalle del reto de hoy: numero de reto, modalidad y objetivo. */
+    fun dailyChallengeSub(label: String, modeTitle: String, target: Int): String =
+        when (currentLanguage) {
+            AppLanguage.ES -> "$label • $modeTitle a $target puntos"
+            AppLanguage.EN -> "$label • $modeTitle to $target points"
+            AppLanguage.FR -> "$label • $modeTitle à $target points"
+            AppLanguage.IT -> "$label • $modeTitle a $target punti"
+            AppLanguage.PT -> "$label • $modeTitle até $target pontos"
+            AppLanguage.DE -> "$label • $modeTitle bis $target Punkte"
+        }
+
+    fun dailyPlayBtn(): String = when (currentLanguage) {
+        AppLanguage.ES -> "JUGAR EL RETO DE HOY"
+        AppLanguage.EN -> "PLAY TODAY'S CHALLENGE"
+        AppLanguage.FR -> "JOUER LE DÉFI DU JOUR"
+        AppLanguage.IT -> "GIOCA LA SFIDA DI OGGI"
+        AppLanguage.PT -> "JOGAR O DESAFIO DE HOJE"
+        AppLanguage.DE -> "HEUTIGE HERAUSFORDERUNG SPIELEN"
+    }
+
+    fun dailyAlreadyPlayed(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Ya has jugado el reto de hoy"
+        AppLanguage.EN -> "You already played today's challenge"
+        AppLanguage.FR -> "Vous avez déjà joué le défi du jour"
+        AppLanguage.IT -> "Hai già giocato la sfida di oggi"
+        AppLanguage.PT -> "Você já jogou o desafio de hoje"
+        AppLanguage.DE -> "Du hast die heutige Herausforderung schon gespielt"
+    }
+
+    /** Resultado de hoy: ganado o perdido, puntos y racha. */
+    fun dailyResultSummary(won: Boolean, points: Int, streak: Int): String = when (currentLanguage) {
+        AppLanguage.ES -> if (won) "¡Ganado! $points pts • Racha: $streak" else "Perdido • Racha rota"
+        AppLanguage.EN -> if (won) "Won! $points pts • Streak: $streak" else "Lost • Streak broken"
+        AppLanguage.FR -> if (won) "Gagné ! $points pts • Série : $streak" else "Perdu • Série brisée"
+        AppLanguage.IT -> if (won) "Vinto! $points pt • Striscia: $streak" else "Perso • Striscia interrotta"
+        AppLanguage.PT -> if (won) "Ganhou! $points pts • Sequência: $streak" else "Perdeu • Sequência quebrada"
+        AppLanguage.DE -> if (won) "Gewonnen! $points Pkt • Serie: $streak" else "Verloren • Serie gerissen"
+    }
+
+    fun dailyComeBackTomorrow(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Vuelve mañana para un reto nuevo"
+        AppLanguage.EN -> "Come back tomorrow for a new challenge"
+        AppLanguage.FR -> "Revenez demain pour un nouveau défi"
+        AppLanguage.IT -> "Torna domani per una nuova sfida"
+        AppLanguage.PT -> "Volte amanhã para um novo desafio"
+        AppLanguage.DE -> "Komm morgen für eine neue Herausforderung wieder"
+    }
+
     // --- PASS-AND-PLAY LOCAL ---
     fun passDeviceTitle(): String = when (currentLanguage) {
         AppLanguage.ES -> "PASA EL MÓVIL"

@@ -69,14 +69,21 @@ fun DominoTableScreen(
     humanPlayerIndices: Set<Int> = setOf(0),
     /** Nombres de los asientos. Vacio = los del modo carrera. */
     playerNames: List<String> = emptyList(),
+    /**
+     * Semilla fija del desafio diario, o `null` en partidas normales.
+     *
+     * Cuando viene, el reparto lo determina ella y no el reloj: es lo que hace que el reto de
+     * un dia sea exactamente la misma partida para todo el mundo.
+     */
+    dailySeed: Long? = null,
     /** Partida guardada que hay que reanudar, si la hay. */
     resumeFrom: MatchSnapshot? = null,
     onMatchFinished: (won: Boolean, pointsWon: Int) -> Unit = { _, _ -> },
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    // Semilla de la partida: se fija al crearla y viaja con el guardado, de modo que el
-    // reparto de la siguiente ronda es coherente al reanudar.
+    // Semilla de la partida: la del desafio diario si la hay, y si no una del reloj. Viaja con
+    // el guardado, de modo que el reparto de la siguiente ronda es coherente al reanudar.
     val engine = remember {
         mutableStateOf(
             if (resumeFrom != null) {
@@ -85,7 +92,8 @@ fun DominoTableScreen(
                 DominoEngine.newMatch(
                     gameMode = gameMode,
                     targetScore = targetScore,
-                    difficulty = difficulty
+                    difficulty = difficulty,
+                    seed = dailySeed ?: System.currentTimeMillis()
                 ).apply {
                     setHumanPlayerIndices(humanPlayerIndices)
                     if (playerNames.isNotEmpty()) setPlayerNames(playerNames)
@@ -157,7 +165,12 @@ fun DominoTableScreen(
     }
 
     // Guardado de la partida al cerrar cada ronda (enfoque 80/20 del plan).
+    //
+    // El desafio diario NO se guarda a proposito: si se pudiera reanudar, se podria reintentar
+    // el mismo reto tantas veces como se quisiera y dejaria de ser un reto. Al salir de el se
+    // pierde el intento, que es la regla del modo.
     LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
+        if (dailySeed != null) return@LaunchedEffect
         val current = engine.value
         if (current.isRoundOver && !current.isMatchOver) {
             MatchSnapshotStore.save(
