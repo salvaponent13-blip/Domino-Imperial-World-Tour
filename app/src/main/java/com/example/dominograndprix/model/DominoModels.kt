@@ -69,7 +69,15 @@ data class BoardPlacedTile(
     val virtY: Int = 119,
     val isVertical: Boolean = false,
     val branchSide: BoardSide? = null,
-    val branchStepIndex: Int = 0
+    val branchStepIndex: Int = 0,
+    /**
+     * Identificador unico de esta colocacion, asignado por el motor al poner la ficha.
+     *
+     * Sirve para que la interfaz reconozca que una ficha es nueva y anime solo esa. El indice
+     * en la lista no vale: al jugar por la izquierda la cadena se reordena y los indices de
+     * las fichas ya colocadas cambian, lo que reiniciaria sus animaciones.
+     */
+    val placementId: Int = 0
 )
 
 /**

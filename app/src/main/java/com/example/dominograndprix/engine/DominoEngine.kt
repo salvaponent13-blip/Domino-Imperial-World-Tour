@@ -121,6 +121,9 @@ class DominoEngine(
     var winningTeam: Int? = null
     var roundLog: String = ""
 
+    /** Contador de colocaciones, para dar un identificador unico a cada ficha puesta. */
+    private var placementCounter: Int = 0
+
     /** Puntos que otorgo la ultima jugada (0 en modos que no puntuan extremos). */
     var lastPointsEarned: Int = 0
         private set
@@ -500,7 +503,8 @@ class DominoEngine(
                     virtY = 119,
                     isVertical = false,
                     branchSide = null,
-                    branchStepIndex = 0
+                    branchStepIndex = 0,
+                    placementId = ++placementCounter
                 )
             )
         } else if (side == BoardSide.LEFT) {
@@ -524,7 +528,8 @@ class DominoEngine(
                     virtY = slot.virtY,
                     isVertical = slot.isVertical,
                     branchSide = BoardSide.LEFT,
-                    branchStepIndex = firstIdx + 1
+                    branchStepIndex = firstIdx + 1,
+                    placementId = ++placementCounter
                 )
             )
             leftOpenPip = newOpenPip
@@ -550,7 +555,8 @@ class DominoEngine(
                     virtY = slot.virtY,
                     isVertical = slot.isVertical,
                     branchSide = BoardSide.RIGHT,
-                    branchStepIndex = rightStep
+                    branchStepIndex = rightStep,
+                    placementId = ++placementCounter
                 )
             )
             rightOpenPip = newOpenPip
@@ -779,6 +785,8 @@ class DominoEngine(
 
         boardChain.clear()
         boardChain.addAll(snapshot.boardChain)
+        // Se continua la numeracion por encima de lo restaurado para no repetir identificadores.
+        placementCounter = snapshot.boardChain.maxOfOrNull { it.placementId } ?: 0
         boneyard.clear()
         leftOpenPip = snapshot.leftOpenPip
         rightOpenPip = snapshot.rightOpenPip

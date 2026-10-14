@@ -29,9 +29,10 @@ Este documento detalla la procedencia, autoría, tipo de licencia y términos le
   * **URL:** https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100346
 
 * **mus_region_mexico.ogg** (Ciudad de México)
-  * **Título:** *Son de Garibaldi*
-  * **Origen:** Composición y síntesis procedural matemática (ritmo 3/4 con guitarrón, vihuela y trompeta).
-  * **Derechos:** 100% original / Dominio Público / Generada procedural con `tools/make_music.py`.
+  * **Título:** *No Frills Cumbia*
+  * **Compositor/Artista:** Kevin MacLeod (incompetech.com)
+  * **Licencia:** Creative Commons: By Attribution 4.0 International (CC-BY 4.0)
+  * **URL:** https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100275
 
 * **mus_region_sanjuan.ogg** (San Juan)
   * **Título:** *Beachfront Celebration*

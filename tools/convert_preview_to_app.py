@@ -9,7 +9,7 @@ raw_dir = r"C:\Users\horts\Documents\Proyectos\DominoGrandPrix\app\src\main\res\
 
 mapping = {
     "mus_region_havana.ogg": "01_Cuba_LaHabana_NoFrillsSalsa.mp3",
-    "mus_region_mexico.ogg": "La_Llorona_Mariachi_Estudio.mp3",
+    "mus_region_mexico.ogg": "No_Frills_Cumbia.mp3",
     "mus_region_sanjuan.ogg": "03_PuertoRico_SanJuan_BeachfrontCelebration.mp3",
     "mus_region_neworleans.ogg": "04_NuevaOrleans_TheEntertainer_Ragtime.mp3",
     "mus_region_lasvegas.ogg": "05_LasVegas_HotSwing_BigBand.mp3",

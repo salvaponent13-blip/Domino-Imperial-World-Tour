@@ -16,12 +16,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dominograndprix.audio.DominoHaptics
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.MatchSnapshot
 import com.example.dominograndprix.data.MatchSnapshotStore
@@ -33,8 +41,11 @@ import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.DominoTile
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.model.Player
+import com.example.dominograndprix.ui.components.AnimatedPlacedTile
 import com.example.dominograndprix.ui.components.DominoBackTileView
 import com.example.dominograndprix.ui.components.DominoTileView
+import com.example.dominograndprix.ui.components.tileHeight
+import com.example.dominograndprix.ui.components.tileWidth
 import kotlinx.coroutines.delay
 
 val TableFeltGreen = Color(0xFF0F4727)
@@ -79,8 +90,20 @@ fun DominoTableScreen(
     // Si se reanuda una partida, la ronda ya estaba cerrada: el dialogo debe salir de entrada.
     var showRoundDialog by remember { mutableStateOf(resumeFrom != null) }
 
-    // Vertical camera offset in virtual units
-    var verticalCameraVirtY by remember { mutableFloatStateOf(0f) }
+    // Vista para la respuesta haptica: usarla respeta los ajustes de vibracion del sistema.
+    val hapticView = LocalView.current
+
+    // Camara vertical en unidades virtuales. Se separa el arrastre manual del encuadre
+    // automatico: el arrastre debe responder al dedo al instante, mientras que el reencuadre
+    // al crecer la cadena se anima para que no de un salto.
+    var cameraDragVirtY by remember { mutableFloatStateOf(0f) }
+    var cameraAutoTargetVirtY by remember { mutableFloatStateOf(0f) }
+    val cameraAutoVirtY by animateFloatAsState(
+        targetValue = cameraAutoTargetVirtY,
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+        label = "cameraAuto"
+    )
+    val verticalCameraVirtY = cameraAutoVirtY + cameraDragVirtY
 
     // Show round dialog and play victory/defeat jingle when round finishes
     LaunchedEffect(engine.value.isRoundOver, gameStateVersion) {
@@ -90,6 +113,8 @@ fun DominoTableScreen(
             } else {
                 DominoSoundManager.playDefeatJingle()
             }
+            // Cerrar la ronda merece una respuesta mas rotunda que colocar una ficha.
+            DominoHaptics.dominoCalled(hapticView)
             showRoundDialog = true
         }
     }
@@ -111,12 +136,13 @@ fun DominoTableScreen(
     // Auto-adjust vertical camera (like b.e(int, int) in b.java lines 4316-4333)
     LaunchedEffect(engine.value.boardChain.size, gameStateVersion) {
         if (engine.value.boardChain.isEmpty()) {
-            verticalCameraVirtY = 0f
+            cameraDragVirtY = 0f
+            cameraAutoTargetVirtY = 0f
         } else {
             val minY = engine.value.boardChain.minOf { it.virtY }
             val maxY = engine.value.boardChain.maxOf { it.virtY + if (it.isVertical) 31 else 17 }
             val centerChainY = (minY + maxY) / 2f
-            verticalCameraVirtY = (119f - centerChainY).coerceIn(-90f, 90f)
+            cameraAutoTargetVirtY = (119f - centerChainY).coerceIn(-90f, 90f)
         }
     }
 
@@ -277,7 +303,7 @@ fun DominoTableScreen(
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
-                            verticalCameraVirtY = (verticalCameraVirtY + dragAmount.y / 4f).coerceIn(-120f, 120f)
+                            cameraDragVirtY = (cameraDragVirtY + dragAmount.y / 4f).coerceIn(-120f, 120f)
                         }
                     }
             ) {
@@ -308,22 +334,28 @@ fun DominoTableScreen(
                         )
                     }
                 } else {
-                    // Renderizar cada ficha colocada en su coordenada virtual (virtX, virtY)
+                    // Renderizar cada ficha colocada en su coordenada virtual (virtX, virtY).
+                    // La clave es placementId: da identidad estable a cada ficha aunque la
+                    // cadena se reordene al jugar por la izquierda, de modo que la animacion
+                    // de asentamiento corre solo para la ficha recien puesta.
                     engine.value.boardChain.forEach { placed ->
-                        val tileW = unitDp * (if (placed.isVertical) 17f else 31f)
-                        val tileH = unitDp * (if (placed.isVertical) 31f else 17f)
-                        val xDp = unitDp * (placed.virtX - originVirtX)
-                        val yDp = unitDp * (placed.virtY - originVirtY + verticalCameraVirtY)
+                        key(placed.placementId) {
+                            val tileW = tileWidth(unitDp, placed.isVertical)
+                            val tileH = tileHeight(unitDp, placed.isVertical)
+                            val xDp = unitDp * (placed.virtX - originVirtX)
+                            val yDp = unitDp * (placed.virtY - originVirtY + verticalCameraVirtY)
 
-                        DominoTileView(
-                            tile = placed.tile,
-                            pip1 = placed.pipLeft,
-                            pip2 = placed.pipRight,
-                            isHorizontal = !placed.isVertical,
-                            width = tileW,
-                            height = tileH,
-                            modifier = Modifier.offset(x = xDp, y = yDp)
-                        )
+                            AnimatedPlacedTile(
+                                tile = placed.tile,
+                                pip1 = placed.pipLeft,
+                                pip2 = placed.pipRight,
+                                isHorizontal = !placed.isVertical,
+                                width = tileW,
+                                height = tileH,
+                                placementId = placed.placementId,
+                                modifier = Modifier.offset(x = xDp, y = yDp)
+                            )
+                        }
                     }
 
                     // If player selected a tile that matches BOTH ends, show glowing target slots right on the chain ends!
@@ -344,6 +376,7 @@ fun DominoTableScreen(
                                 .clickable {
                                     val t = selectedTile!!
                                     DominoSoundManager.playTileClack(isDouble = t.isDouble)
+                                    DominoHaptics.tilePlaced(hapticView)
                                     engine.value.playTileLeft(0, t)
                                     selectedTile = null
                                     logMessage = engine.value.roundLog
@@ -370,6 +403,7 @@ fun DominoTableScreen(
                                 .clickable {
                                     val t = selectedTile!!
                                     DominoSoundManager.playTileClack(isDouble = t.isDouble)
+                                    DominoHaptics.tilePlaced(hapticView)
                                     engine.value.playTileRight(0, t)
                                     selectedTile = null
                                     logMessage = engine.value.roundLog
@@ -575,12 +609,7 @@ fun DominoTableScreen(
 
                         val teamScore = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
                         val rivalScore = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
-                        Text(
-                            text = DominoStrings.scoreSummary(teamScore, rivalScore),
-                            color = GoldAccent,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        )
+                        ScoreBoard(teamScore = teamScore, rivalScore = rivalScore)
                     }
 
                     Spacer(modifier = Modifier.height(5.dp))
@@ -615,6 +644,7 @@ fun DominoTableScreen(
                                     if (sides.size == 1) {
                                         val side = sides.first()
                                         DominoSoundManager.playTileClack(isDouble = tile.isDouble)
+                                        DominoHaptics.tilePlaced(hapticView)
                                         if (side == BoardSide.LEFT) {
                                             engine.value.playTileLeft(0, tile)
                                         } else {
@@ -626,6 +656,7 @@ fun DominoTableScreen(
                                     } else if (engine.value.leftOpenPip == engine.value.rightOpenPip) {
                                         // Ambos extremos valen lo mismo: no hay elección real
                                         DominoSoundManager.playTileClack(isDouble = tile.isDouble)
+                                        DominoHaptics.tilePlaced(hapticView)
                                         engine.value.playTileLeft(0, tile)
                                         logMessage = engine.value.roundLog
                                         selectedTile = null
@@ -651,6 +682,7 @@ fun DominoTableScreen(
                                 onClick = {
                                     val t = selectedTile!!
                                     DominoSoundManager.playTileClack(isDouble = t.isDouble)
+                                    DominoHaptics.tilePlaced(hapticView)
                                     engine.value.playTileLeft(0, t)
                                     selectedTile = null
                                     logMessage = engine.value.roundLog
@@ -668,6 +700,7 @@ fun DominoTableScreen(
                                 onClick = {
                                     val t = selectedTile!!
                                     DominoSoundManager.playTileClack(isDouble = t.isDouble)
+                                    DominoHaptics.tilePlaced(hapticView)
                                     engine.value.playTileRight(0, t)
                                     selectedTile = null
                                     logMessage = engine.value.roundLog
@@ -742,6 +775,63 @@ fun DominoTableScreen(
             )
         }
     }
+}
+
+/**
+ * Marcador de la partida, con un destello cuando alguien anota.
+ *
+ * Un cambio de digito pasa desapercibido en una mesa con fichas moviendose; el destello y el
+ * latido hacen que el jugador se entere de que acaba de puntuar alguien, y de quien.
+ */
+@Composable
+fun ScoreBoard(teamScore: Int, rivalScore: Int) {
+    // Se guarda el valor anterior para saber si la puntuacion ha subido de verdad y quien lo
+    // hizo: en la primera composicion no debe haber destello.
+    var previousTeam by remember { mutableIntStateOf(teamScore) }
+    var previousRival by remember { mutableIntStateOf(rivalScore) }
+
+    val teamFlash = remember { Animatable(0f) }
+    val rivalFlash = remember { Animatable(0f) }
+
+    LaunchedEffect(teamScore) {
+        if (teamScore > previousTeam) {
+            teamFlash.animateTo(1f, tween(120))
+            teamFlash.animateTo(0f, tween(420))
+        }
+        previousTeam = teamScore
+    }
+    LaunchedEffect(rivalScore) {
+        if (rivalScore > previousRival) {
+            rivalFlash.animateTo(1f, tween(120))
+            rivalFlash.animateTo(0f, tween(420))
+        }
+        previousRival = rivalScore
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        ScoreValue(teamScore, teamFlash.value)
+        Text(
+            text = " | ",
+            color = GoldAccent.copy(alpha = 0.6f),
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp
+        )
+        ScoreValue(rivalScore, rivalFlash.value)
+    }
+}
+
+/** Un lado del marcador: escala y color reaccionan al destello. */
+@Composable
+private fun ScoreValue(score: Int, flash: Float) {
+    val scale = 1f + 0.35f * flash
+    val color = lerp(GoldAccent, Color.White, flash)
+    Text(
+        text = "$score",
+        color = color,
+        fontWeight = FontWeight.Bold,
+        fontSize = 11.sp,
+        modifier = Modifier.scale(scale)
+    )
 }
 
 @Composable
