@@ -60,6 +60,8 @@ fun DominoTableScreen(
     venueId: String? = "cuba",
     betAmount: Int = 500,
     targetScore: Int = 100,
+    playerCount: Int = 4,
+    isTeamGame: Boolean = true,
     /** Nivel del rival de la sede. Decide con que estrategia juegan los asientos automaticos. */
     difficulty: Difficulty = Difficulty.STANDARD,
     /**
@@ -97,7 +99,9 @@ fun DominoTableScreen(
                     gameMode = gameMode,
                     targetScore = targetScore,
                     difficulty = difficulty,
-                    seed = dailySeed ?: System.currentTimeMillis()
+                    seed = dailySeed ?: System.currentTimeMillis(),
+                    playerCount = playerCount,
+                    isTeamGame = isTeamGame
                 ).apply {
                     setHumanPlayerIndices(humanPlayerIndices)
                     if (playerNames.isNotEmpty()) setPlayerNames(playerNames)
@@ -343,9 +347,9 @@ fun DominoTableScreen(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        PlayerBadge(engine.value.players[1], engine.value.currentPlayerIndex == 1)
-                        PlayerBadge(engine.value.players[2], engine.value.currentPlayerIndex == 2)
-                        PlayerBadge(engine.value.players[3], engine.value.currentPlayerIndex == 3)
+                        for (seat in 1 until engine.value.players.size) {
+                            PlayerBadge(engine.value.players[seat], engine.value.currentPlayerIndex == seat)
+                        }
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = Color.Black.copy(alpha = 0.5f),
@@ -840,12 +844,21 @@ fun DominoTableScreen(
 
         // 5. ROUND FINISHED DIALOG
         if (showRoundDialog) {
+            val didPlayerWin = if (engine.value.isTeamGame) {
+                engine.value.winningTeam == 0
+            } else {
+                engine.value.winnerPlayerId == 0
+            }
             AlertDialog(
                 onDismissRequest = {},
                 title = {
                     Text(
-                        text = DominoStrings.roundDialogTitle(engine.value.winningTeam == 0),
-                        color = if (engine.value.winningTeam == 0) GoldAccent else Color(0xFFFF6B6B),
+                        text = if (engine.value.isMatchOver) {
+                            if (didPlayerWin) "¡RETO SUPERADO!" else "DERROTA"
+                        } else {
+                            DominoStrings.roundDialogTitle(didPlayerWin)
+                        },
+                        color = if (didPlayerWin) GoldAccent else Color(0xFFFF6B6B),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -853,10 +866,20 @@ fun DominoTableScreen(
                     Column {
                         Text(engine.value.roundLog, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        val scoreTeamA = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
-                        val scoreTeamB = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
-                        Text(DominoStrings.teamScoreLine(scoreTeamA, targetScore))
-                        Text(DominoStrings.rivalScoreLine(scoreTeamB))
+                        if (engine.value.isTeamGame) {
+                            val scoreTeamA = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
+                            val scoreTeamB = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
+                            Text(DominoStrings.teamScoreLine(scoreTeamA, targetScore))
+                            Text(DominoStrings.rivalScoreLine(scoreTeamB))
+                        } else {
+                            engine.value.players.forEach { p ->
+                                Text(
+                                    "${p.name}: ${p.score} / $targetScore pts",
+                                    color = if (p.id == 0) GoldAccent else Color.White,
+                                    fontWeight = if (p.id == 0) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
                     }
                 },
                 confirmButton = {
@@ -864,7 +887,7 @@ fun DominoTableScreen(
                         onClick = {
                             showRoundDialog = false
                             if (engine.value.isMatchOver) {
-                                onMatchFinished(engine.value.winningTeam == 0, betAmount * 2, engine.value)
+                                onMatchFinished(didPlayerWin, betAmount * 2, engine.value)
                             } else {
                                 DominoSoundManager.playVenueMusic(venueId)
                                 // Arrastre de mano: abre quien gano la ronda anterior. Tener la
@@ -881,7 +904,11 @@ fun DominoTableScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy)
                     ) {
                         Text(
-                            DominoStrings.nextRoundOrFinishBtn(engine.value.isMatchOver),
+                            if (engine.value.isMatchOver) {
+                                if (didPlayerWin) "SIGUIENTE RETO ➔" else "REINTENTAR RETO"
+                            } else {
+                                DominoStrings.nextRoundOrFinishBtn(false)
+                            },
                             fontWeight = FontWeight.Bold
                         )
                     }

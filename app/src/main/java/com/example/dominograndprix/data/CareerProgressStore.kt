@@ -31,6 +31,8 @@ data class JourneyProgress(
     val unlockedAchievements: Set<String> = emptySet(),
     /** Estadisticas acumuladas de la carrera. */
     val stats: CareerStats = CareerStats(),
+    val currentVenueIndex: Int = 0,
+    val currentChallengeIndex: Int = 0,
     /**
      * Si el club ya concedio el prestamo de honor por bancarrota.
      *

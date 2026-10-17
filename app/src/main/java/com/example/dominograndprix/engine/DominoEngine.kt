@@ -25,6 +25,7 @@ class DominoEngine(
     val gameMode: GameMode,
     val targetScore: Int = 100,
     val isTeamGame: Boolean = true,
+    val playerCount: Int = 4,
     val patternIndex: Int = 3, // Patrón por defecto: escalones simétricos en S
     /**
      * Generador aleatorio del motor. Se inyecta para poder reproducir una partida entera:
@@ -153,14 +154,18 @@ class DominoEngine(
             targetScore: Int,
             difficulty: Difficulty,
             seed: Long = System.currentTimeMillis(),
-            patternIndex: Int = 3
+            patternIndex: Int = 3,
+            playerCount: Int = 4,
+            isTeamGame: Boolean = true
         ): DominoEngine = DominoEngine(
             gameMode = gameMode,
             targetScore = targetScore,
             patternIndex = patternIndex,
             random = Random(seed),
             randomSeed = seed,
-            difficulty = difficulty
+            difficulty = difficulty,
+            playerCount = playerCount,
+            isTeamGame = isTeamGame
         )
 
         /**
@@ -332,14 +337,16 @@ class DominoEngine(
         winnerPlayerId = null
         winningTeam = null
         players.clear()
-        for (seat in 0 until SEAT_NAMES.size) {
+        val numSeats = playerCount.coerceIn(2, 4)
+        for (seat in 0 until numSeats) {
+            val team = if (isTeamGame && numSeats == 4) SEAT_TEAMS[seat] else seat
             players.add(
                 Player(
                     id = seat,
                     name = playerNames.getOrElse(seat) { SEAT_NAMES.getOrElse(seat) { "Asiento $seat" } },
                     isHuman = seat in humanPlayerIndices,
                     personality = personalities.getOrElse(seat) { Personality.NICE },
-                    team = SEAT_TEAMS[seat]
+                    team = team
                 )
             )
         }
@@ -386,9 +393,8 @@ class DominoEngine(
         // Barajado con el generador inyectado: fijando su semilla, la partida es reproducible.
         deck.shuffle(random)
 
-        // In Draw modes with 4 players, deal 5 tiles each so 8 tiles remain in the boneyard (pozo) to draw!
-        // In Block modes, deal 7 tiles each.
-        val tilesPerPlayer = if (gameMode.allowsDraw) 5 else 7
+        // En 1v1 (2 jugadores), 7 fichas cada uno. En 4 jugadores: Draw reparte 5 y Block reparte 7.
+        val tilesPerPlayer = if (players.size == 2) 7 else if (gameMode.allowsDraw) 5 else 7
         for (i in players.indices) {
             val hand = mutableListOf<DominoTile>()
             repeat(tilesPerPlayer) {
@@ -1131,6 +1137,16 @@ class DominoEngine(
 
     private fun resolveBlockedRound() {
         lastRoundWasBlocked = true
+        if (!isTeamGame) {
+            // Partida individual: gana el jugador con menos puntos en la mano
+            val winner = players.minByOrNull { it.hand.sumOf { t -> t.totalPips } }
+                ?: players.getOrElse(openingPlayerIndex) { players.first() }
+            val minPips = winner.hand.sumOf { it.totalPips }
+            roundLog = "¡Mesa trancada! Gana ${winner.name} con $minPips pts en mano."
+            finishRound(winnerIndex = winner.id, byDomino = false)
+            return
+        }
+
         // En partida 2v2 se comparan los puntos totales de cada equipo (regla oficial de parejas)
         val team0Pips = players.filter { it.team == 0 }.sumOf { it.hand.sumOf { t -> t.totalPips } }
         val team1Pips = players.filter { it.team == 1 }.sumOf { it.hand.sumOf { t -> t.totalPips } }
