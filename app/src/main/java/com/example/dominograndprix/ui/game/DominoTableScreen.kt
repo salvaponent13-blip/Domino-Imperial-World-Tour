@@ -413,22 +413,14 @@ fun DominoTableScreen(
                         )
                     }
                 } else {
-                    // Renderizar cada ficha colocada en su coordenada virtual (virtX, virtY).
-                    // Los dobles se renderizan EN CRUZ (perpendiculares a la dirección del camino).
+                    // Renderizar cada ficha colocada en su coordenada virtual exacta (virtX, virtY).
                     engine.value.boardChain.forEach { placed ->
                         key(placed.placementId) {
-                            val isVisualVertical = if (placed.isDouble) !placed.isVertical else placed.isVertical
-                            val visualVirtX = if (placed.isDouble) {
-                                if (placed.isVertical) placed.virtX - 7 else placed.virtX + 7
-                            } else placed.virtX
-                            val visualVirtY = if (placed.isDouble) {
-                                if (placed.isVertical) placed.virtY + 7 else placed.virtY - 7
-                            } else placed.virtY
-
+                            val isVisualVertical = placed.isVertical
                             val tileW = tileWidth(unitDp, isVisualVertical)
                             val tileH = tileHeight(unitDp, isVisualVertical)
-                            val xDp = unitDp * (visualVirtX - originVirtX)
-                            val yDp = unitDp * (visualVirtY - originVirtY + verticalCameraVirtY)
+                            val xDp = unitDp * (placed.virtX - originVirtX)
+                            val yDp = unitDp * (placed.virtY - originVirtY + verticalCameraVirtY)
 
                             AnimatedPlacedTile(
                                 tile = placed.tile,
@@ -447,18 +439,11 @@ fun DominoTableScreen(
                     if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
                         selectedTileSides.forEach { side ->
                             val slot = engine.value.getNextSlotForSide(side)
-                            val isVisualVert = if (selectedTile!!.isDouble) !slot.isVertical else slot.isVertical
-                            val visualSlotX = if (selectedTile!!.isDouble) {
-                                if (slot.isVertical) slot.virtX - 7 else slot.virtX + 7
-                            } else slot.virtX
-                            val visualSlotY = if (selectedTile!!.isDouble) {
-                                if (slot.isVertical) slot.virtY + 7 else slot.virtY - 7
-                            } else slot.virtY
-
+                            val isVisualVert = slot.isVertical
                             val slotW = unitDp * (if (isVisualVert) 17f else 31f)
                             val slotH = unitDp * (if (isVisualVert) 31f else 17f)
-                            val slotXDp = unitDp * (visualSlotX - originVirtX)
-                            val slotYDp = unitDp * (visualSlotY - originVirtY + verticalCameraVirtY)
+                            val slotXDp = unitDp * (slot.virtX - originVirtX)
+                            val slotYDp = unitDp * (slot.virtY - originVirtY + verticalCameraVirtY)
 
                             val targetPip = when (side) {
                                 BoardSide.LEFT -> engine.value.leftOpenPip
@@ -524,14 +509,15 @@ fun DominoTableScreen(
                             color = Color.Black.copy(alpha = 0.65f),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
                         ) {
+                            val evalText = engine.value.getOpenEndsEvaluationText()
                             Text(
-                                text = DominoStrings.openEndsBadge(
+                                text = if (evalText.isNotEmpty()) evalText else DominoStrings.openEndsBadge(
                                     engine.value.leftOpenPip,
                                     engine.value.rightOpenPip,
                                     engine.value.upOpenPip,
                                     engine.value.downOpenPip
                                 ),
-                                color = Color.White,
+                                color = if (evalText.contains("⭐")) GoldAccent else Color.White,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)

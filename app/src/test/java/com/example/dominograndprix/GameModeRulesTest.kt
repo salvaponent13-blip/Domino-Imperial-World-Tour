@@ -664,10 +664,87 @@ class GameModeRulesTest {
         assertTrue(engine.playTileLeft(0, tileOf(engine, 0, 6, 6)))
         val placedDouble = engine.boardChain.first()
         assertTrue("La ficha colocada debe registrar isDouble = true", placedDouble.isDouble)
+        assertTrue("El doble inicial debe colocarse vertical (en cruz)", placedDouble.isVertical)
+    }
 
-        // Si la plantilla es horizontal (!isVertical), en cruz debe ser vertical (!placed.isVertical)
-        val isVisualVertical = if (placedDouble.isDouble) !placedDouble.isVertical else placedDouble.isVertical
-        assertTrue("El doble sobre una pista horizontal debe orientarse en cruz (vertical)", isVisualVertical)
+    @Test
+    fun allFives_doubleSixAndDoubleFour_scores20Points() {
+        // Regla oficial de Muggins / All Fives explicada por el usuario:
+        // [6|6] en un extremo (12) + [4|4] en el otro extremo (8) = 20 puntos!
+        val engine = DominoEngine(gameMode = GameMode.ALL_FIVES, targetScore = 500)
+        stageHands(
+            engine,
+            0 to tiles(6 to 6),
+            1 to tiles(6 to 4),
+            2 to tiles(4 to 4)
+        )
+
+        // 1. Asiento 0 juega [6|6]: vale 12 (no múltiplo de 5 => 0)
+        engine.currentPlayerIndex = 0
+        assertTrue(engine.playTileLeft(0, tileOf(engine, 0, 6, 6)))
+
+        // 2. Asiento 1 juega [6|4] por la derecha:
+        // Extremos: izquierda [6|6]=12, derecha [4]=4 => suma 16 (0 pts)
+        engine.currentPlayerIndex = 1
+        assertTrue(engine.playTileRight(1, tileOf(engine, 1, 6, 4)))
+
+        // 3. Asiento 2 juega [4|4] por la derecha:
+        // Extremos: izquierda [6|6] = 12 pts, derecha [4|4] = 8 pts!
+        // Suma = 12 + 8 = 20 puntos => ¡Múltiplo de 5 => Anota 20 puntos!
+        engine.currentPlayerIndex = 2
+        assertTrue(engine.playTileRight(2, tileOf(engine, 2, 4, 4)))
+
+        assertEquals(20, engine.calculateOpenEndsSum())
+        assertEquals(20, scoreOf(engine, 2))
+        val evalText = engine.getOpenEndsEvaluationText()
+        assertTrue("El texto del HUD debe indicar el cálculo detallado y los 20 pts: $evalText", evalText.contains("20 pts ⭐"))
+    }
+
+    @Test
+    fun tilesAlignment_touchingSeamlesslyWithoutGaps() {
+        // Verifica que los 4 brazos del spinner toquen físicamente la ficha doble sin huecos
+        val engine = DominoEngine(gameMode = GameMode.ALL_FIVES, targetScore = 500)
+        stageHand(engine, 0, tiles(6 to 6))
+        engine.currentPlayerIndex = 0
+        assertTrue(engine.playTileLeft(0, tileOf(engine, 0, 6, 6)))
+
+        val spinner = engine.boardChain.first()
+        assertEquals(105, spinner.virtX)
+        assertEquals(119, spinner.virtY)
+        assertTrue(spinner.isVertical) // 17 de ancho (105..122), 31 de alto (119..150)
+
+        // Hueco IZQUIERDA: horizontal 31x17, debe tocar el borde izquierdo (105) con solape
+        val leftSlot = engine.getNextSlotForSide(BoardSide.LEFT)
+        assertEquals(76, leftSlot.virtX)
+        assertEquals(126, leftSlot.virtY)
+        assertFalse(leftSlot.isVertical)
+        // 76 + 31 = 107 >= 105 (solapa 2px con el spinner)
+        assertTrue("Izquierda debe tocar el spinner", leftSlot.virtX + 31 >= spinner.virtX)
+
+        // Hueco DERECHA: horizontal 31x17, debe tocar el borde derecho (122) con solape
+        val rightSlot = engine.getNextSlotForSide(BoardSide.RIGHT)
+        assertEquals(120, rightSlot.virtX)
+        assertEquals(126, rightSlot.virtY)
+        assertFalse(rightSlot.isVertical)
+        // 120 <= 122 (solapa 2px con el borde derecho del spinner)
+        assertTrue("Derecha debe tocar el spinner", rightSlot.virtX <= spinner.virtX + 17)
+
+        // Hueco ARRIBA: vertical 17x31, debe tocar el borde superior (119)
+        val upSlot = engine.getNextSlotForSide(BoardSide.UP)
+        assertEquals(105, upSlot.virtX)
+        assertEquals(90, upSlot.virtY)
+        assertTrue(upSlot.isVertical)
+        // 90 + 31 = 121 >= 119 (solapa 2px con el spinner)
+        assertTrue("Arriba debe tocar el spinner", upSlot.virtY + 31 >= spinner.virtY)
+
+        // Hueco ABAJO: vertical 17x31, debe tocar el borde inferior (150)
+        val downSlot = engine.getNextSlotForSide(BoardSide.DOWN)
+        assertEquals(105, downSlot.virtX)
+        assertEquals(148, downSlot.virtY)
+        assertTrue(downSlot.isVertical)
+        // 148 <= 150 (solapa 2px con el borde inferior del spinner)
+        assertTrue("Abajo debe tocar el spinner", downSlot.virtY <= spinner.virtY + 31)
     }
 }
+
 
