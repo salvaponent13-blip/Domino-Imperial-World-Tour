@@ -41,11 +41,7 @@ class HumanSeatsTest {
         val moves = engine.viewFor(seat).playableMoves
         if (moves.isNotEmpty()) {
             val move = moves.first()
-            return if (move.side == BoardSide.LEFT) {
-                engine.playTileLeft(seat, move.tile)
-            } else {
-                engine.playTileRight(seat, move.tile)
-            }
+            return engine.playTile(seat, move.tile, move.side)
         }
         return if (engine.gameMode.allowsDraw && engine.boneyard.isNotEmpty()) {
             engine.drawTile(seat, 0) != null

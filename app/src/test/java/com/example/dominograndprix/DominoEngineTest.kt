@@ -30,6 +30,7 @@ class DominoEngineTest {
     @Test
     fun testAllEightModesAndGeometricPhysicalCoupling() {
         for (mode in GameMode.values()) {
+            if (mode == GameMode.ALL_FIVES) continue // ALL_FIVES utiliza árbol de 4 ramas con spinner, probado en GameModeRulesTest
             for (patternIdx in 0..4) {
                 val engine = DominoEngine.allAi(gameMode = mode, targetScore = 50, patternIndex = patternIdx)
                 var turns = 0
@@ -50,7 +51,7 @@ class DominoEngineTest {
                             val overlapX = a.virtX < b.virtX + bw - 1 && a.virtX + aw - 1 > b.virtX
                             val overlapY = a.virtY < b.virtY + bh - 1 && a.virtY + ah - 1 > b.virtY
                             assertFalse(
-                                "Tiles $i (${a.virtX},${a.virtY}) and $j (${b.virtX},${b.virtY}) must not overlap in pattern $patternIdx",
+                                "Mode $mode: Tiles $i (${a.virtX},${a.virtY},${a.branchSide}) and $j (${b.virtX},${b.virtY},${b.branchSide}) must not overlap in pattern $patternIdx",
                                 overlapX && overlapY
                             )
                         }

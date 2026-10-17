@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.model.BoardSide
 import com.example.dominograndprix.model.CityVenue
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.model.LuxuryItem
@@ -324,13 +325,19 @@ object DominoStrings {
         AppLanguage.DE -> "Stock: $count"
     }
 
-    fun openEndsBadge(left: Int?, right: Int?): String = when (currentLanguage) {
-        AppLanguage.ES -> "Extremos: [${left ?: 0}] y [${right ?: 0}]"
-        AppLanguage.EN -> "Open Ends: [${left ?: 0}] & [${right ?: 0}]"
-        AppLanguage.FR -> "Extrémités : [${left ?: 0}] et [${right ?: 0}]"
-        AppLanguage.IT -> "Estremi: [${left ?: 0}] e [${right ?: 0}]"
-        AppLanguage.PT -> "Pontas: [${left ?: 0}] e [${right ?: 0}]"
-        AppLanguage.DE -> "Enden: [${left ?: 0}] & [${right ?: 0}]"
+    fun openEndsBadge(left: Int?, right: Int?, up: Int? = null, down: Int? = null): String {
+        val extra = buildString {
+            if (up != null) append(" [${up}]")
+            if (down != null) append(" [${down}]")
+        }
+        return when (currentLanguage) {
+            AppLanguage.ES -> "Extremos: [${left ?: 0}], [${right ?: 0}]$extra"
+            AppLanguage.EN -> "Open Ends: [${left ?: 0}], [${right ?: 0}]$extra"
+            AppLanguage.FR -> "Extrémités : [${left ?: 0}], [${right ?: 0}]$extra"
+            AppLanguage.IT -> "Estremi: [${left ?: 0}], [${right ?: 0}]$extra"
+            AppLanguage.PT -> "Pontas: [${left ?: 0}], [${right ?: 0}]$extra"
+            AppLanguage.DE -> "Enden: [${left ?: 0}], [${right ?: 0}]$extra"
+        }
     }
 
     fun emptyTableTitle(): String = when (currentLanguage) {
@@ -474,6 +481,10 @@ object DominoStrings {
     }
 
     fun endChoiceBtn(pip: Int?, isLeft: Boolean): String {
+        return endChoiceBtn(if (isLeft) BoardSide.LEFT else BoardSide.RIGHT, pip)
+    }
+
+    fun endChoiceBtn(side: BoardSide, pip: Int?): String {
         val word = when (currentLanguage) {
             AppLanguage.ES -> "EXTREMO"
             AppLanguage.EN -> "END"
@@ -482,7 +493,13 @@ object DominoStrings {
             AppLanguage.PT -> "PONTA"
             AppLanguage.DE -> "ENDE"
         }
-        return if (isLeft) "⬅ $word [${pip ?: 0}]" else "$word [${pip ?: 0}] ➡"
+        val p = pip ?: 0
+        return when (side) {
+            BoardSide.LEFT -> "⬅ $word [$p]"
+            BoardSide.RIGHT -> "$word [$p] ➡"
+            BoardSide.UP -> "⬆ $word [$p]"
+            BoardSide.DOWN -> "⬇ $word [$p]"
+        }
     }
 
     fun roundDialogTitle(won: Boolean): String = if (won) {

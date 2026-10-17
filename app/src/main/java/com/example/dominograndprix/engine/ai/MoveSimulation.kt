@@ -49,7 +49,12 @@ data class MoveSimulation(
     val pipAdvantage: Int get() = ownTeamPips - opponentsPips
 
     override fun toString(): String {
-        val side = if (move.side == BoardSide.LEFT) "izquierda" else "derecha"
+        val side = when (move.side) {
+            BoardSide.LEFT -> "izquierda"
+            BoardSide.RIGHT -> "derecha"
+            BoardSide.UP -> "arriba"
+            BoardSide.DOWN -> "abajo"
+        }
         return "Simulacion(${move.tile} por $side, quedan $myRemainingTiles fichas / " +
             "$myRemainingPips pips, rivales $opponentsPips, tranca=$blocksTheBoard, " +
             "puntos=$pointsEarned, gana=$winsTheRound)"

@@ -569,4 +569,105 @@ class GameModeRulesTest {
         assertTrue("La partida debe terminar porque el equipo alcanzó 100 puntos", engine.isMatchOver)
         assertEquals(0, engine.winningTeam)
     }
+
+    @Test
+    fun allFives_spinnerAllowsPlayOnFourSidesAndScoresAllEnds() {
+        val engine = engine(GameMode.ALL_FIVES)
+        stageHands(
+            engine,
+            0 to tiles(6 to 6),
+            1 to tiles(6 to 3),
+            2 to tiles(6 to 4),
+            3 to tiles(6 to 1)
+        )
+
+        // 1. Asiento 0 juega el primer doble [6|6]: se convierte en spinner
+        engine.currentPlayerIndex = 0
+        val double6 = tileOf(engine, 0, 6, 6)
+        assertTrue(engine.playTileLeft(0, double6))
+        assertEquals(double6, engine.spinnerTile)
+        // [6|6] abierto en ambos extremos (cuenta doble): 6 * 2 = 12 (no múltiplo de 5 => 0 pts)
+        assertEquals(0, scoreOf(engine, 0))
+
+        // 2. Asiento 1 juega [6|3] a la derecha:
+        // Extremos: izquierda [6|6] (cuenta 12), derecha [3] => 12 + 3 = 15 => 15 puntos!
+        engine.currentPlayerIndex = 1
+        val tile63 = tileOf(engine, 1, 6, 3)
+        assertTrue(engine.playTileRight(1, tile63))
+        assertEquals(15, scoreOf(engine, 1))
+        assertEquals(6, engine.leftOpenPip)
+        assertEquals(3, engine.rightOpenPip)
+
+        // 3. Como [6|6] es el spinner, se pueden conectar fichas por UP y DOWN con pip 6!
+        val tile64 = tileOf(engine, 2, 6, 4)
+        assertTrue("Debe poder conectar arriba del spinner [6|6]", engine.canConnectUp(tile64))
+        val playableSidesSeat2 = engine.getPlayableSides(2, tile64)
+        assertTrue(playableSidesSeat2.contains(BoardSide.UP))
+        assertTrue(playableSidesSeat2.contains(BoardSide.DOWN))
+
+        // Jugamos [6|4] por UP:
+        engine.currentPlayerIndex = 2
+        assertTrue(engine.playTile(2, tile64, BoardSide.UP))
+        assertEquals(4, engine.upOpenPip)
+
+        // Ahora los extremos abiertos son:
+        // LEFT: 12, RIGHT: 3, UP: 4
+        // Suma: 12 + 3 + 4 = 19 (no múltiplo de 5 => 0 pts)
+        assertEquals(0, scoreOf(engine, 2))
+
+        // 4. Asiento 3 juega [6|1] por DOWN:
+        engine.currentPlayerIndex = 3
+        val tile61 = tileOf(engine, 3, 6, 1)
+        assertTrue(engine.playTile(3, tile61, BoardSide.DOWN))
+        assertEquals(1, engine.downOpenPip)
+
+        // Ahora los extremos abiertos son:
+        // LEFT: 12, RIGHT: 3, UP: 4, DOWN: 1
+        // Suma: 12 + 3 + 4 + 1 = 20 => ¡Múltiplo de 5 => 20 puntos para asiento 3!
+        assertEquals(20, scoreOf(engine, 3))
+    }
+
+    @Test
+    fun allFives_targetScoreReachedDuringRound_finishesRoundAndMatchCleanly() {
+        // Reproduce el caso de reporte del usuario: alcanzar 100 puntos en México
+        val engine = DominoEngine(gameMode = GameMode.ALL_FIVES, targetScore = 100)
+        // Fijamos equipo 0 a 95 puntos
+        engine.players[0] = engine.players[0].copy(score = 95)
+
+        stageHands(
+            engine,
+            0 to tiles(5 to 5),
+            1 to tiles(5 to 0)
+        )
+
+        // Asiento 0 abre con [5|5]: suma 10 puntos => equipo llega a 105 puntos (>= 100)
+        engine.currentPlayerIndex = 0
+        val double5 = tileOf(engine, 0, 5, 5)
+        assertTrue(engine.playTileLeft(0, double5))
+
+        // Debe finalizar inmediatamente la ronda y la partida sin bloquearse
+        assertTrue("La ronda debe estar terminada", engine.isRoundOver)
+        assertTrue("La partida debe estar terminada al alcanzar targetScore", engine.isMatchOver)
+        assertEquals(0, engine.winningTeam)
+
+        // Comprobamos que la IA no intente jugar y no se quede en bucle
+        assertFalse("AI no debe ejecutar jugadas cuando la partida terminó", engine.executeAIMove())
+    }
+
+    @Test
+    fun allModes_doublesPlacedAreMarkedAsDoubleForCrosswiseRendering() {
+        val engine = engine(GameMode.DRAW)
+        stageHand(engine, 0, tiles(6 to 6, 6 to 2))
+        engine.currentPlayerIndex = 0
+
+        // Colocamos el doble [6|6]
+        assertTrue(engine.playTileLeft(0, tileOf(engine, 0, 6, 6)))
+        val placedDouble = engine.boardChain.first()
+        assertTrue("La ficha colocada debe registrar isDouble = true", placedDouble.isDouble)
+
+        // Si la plantilla es horizontal (!isVertical), en cruz debe ser vertical (!placed.isVertical)
+        val isVisualVertical = if (placedDouble.isDouble) !placedDouble.isVertical else placedDouble.isVertical
+        assertTrue("El doble sobre una pista horizontal debe orientarse en cruz (vertical)", isVisualVertical)
+    }
 }
+

@@ -56,9 +56,13 @@ class LegacyStrategy(
 
         val sides = view.playableMoves.filter { it.tile == chosen.tile }.map { it.side }.toSet()
         return when {
-            sides.size == 2 -> chosen.copy(side = balancedSide(view))
+            sides.size == 2 && sides.contains(BoardSide.LEFT) && sides.contains(BoardSide.RIGHT) ->
+                chosen.copy(side = balancedSide(view))
             sides.contains(BoardSide.LEFT) -> chosen.copy(side = BoardSide.LEFT)
-            else -> chosen.copy(side = BoardSide.RIGHT)
+            sides.contains(BoardSide.RIGHT) -> chosen.copy(side = BoardSide.RIGHT)
+            sides.contains(BoardSide.UP) -> chosen.copy(side = BoardSide.UP)
+            sides.contains(BoardSide.DOWN) -> chosen.copy(side = BoardSide.DOWN)
+            else -> chosen.copy(side = sides.firstOrNull() ?: BoardSide.RIGHT)
         }
     }
 

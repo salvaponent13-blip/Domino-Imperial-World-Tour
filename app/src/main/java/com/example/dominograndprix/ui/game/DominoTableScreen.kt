@@ -155,8 +155,8 @@ fun DominoTableScreen(
     val verticalCameraVirtY = cameraAutoVirtY + cameraDragVirtY
 
     // Show round dialog and play victory/defeat jingle when round finishes
-    LaunchedEffect(engine.value.isRoundOver, gameStateVersion) {
-        if (engine.value.isRoundOver) {
+    LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
+        if (engine.value.isRoundOver || engine.value.isMatchOver) {
             if (engine.value.winningTeam == 0) {
                 DominoSoundManager.playVictoryJingle()
             } else {
@@ -201,9 +201,9 @@ fun DominoTableScreen(
     }
 
     // Auto-advance AI turns with physical domino sound effects
-    LaunchedEffect(engine.value.currentPlayerIndex, engine.value.isRoundOver, gameStateVersion) {
+    LaunchedEffect(engine.value.currentPlayerIndex, engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
         val current = engine.value.players[engine.value.currentPlayerIndex]
-        if (!current.isHuman && !engine.value.isRoundOver) {
+        if (!current.isHuman && !engine.value.isRoundOver && !engine.value.isMatchOver) {
             isAIThinking = true
             delay(650)
             val prevBoardSize = engine.value.boardChain.size
@@ -414,21 +414,27 @@ fun DominoTableScreen(
                     }
                 } else {
                     // Renderizar cada ficha colocada en su coordenada virtual (virtX, virtY).
-                    // La clave es placementId: da identidad estable a cada ficha aunque la
-                    // cadena se reordene al jugar por la izquierda, de modo que la animacion
-                    // de asentamiento corre solo para la ficha recien puesta.
+                    // Los dobles se renderizan EN CRUZ (perpendiculares a la dirección del camino).
                     engine.value.boardChain.forEach { placed ->
                         key(placed.placementId) {
-                            val tileW = tileWidth(unitDp, placed.isVertical)
-                            val tileH = tileHeight(unitDp, placed.isVertical)
-                            val xDp = unitDp * (placed.virtX - originVirtX)
-                            val yDp = unitDp * (placed.virtY - originVirtY + verticalCameraVirtY)
+                            val isVisualVertical = if (placed.isDouble) !placed.isVertical else placed.isVertical
+                            val visualVirtX = if (placed.isDouble) {
+                                if (placed.isVertical) placed.virtX - 7 else placed.virtX + 7
+                            } else placed.virtX
+                            val visualVirtY = if (placed.isDouble) {
+                                if (placed.isVertical) placed.virtY + 7 else placed.virtY - 7
+                            } else placed.virtY
+
+                            val tileW = tileWidth(unitDp, isVisualVertical)
+                            val tileH = tileHeight(unitDp, isVisualVertical)
+                            val xDp = unitDp * (visualVirtX - originVirtX)
+                            val yDp = unitDp * (visualVirtY - originVirtY + verticalCameraVirtY)
 
                             AnimatedPlacedTile(
                                 tile = placed.tile,
                                 pip1 = placed.pipLeft,
                                 pip2 = placed.pipRight,
-                                isHorizontal = !placed.isVertical,
+                                isHorizontal = !isVisualVertical,
                                 width = tileW,
                                 height = tileH,
                                 placementId = placed.placementId,
@@ -437,60 +443,50 @@ fun DominoTableScreen(
                         }
                     }
 
-                    // If player selected a tile that matches BOTH ends, show glowing target slots right on the chain ends!
-                    if (isMyTurn && selectedTile != null && canPlaySelectedLeft && canPlaySelectedRight) {
-                        val leftSlot = engine.value.getNextSlotForSide(BoardSide.LEFT)
-                        val leftW = unitDp * (if (leftSlot.isVertical) 17f else 31f)
-                        val leftH = unitDp * (if (leftSlot.isVertical) 31f else 17f)
-                        val leftXDp = unitDp * (leftSlot.virtX - originVirtX)
-                        val leftYDp = unitDp * (leftSlot.virtY - originVirtY + verticalCameraVirtY)
+                    // Si el jugador seleccionó una ficha jugable por múltiples extremos, mostrar ranuras brillantes en cada extremo
+                    if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
+                        selectedTileSides.forEach { side ->
+                            val slot = engine.value.getNextSlotForSide(side)
+                            val isVisualVert = if (selectedTile!!.isDouble) !slot.isVertical else slot.isVertical
+                            val visualSlotX = if (selectedTile!!.isDouble) {
+                                if (slot.isVertical) slot.virtX - 7 else slot.virtX + 7
+                            } else slot.virtX
+                            val visualSlotY = if (selectedTile!!.isDouble) {
+                                if (slot.isVertical) slot.virtY + 7 else slot.virtY - 7
+                            } else slot.virtY
 
-                        Box(
-                            modifier = Modifier
-                                .offset(x = leftXDp, y = leftYDp)
-                                .size(width = leftW, height = leftH)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(GoldAccent.copy(alpha = 0.45f))
-                                .border(2.dp, GoldAccent, RoundedCornerShape(4.dp))
-                                .clickable {
-                                    val t = selectedTile!!
-                                    DominoSoundManager.playTileClack(isDouble = t.isDouble)
-                                    DominoHaptics.tilePlaced(hapticView)
-                                    engine.value.playTileLeft(actingSeat, t)
-                                    selectedTile = null
-                                    logMessage = engine.value.roundLog
-                                    gameStateVersion++
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("${engine.value.leftOpenPip}", color = DarkNavy, fontWeight = FontWeight.Black, fontSize = 11.sp)
-                        }
+                            val slotW = unitDp * (if (isVisualVert) 17f else 31f)
+                            val slotH = unitDp * (if (isVisualVert) 31f else 17f)
+                            val slotXDp = unitDp * (visualSlotX - originVirtX)
+                            val slotYDp = unitDp * (visualSlotY - originVirtY + verticalCameraVirtY)
 
-                        val rightSlot = engine.value.getNextSlotForSide(BoardSide.RIGHT)
-                        val rightW = unitDp * (if (rightSlot.isVertical) 17f else 31f)
-                        val rightH = unitDp * (if (rightSlot.isVertical) 31f else 17f)
-                        val rightXDp = unitDp * (rightSlot.virtX - originVirtX)
-                        val rightYDp = unitDp * (rightSlot.virtY - originVirtY + verticalCameraVirtY)
+                            val targetPip = when (side) {
+                                BoardSide.LEFT -> engine.value.leftOpenPip
+                                BoardSide.RIGHT -> engine.value.rightOpenPip
+                                BoardSide.UP -> engine.value.upOpenPip ?: engine.value.spinnerTile?.high
+                                BoardSide.DOWN -> engine.value.downOpenPip ?: engine.value.spinnerTile?.high
+                            }
 
-                        Box(
-                            modifier = Modifier
-                                .offset(x = rightXDp, y = rightYDp)
-                                .size(width = rightW, height = rightH)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(GoldAccent.copy(alpha = 0.45f))
-                                .border(2.dp, GoldAccent, RoundedCornerShape(4.dp))
-                                .clickable {
-                                    val t = selectedTile!!
-                                    DominoSoundManager.playTileClack(isDouble = t.isDouble)
-                                    DominoHaptics.tilePlaced(hapticView)
-                                    engine.value.playTileRight(actingSeat, t)
-                                    selectedTile = null
-                                    logMessage = engine.value.roundLog
-                                    gameStateVersion++
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("${engine.value.rightOpenPip}", color = DarkNavy, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = slotXDp, y = slotYDp)
+                                    .size(width = slotW, height = slotH)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(GoldAccent.copy(alpha = 0.55f))
+                                    .border(2.dp, GoldAccent, RoundedCornerShape(4.dp))
+                                    .clickable {
+                                        val t = selectedTile!!
+                                        DominoSoundManager.playTileClack(isDouble = t.isDouble)
+                                        DominoHaptics.tilePlaced(hapticView)
+                                        engine.value.playTile(actingSeat, t, side)
+                                        selectedTile = null
+                                        logMessage = engine.value.roundLog
+                                        gameStateVersion++
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("${targetPip ?: ""}", color = DarkNavy, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                            }
                         }
                     }
                 }
@@ -529,7 +525,12 @@ fun DominoTableScreen(
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
                         ) {
                             Text(
-                                text = DominoStrings.openEndsBadge(engine.value.leftOpenPip, engine.value.rightOpenPip),
+                                text = DominoStrings.openEndsBadge(
+                                    engine.value.leftOpenPip,
+                                    engine.value.rightOpenPip,
+                                    engine.value.upOpenPip,
+                                    engine.value.downOpenPip
+                                ),
                                 color = Color.White,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -726,19 +727,15 @@ fun DominoTableScreen(
                                         val side = sides.first()
                                         DominoSoundManager.playTileClack(isDouble = tile.isDouble)
                                         DominoHaptics.tilePlaced(hapticView)
-                                        if (side == BoardSide.LEFT) {
-                                            engine.value.playTileLeft(actingSeat, tile)
-                                        } else {
-                                            engine.value.playTileRight(actingSeat, tile)
-                                        }
+                                        engine.value.playTile(actingSeat, tile, side)
                                         logMessage = engine.value.roundLog
                                         selectedTile = null
                                         gameStateVersion++
-                                    } else if (engine.value.leftOpenPip == engine.value.rightOpenPip) {
+                                    } else if (sides == setOf(BoardSide.LEFT, BoardSide.RIGHT) && engine.value.leftOpenPip == engine.value.rightOpenPip) {
                                         // Ambos extremos valen lo mismo: no hay elección real
                                         DominoSoundManager.playTileClack(isDouble = tile.isDouble)
                                         DominoHaptics.tilePlaced(hapticView)
-                                        engine.value.playTileLeft(actingSeat, tile)
+                                        engine.value.playTile(actingSeat, tile, BoardSide.LEFT)
                                         logMessage = engine.value.roundLog
                                         selectedTile = null
                                         gameStateVersion++
@@ -751,48 +748,43 @@ fun DominoTableScreen(
                         }
                     }
 
-                    // Choice buttons only when a selected tile matches two DIFFERENT open ends
-                    if (isMyTurn && selectedTile != null && canPlaySelectedLeft && canPlaySelectedRight) {
+                    // Botones de elección cuando la ficha seleccionada puede jugarse en varios extremos
+                    if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 5.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Button(
-                                onClick = {
-                                    val t = selectedTile!!
-                                    DominoSoundManager.playTileClack(isDouble = t.isDouble)
-                                    DominoHaptics.tilePlaced(hapticView)
-                                    engine.value.playTileLeft(actingSeat, t)
-                                    selectedTile = null
-                                    logMessage = engine.value.roundLog
-                                    gameStateVersion++
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f).height(34.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(DominoStrings.endChoiceBtn(engine.value.leftOpenPip, true), fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                            }
-
-                            Button(
-                                onClick = {
-                                    val t = selectedTile!!
-                                    DominoSoundManager.playTileClack(isDouble = t.isDouble)
-                                    DominoHaptics.tilePlaced(hapticView)
-                                    engine.value.playTileRight(actingSeat, t)
-                                    selectedTile = null
-                                    logMessage = engine.value.roundLog
-                                    gameStateVersion++
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f).height(34.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(DominoStrings.endChoiceBtn(engine.value.rightOpenPip, false), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            selectedTileSides.forEach { side ->
+                                val pip = when (side) {
+                                    BoardSide.LEFT -> engine.value.leftOpenPip
+                                    BoardSide.RIGHT -> engine.value.rightOpenPip
+                                    BoardSide.UP -> engine.value.upOpenPip ?: engine.value.spinnerTile?.high
+                                    BoardSide.DOWN -> engine.value.downOpenPip ?: engine.value.spinnerTile?.high
+                                }
+                                Button(
+                                    onClick = {
+                                        val t = selectedTile!!
+                                        DominoSoundManager.playTileClack(isDouble = t.isDouble)
+                                        DominoHaptics.tilePlaced(hapticView)
+                                        engine.value.playTile(actingSeat, t, side)
+                                        selectedTile = null
+                                        logMessage = engine.value.roundLog
+                                        gameStateVersion++
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f).height(34.dp),
+                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = DominoStrings.endChoiceBtn(side, pip),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                     }

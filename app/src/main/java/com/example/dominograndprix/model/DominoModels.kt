@@ -28,7 +28,9 @@ data class DominoTile(
 
 enum class BoardSide {
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
+    DOWN
 }
 
 /**
