@@ -30,8 +30,8 @@ object VenueMissionCatalog {
      * Misiones por sede.
      *
      * Cuidado con las condiciones que pueden ser triviales segun el modo: "gana sin robar del
-     * pozo" NO vale como mision en Puerto Rico, Montecarlo ni Las Vegas, porque sus modalidades
-     * (Block, Block Hungarian y Matador) no tienen pozo y la mision se cumpliria sola. Todas las
+     * pozo" NO vale como mision en Puerto Rico ni Montecarlo, porque sus modalidades
+     * (Block y Block Hungarian) no tienen pozo y la mision se cumpliria sola. Todas las
      * condiciones de aqui exigen algo que el modo si permite hacer mal.
      */
     private val missionsByVenue: Map<String, List<VenueMission>> = mapOf(

@@ -71,7 +71,7 @@ object WorldTourRepository {
             name = "Nueva Orleans",
             region = "EE. UU. • French Quarter Jazz Club",
             entryBet = 500,
-            targetScore = 150,
+            targetScore = 60,
             defaultMode = GameMode.FIVES_AND_THREES,
             difficulty = Difficulty.STANDARD,
             wrpReward = 1800,

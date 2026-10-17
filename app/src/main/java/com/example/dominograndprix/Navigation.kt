@@ -180,25 +180,25 @@ fun MainNavigation() {
                         DominoSoundManager.playTileTap()
                         currentScreen = AppScreen.WORLD_TOUR
                     },
-                    onQuickPlay = {
+                    onQuickPlay = { mode ->
                         DominoSoundManager.playTileTap()
-                        val havana = venues.first()
-                        selectedVenue = havana
+                        val matchingVenue = venues.firstOrNull { it.defaultMode == mode } ?: venues.first()
+                        selectedVenue = matchingVenue
                         // Modo carrera: un solo jugador humano en el asiento 0.
                         activeHumanSeats = setOf(0)
                         activePlayerNames = emptyList()
                         activeDailySeed = null
-                        activeDailySeed = null
+                        activeMode = mode
                         currentScreen = AppScreen.RIVAL_SHOWDOWN
                     },
-                    onLocalMatch = {
+                    onLocalMatch = { mode ->
                         DominoSoundManager.playTileTap()
                         // Pass-and-play 1v1: dos personas que comparten el telefono, en los
                         // asientos 0 y 2, que ademas son equipos distintos.
-                        activeMode = GameMode.DRAW
-                        activeCityName = "Partida local"
+                        activeMode = mode
+                        activeCityName = DominoStrings.modeName(mode)
                         activeBet = 0
-                        activeTargetScore = 100
+                        activeTargetScore = if (mode == GameMode.FIVES_AND_THREES) 60 else 100
                         activeVenueId = null
                         activeDifficulty = Difficulty.STANDARD
                         activeDailySeed = null
@@ -421,6 +421,16 @@ fun MainNavigation() {
                     onBack = {
                         DominoSoundManager.playTileTap()
                         currentScreen = AppScreen.TITLE
+                    },
+                    onPlayMode = { mode ->
+                        DominoSoundManager.playTileTap()
+                        val matchingVenue = venues.firstOrNull { it.defaultMode == mode } ?: venues.first()
+                        selectedVenue = matchingVenue
+                        activeHumanSeats = setOf(0)
+                        activePlayerNames = emptyList()
+                        activeDailySeed = null
+                        activeMode = mode
+                        currentScreen = AppScreen.RIVAL_SHOWDOWN
                     }
                 )
             }

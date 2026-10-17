@@ -100,7 +100,7 @@ enum class GameMode(
     ),
     ALL_FIVES(
         title = "All Fives",
-        summary = "Suma puntos inmediatamente si la suma de los extremos abiertos es múltiplo de 5.",
+        summary = "Suma puntos inmediatamente si los extremos abiertos suman un múltiplo de 5 (los dobles abiertos cuentan doble).",
         isPointGame = true
     ),
     ALL_THREES(

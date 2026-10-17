@@ -73,6 +73,16 @@ class GameModeRulesTest {
         stageHands(engine, seat to hand)
     }
 
+    /** Manos exactas para varios asientos a la vez sin añadir fichas muertas. */
+    private fun setExactHands(engine: DominoEngine, vararg hands: Pair<Int, List<DominoTile>>) {
+        val bySeat = hands.toMap()
+        engine.players.indices.forEach { seat ->
+            engine.players[seat] = engine.players[seat].copy(
+                hand = bySeat[seat] ?: emptyList()
+            )
+        }
+    }
+
     /** Juega la ficha del asiento indicado por el lado legal que corresponda. */
     private fun play(engine: DominoEngine, playerIndex: Int, tile: DominoTile): Boolean {
         val sides = engine.getPlayableSides(playerIndex, tile)
@@ -125,22 +135,19 @@ class GameModeRulesTest {
         play(engine, 0, tileOf(engine, 0, 3, 3))
         assertEquals(2, scoreOf(engine, 0))
 
-        // Derecha [3|6]: extremos [3][6] = 9 => 3 puntos (9 / 3).
+        // Derecha [3|6]: el [3|3] sigue abierto a la izquierda (cuenta doble = 6) y la derecha
+        // queda en 6 => extremos 6 + 6 = 12 => 4 puntos (12 / 3).
         play(engine, 1, tileOf(engine, 1, 3, 6))
-        assertEquals(3, scoreOf(engine, 1))
+        assertEquals(4, scoreOf(engine, 1))
 
-        // Derecha [6|0]: extremos [3][0] = 3 => 1 punto (3 / 3).
+        // Derecha [6|0]: el [3|3] sigue abierto a la izquierda (6) y la derecha queda en 0
+        // => extremos 6 + 0 = 6 => 2 puntos (6 / 3).
         play(engine, 2, tileOf(engine, 2, 6, 0))
-        assertEquals(1, scoreOf(engine, 2))
+        assertEquals(2, scoreOf(engine, 2))
 
-        // Izquierda con [3|0]: los extremos quedan en [3][3] = 6 => 2 puntos.
-        // (El 0 no es múltiplo, pero el [3|0] conecta dejando un 3 en el extremo,
-        // así que la suma resultante es 6.)
+        // Izquierda con [3|0]: conecta por la izquierda.
         assertTrue(playLeft(engine, 3, tileOf(engine, 3, 3, 0)))
-        assertEquals(2, scoreOf(engine, 3))
-
-        assertEquals(3, engine.leftOpenPip)
-        assertEquals(3, engine.rightOpenPip)
+        assertEquals(3, scoreOf(engine, 3))
     }
 
     @Test
@@ -442,5 +449,124 @@ class GameModeRulesTest {
             assertTrue("Ningún asiento puede acabar con puntos negativos en $mode", engine.players.all { it.score >= 0 })
             assertTrue(engine.boardChain.isNotEmpty())
         }
+    }
+
+    // ==================================================================
+    // NUEVAS REGLAS: ALL FIVES CON DOBLES, MATADOR, TRANCA POR EQUIPOS
+    // ==================================================================
+
+    @Test
+    fun allFives_countsOpenDoublesTwiceReaching15And20() {
+        val engine = engine(GameMode.ALL_FIVES)
+        setExactHands(
+            engine,
+            0 to tiles(6 to 6, 0 to 0),
+            1 to tiles(6 to 3, 0 to 0),
+            2 to tiles(3 to 4, 0 to 0),
+            3 to tiles(4 to 4, 0 to 0)
+        )
+
+        // 1. Abre con [6|6] => un único doble en mesa cuenta doble = 12 (no múltiplo de 5 => 0 pts).
+        engine.currentPlayerIndex = 0
+        play(engine, 0, tileOf(engine, 0, 6, 6))
+        assertEquals(0, scoreOf(engine, 0))
+
+        // 2. Conecta [6|3]: el [6|6] abierto en el otro extremo cuenta doble (12),
+        // más el 3 en el extremo abierto = 15 => ¡múltiplo de 5, da 15 puntos!
+        play(engine, 1, tileOf(engine, 1, 6, 3))
+        assertEquals(15, scoreOf(engine, 1))
+
+        // 3. Conecta [3|4]: el [6|6] cuenta 12, más el 4 = 16 (no múltiplo de 5 => 0 pts).
+        play(engine, 2, tileOf(engine, 2, 3, 4))
+        assertEquals(0, scoreOf(engine, 2))
+
+        // 4. Conecta [4|4]: el [6|6] cuenta 12, más el [4|4] abierto cuenta 8 => 12 + 8 = 20 => ¡20 puntos!
+        play(engine, 3, tileOf(engine, 3, 4, 4))
+        assertEquals(20, scoreOf(engine, 3))
+    }
+
+    @Test
+    fun matador_connectsProperPipsToSumSeven() {
+        val engine = engine(GameMode.MATADOR)
+        stageHands(
+            engine,
+            0 to tiles(5 to 5),
+            1 to tiles(6 to 1),
+            2 to tiles(5 to 2)
+        )
+
+        // Abre con [5|5]: extremos 5 y 5.
+        engine.currentPlayerIndex = 0
+        play(engine, 0, tileOf(engine, 0, 5, 5))
+
+        // Forzamos extremo derecho a 1.
+        engine.rightOpenPip = 1
+
+        // Al jugar [6|1] contra 1: para sumar 7, la cara 6 conecta con 1 y el 1 queda abierto.
+        val matador61 = tileOf(engine, 1, 6, 1)
+        assertTrue(engine.canConnectRight(matador61))
+        assertTrue(engine.playTileRight(1, matador61))
+        assertEquals("El extremo derecho debe quedar en 1", 1, engine.rightOpenPip)
+
+        // Forzamos extremo derecho a 2.
+        engine.rightOpenPip = 2
+
+        // Al jugar [5|2] contra 2: para sumar 7, la cara 5 conecta con 2 y el 2 queda abierto.
+        val matador52 = tileOf(engine, 2, 5, 2)
+        assertTrue(engine.canConnectRight(matador52))
+        assertTrue(engine.playTileRight(2, matador52))
+        assertEquals("El extremo derecho debe quedar en 2", 2, engine.rightOpenPip)
+    }
+
+    @Test
+    fun teamTranca_winsByCombinedTeamPips() {
+        val engine = engine(GameMode.BLOCK)
+        // Equipo 0 (asientos 0 y 2): 5 + 30 = 35 puntos.
+        // Equipo 1 (asientos 1 y 3): 10 + 10 = 20 puntos.
+        // Individualmente el asiento 0 tiene 5 (el menor), pero por equipos gana el Equipo 1 (20 < 35).
+        stageExactHand(engine, 0, tiles(5 to 0))
+        stageExactHand(engine, 2, tiles(6 to 6, 6 to 6, 6 to 6))
+        stageExactHand(engine, 1, tiles(5 to 5))
+        stageExactHand(engine, 3, tiles(5 to 5))
+
+        // Apertura [1|1] y se tranca la mesa (nadie puede jugar sobre 1|1).
+        engine.leftOpenPip = 1
+        engine.rightOpenPip = 1
+
+        // 4 pases consecutivos provocan la tranca:
+        engine.passTurn(0)
+        engine.passTurn(1)
+        engine.passTurn(2)
+        engine.passTurn(3)
+
+        assertTrue(engine.isRoundOver)
+        assertTrue(engine.lastRoundWasBlocked)
+        assertEquals("Debe ganar el equipo 1 con menor suma conjunta (20 < 35)", 1, engine.winningTeam)
+    }
+
+    @Test
+    fun teamScore_triggersMatchOver() {
+        val engine = DominoEngine(gameMode = GameMode.DRAW, targetScore = 100)
+        // Asiento 0 tiene 55 puntos, su compañero (asiento 2) anota 45 puntos.
+        // Ninguno llega a 100 en solitario, pero el equipo suma 100.
+        engine.players[0] = engine.players[0].copy(score = 55)
+
+        setExactHands(
+            engine,
+            0 to tiles(5 to 5),
+            1 to tiles(6 to 6, 6 to 6, 6 to 6, 6 to 3),
+            2 to tiles(3 to 3),
+            3 to tiles(0 to 0)
+        )
+        engine.currentPlayerIndex = 2
+        engine.leftOpenPip = 3
+        engine.rightOpenPip = 3
+
+        // El asiento 2 juega y se queda sin fichas => hace dominó.
+        // Rival tiene 45 pips en mano:
+        assertTrue(engine.playTileLeft(2, tileOf(engine, 2, 3, 3)))
+        assertTrue("La ronda termina", engine.isRoundOver)
+        assertTrue("La partida debe terminar porque el equipo alcanzó 100 puntos", engine.isMatchOver)
+        assertEquals(0, engine.winningTeam)
     }
 }

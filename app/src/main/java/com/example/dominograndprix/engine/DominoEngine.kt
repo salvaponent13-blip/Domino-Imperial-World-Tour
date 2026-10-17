@@ -299,8 +299,9 @@ class DominoEngine(
     
 
 
-    // Último jugador que pasó y el turno en que lo hizo. Sirve para saber si la rama
-    // de un rival sigue bloqueada y por tanto se puede invadir.
+    // Jugadores que han pasado y aún no han podido volver a colocar ficha.
+    // En Draw Special mantiene abierta la rama del rival hasta que este vuelva a jugar.
+    private val blockedPlayers = mutableSetOf<Int>()
     private var lastPassingPlayerIndex: Int? = null
     private var lastPassTurnNumber: Int = -1
     private var turnNumber: Int = 0
@@ -362,6 +363,7 @@ class DominoEngine(
         consecutivePasses = 0
         isRoundOver = false
         canContinueHungarianTurn = false
+        blockedPlayers.clear()
         lastPassingPlayerIndex = null
         lastPassTurnNumber = -1
         turnNumber = 0
@@ -423,11 +425,6 @@ class DominoEngine(
      */
     fun nextRoundOpener(): Int? {
         if (!isRoundOver) return null
-        if (lastRoundWasBlocked) {
-            // Tranca: abre el que menos pips tiene en la mano, que es quien se llevo la ronda.
-            val minPips = players.minOf { it.hand.sumOf { tile -> tile.totalPips } }
-            return players.first { it.hand.sumOf { tile -> tile.totalPips } == minPips }.id
-        }
         return winnerPlayerId
     }
 
@@ -484,17 +481,15 @@ class DominoEngine(
 
     /**
      * En Draw Special la rama de un rival solo se puede invadir si ese rival
-     * acaba de pasar (no tenía jugada propia). Si nadie ha pasado, cada jugador
-     * queda confinado a su rama.
+     * está bloqueado (ha pasado y aún no ha colocado ninguna ficha).
      */
     private fun isBranchOpenFor(playerIndex: Int, side: BoardSide): Boolean {
         if (gameMode != GameMode.DRAW_SPECIAL) return true
         val own = branchForPlayer(playerIndex)
         if (own == side) return true
-        val blocked = lastPassingPlayerIndex ?: return false
-        if (lastPassTurnNumber != turnNumber) return false
-        if (blocked == playerIndex) return false
-        return branchForPlayer(blocked) == side
+        return blockedPlayers.any { blockedSeat ->
+            blockedSeat != playerIndex && branchForPlayer(blockedSeat) == side
+        }
     }
 
     /**
@@ -658,10 +653,13 @@ class DominoEngine(
 
     private fun resolveConnectingAndOpenPips(tile: DominoTile, target: Int): Pair<Int, Int> {
         return if (gameMode == GameMode.MATADOR) {
-            if (isMatadorTile(tile)) {
-                Pair(tile.low, tile.high)
-            } else if (tile.high + target == 7) {
+            if (tile.high + target == 7) {
                 Pair(tile.high, tile.low)
+            } else if (tile.low + target == 7) {
+                Pair(tile.low, tile.high)
+            } else if (isMatadorTile(tile)) {
+                // Comodín Matador jugado cuando no suma 7 directo (o sobre un 0/blanca)
+                Pair(tile.low, tile.high)
             } else {
                 Pair(tile.low, tile.high)
             }
@@ -688,6 +686,7 @@ class DominoEngine(
         players[playerIndex] = player.copy(hand = newHand)
         consecutivePasses = 0
         turnNumber++
+        blockedPlayers.remove(playerIndex)
 
         if (boardChain.isEmpty()) {
             // Primera ficha de la mano en el centro del tablero virtual, en horizontal (31x17).
@@ -787,8 +786,30 @@ class DominoEngine(
         return true
     }
 
+    /**
+     * Calcula la suma de los extremos abiertos para los modos de puntos (All Fives, All Threes, Fives & Threes).
+     * En las reglas oficiales de dominó, cuando una ficha doble queda en un extremo abierto sin cubrir,
+     * se coloca cruzada y sus puntos cuentan por ambos lados (doble).
+     */
+    fun calculateOpenEndsSum(): Int {
+        if (boardChain.isEmpty()) return 0
+        if (boardChain.size == 1) {
+            val tile = boardChain.first()
+            return if (tile.isDouble) tile.pipLeft * 2 else tile.pipLeft + tile.pipRight
+        }
+        val leftTile = boardChain.first()
+        val rightTile = boardChain.last()
+        val leftVal = if (leftTile.isDouble) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+        val rightVal = if (rightTile.isDouble) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
+        return leftVal + rightVal
+    }
+
+    /** Puntos acumulados por un equipo. */
+    fun teamScore(team: Int): Int =
+        players.filter { it.team == team }.sumOf { it.score }
+
     private fun evaluatePointScoring(playerIndex: Int) {
-        val sum = (leftOpenPip ?: 0) + (rightOpenPip ?: 0)
+        val sum = calculateOpenEndsSum()
         var pointsEarned = 0
         lastPointsEarned = 0
 
@@ -815,7 +836,7 @@ class DominoEngine(
             val newScore = p.score + pointsEarned
             players[playerIndex] = p.copy(score = newScore)
             roundLog = "${p.name} +$pointsEarned pts (Extremos: $sum)"
-            if (newScore >= targetScore) {
+            if (teamScore(p.team) >= targetScore) {
                 isMatchOver = true
                 winningTeam = p.team
                 // Se rellena tambien el ganador concreto: la pantalla final y el informe de
@@ -840,7 +861,8 @@ class DominoEngine(
 
     fun passTurn(playerIndex: Int) {
         consecutivePasses++
-        // Registrar el pase: en Draw Special abre la rama de este jugador al resto.
+        // Registrar el pase: en Draw Special abre la rama de este jugador al resto mientras siga bloqueado.
+        blockedPlayers.add(playerIndex)
         lastPassingPlayerIndex = playerIndex
         lastPassTurnNumber = turnNumber
         val p = players[playerIndex]
@@ -860,9 +882,30 @@ class DominoEngine(
 
     private fun resolveBlockedRound() {
         lastRoundWasBlocked = true
-        val minPips = players.minOf { it.hand.sumOf { tile -> tile.totalPips } }
-        val winner = players.first { it.hand.sumOf { tile -> tile.totalPips } == minPips }
-        roundLog = "¡Cerrado! Gana ${winner.name} ($minPips pts en mano)."
+        // En partida 2v2 se comparan los puntos totales de cada equipo (regla oficial de parejas)
+        val team0Pips = players.filter { it.team == 0 }.sumOf { it.hand.sumOf { t -> t.totalPips } }
+        val team1Pips = players.filter { it.team == 1 }.sumOf { it.hand.sumOf { t -> t.totalPips } }
+
+        val winTeam = if (team0Pips < team1Pips) {
+            0
+        } else if (team1Pips < team0Pips) {
+            1
+        } else {
+            // Regla oficial clásica de desempate en tranca: en caso de empate a puntos,
+            // desempata la salida (la pareja del jugador que abrió la ronda).
+            players.getOrNull(openingPlayerIndex)?.team ?: 0
+        }
+
+        val winPips = if (winTeam == 0) team0Pips else team1Pips
+        val losingPips = if (winTeam == 0) team1Pips else team0Pips
+        val winner = players.filter { it.team == winTeam }
+            .minByOrNull { it.hand.sumOf { t -> t.totalPips } } ?: players.first { it.team == winTeam }
+
+        roundLog = if (team0Pips == team1Pips) {
+            "¡Tranca empatada ($team0Pips pts)! Desempata la salida: gana equipo ${winTeam + 1}."
+        } else {
+            "¡Cerrado! Gana equipo ${winTeam + 1} ($winPips pts vs $losingPips pts)."
+        }
         finishRound(winnerIndex = winner.id, byDomino = false)
     }
 
@@ -879,17 +922,25 @@ class DominoEngine(
         val winner = players[winnerIndex]
         winningTeam = winner.team
 
-        val totalOpponentPips = players.filter { it.team != winner.team }
-            .sumOf { it.hand.sumOf { tile -> tile.totalPips } }
+        // En ALL_FIVES (fidelidad a MagnoJuegos) los puntos se ganan en la mesa durante la partida,
+        // no sumando pips brutos de las manos al cerrar.
+        val totalOpponentPips = if (gameMode == GameMode.ALL_FIVES) 0 else {
+            players.filter { it.team != winner.team }
+                .sumOf { it.hand.sumOf { tile -> tile.totalPips } }
+        }
 
         val newScore = winner.score + totalOpponentPips
         players[winnerIndex] = winner.copy(score = newScore)
 
         if (byDomino) {
-            roundLog = "¡DOMINÓ de ${winner.name}! (+$totalOpponentPips pts)"
+            roundLog = if (totalOpponentPips > 0) {
+                "¡DOMINÓ de ${winner.name}! (+$totalOpponentPips pts)"
+            } else {
+                "¡DOMINÓ de ${winner.name}!"
+            }
         }
 
-        if (newScore >= targetScore) {
+        if (teamScore(winner.team) >= targetScore) {
             isMatchOver = true
         }
 
@@ -1081,6 +1132,7 @@ class DominoEngine(
         val lastPointsEarned: Int,
         val canContinueHungarianTurn: Boolean,
         val openingPlayerIndex: Int,
+        val blockedPlayers: Set<Int>,
         val lastPassingPlayerIndex: Int?,
         val lastPassTurnNumber: Int,
         val turnNumber: Int,
@@ -1115,6 +1167,7 @@ class DominoEngine(
         lastPointsEarned = lastPointsEarned,
         canContinueHungarianTurn = canContinueHungarianTurn,
         openingPlayerIndex = openingPlayerIndex,
+        blockedPlayers = blockedPlayers.toSet(),
         lastPassingPlayerIndex = lastPassingPlayerIndex,
         lastPassTurnNumber = lastPassTurnNumber,
         turnNumber = turnNumber,
@@ -1148,6 +1201,8 @@ class DominoEngine(
         lastPointsEarned = snapshot.lastPointsEarned
         canContinueHungarianTurn = snapshot.canContinueHungarianTurn
         openingPlayerIndex = snapshot.openingPlayerIndex
+        blockedPlayers.clear()
+        blockedPlayers.addAll(snapshot.blockedPlayers)
         lastPassingPlayerIndex = snapshot.lastPassingPlayerIndex
         lastPassTurnNumber = snapshot.lastPassTurnNumber
         turnNumber = snapshot.turnNumber

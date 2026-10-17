@@ -22,7 +22,8 @@ import com.example.dominograndprix.ui.game.GoldAccent
 
 @Composable
 fun RulesGuideScreen(
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onPlayMode: (GameMode) -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -57,7 +58,7 @@ fun RulesGuideScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(GameMode.values()) { mode ->
-                    RuleDetailCard(mode = mode)
+                    RuleDetailCard(mode = mode, onPlay = { onPlayMode(mode) })
                 }
             }
 
@@ -75,7 +76,10 @@ fun RulesGuideScreen(
 }
 
 @Composable
-fun RuleDetailCard(mode: GameMode) {
+fun RuleDetailCard(
+    mode: GameMode,
+    onPlay: () -> Unit = {}
+) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFF1F2E3E),
@@ -83,7 +87,28 @@ fun RuleDetailCard(mode: GameMode) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = mode.title, color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = DominoStrings.modeName(mode),
+                    color = GoldAccent,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                Button(
+                    onClick = onPlay,
+                    colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(30.dp)
+                ) {
+                    Text(text = DominoStrings.playSelectedModeBtn(), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = DominoStrings.modeSummary(mode), color = Color.White, fontSize = 12.sp)
 

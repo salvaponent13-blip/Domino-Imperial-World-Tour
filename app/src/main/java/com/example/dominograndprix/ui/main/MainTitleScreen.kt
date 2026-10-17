@@ -6,8 +6,14 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +31,7 @@ import com.example.dominograndprix.data.DailyChallengeResult
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
+import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.ui.components.CreditsButton
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
@@ -32,8 +39,8 @@ import com.example.dominograndprix.ui.game.GoldAccent
 @Composable
 fun MainTitleScreen(
     onStartWorldTour: () -> Unit = {},
-    onQuickPlay: () -> Unit = {},
-    onLocalMatch: () -> Unit = {},
+    onQuickPlay: (GameMode) -> Unit = {},
+    onLocalMatch: (GameMode) -> Unit = {},
     /** Abre la vitrina de logros. */
     onShowAchievements: () -> Unit = {},
     /** Reto de hoy. Si es null, no se muestra la tarjeta. */
@@ -44,6 +51,8 @@ fun MainTitleScreen(
     onShowRules: () -> Unit = {},
     onShowTrophies: () -> Unit = {}
 ) {
+    var modeSelectTarget by remember { mutableStateOf<String?>(null) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -174,13 +183,16 @@ fun MainTitleScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Quick Play Button (Direct to Havana)
+            // Quick Play Button (Select from 8 modes)
             MenuOptionCard(
                 title = DominoStrings.quickPlayBtnTitle(),
                 subtitle = DominoStrings.quickPlayBtnSub(),
                 containerColor = Color(0xFF1B6B3E),
                 contentColor = Color.White,
-                onClick = onQuickPlay
+                onClick = {
+                    DominoSoundManager.playTileTap()
+                    modeSelectTarget = "quick"
+                }
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -201,7 +213,10 @@ fun MainTitleScreen(
                 subtitle = DominoStrings.localMatchBtnSub(),
                 containerColor = Color(0xFF2D3E5E),
                 contentColor = Color.White,
-                onClick = onLocalMatch
+                onClick = {
+                    DominoSoundManager.playTileTap()
+                    modeSelectTarget = "local"
+                }
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -260,6 +275,66 @@ fun MainTitleScreen(
                 color = Color.White.copy(alpha = 0.65f),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center
+            )
+        }
+
+        // Dialog selector de modalidad para Partida Rápida y Modo Local
+        if (modeSelectTarget != null) {
+            val target = modeSelectTarget!!
+            AlertDialog(
+                onDismissRequest = { modeSelectTarget = null },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { modeSelectTarget = null }) {
+                        Text(DominoStrings.closeLabel(), color = GoldAccent, fontWeight = FontWeight.Bold)
+                    }
+                },
+                title = {
+                    Text(
+                        text = DominoStrings.selectModeTitle(),
+                        color = GoldAccent,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                },
+                text = {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp)
+                    ) {
+                        items(GameMode.values()) { mode ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF1E2836),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.4f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        DominoSoundManager.playTileTap()
+                                        if (target == "quick") onQuickPlay(mode) else onLocalMatch(mode)
+                                        modeSelectTarget = null
+                                    }
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(
+                                        text = DominoStrings.modeName(mode),
+                                        color = GoldAccent,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = DominoStrings.modeSummary(mode),
+                                        color = Color.White,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                containerColor = DarkNavy,
+                shape = RoundedCornerShape(14.dp)
             )
         }
     }

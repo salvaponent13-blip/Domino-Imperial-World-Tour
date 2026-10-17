@@ -133,21 +133,21 @@ object DominoStrings {
     }
 
     fun quickPlayBtnTitle(): String = when (currentLanguage) {
-        AppLanguage.ES -> "⚡ JUGAR AHORA EN LA HABANA"
-        AppLanguage.EN -> "⚡ PLAY NOW IN HAVANA"
-        AppLanguage.FR -> "⚡ JOUER MAINTENANT À LA HAVANE"
-        AppLanguage.IT -> "⚡ GIOCA ORA A L'AVANA"
-        AppLanguage.PT -> "⚡ JOGAR AGORA EM HAVANA"
-        AppLanguage.DE -> "⚡ JETZT IN HAVANNA SPIELEN"
+        AppLanguage.ES -> "⚡ PARTIDA RÁPIDA (8 MODALIDADES)"
+        AppLanguage.EN -> "⚡ QUICK PLAY (8 GAME MODES)"
+        AppLanguage.FR -> "⚡ PARTIE RAPIDE (8 MODES)"
+        AppLanguage.IT -> "⚡ PARTITA RAPIDA (8 MODALITÀ)"
+        AppLanguage.PT -> "⚡ PARTIDA RÁPIDA (8 MODALIDADES)"
+        AppLanguage.DE -> "⚡ SCHNELLSPIEL (8 MODI)"
     }
 
     fun quickPlayBtnSub(): String = when (currentLanguage) {
-        AppLanguage.ES -> "Entra directo al Club del Malecón con música cubana y fichas 3D"
-        AppLanguage.EN -> "Enter the Malecón Club directly with Cuban music and 3D tiles"
-        AppLanguage.FR -> "Entrez directement au Club du Malecón avec musique cubaine et dominos 3D"
-        AppLanguage.IT -> "Entra direttamente al Club del Malecón con musica cubana e tessere 3D"
-        AppLanguage.PT -> "Entre direto no Clube do Malecón com música cubana e peças 3D"
-        AppLanguage.DE -> "Betritt direkt den Malecón-Club mit kubanischer Musik und 3D-Steinen"
+        AppLanguage.ES -> "Juega con Dominó de Cinco, Matador, Húngaro, Tradicional y más"
+        AppLanguage.EN -> "Play All Fives, Matador, Hungarian, Classic Draw and more"
+        AppLanguage.FR -> "Jouez à All Fives, Matador, Hongrois, Traditionnel et plus"
+        AppLanguage.IT -> "Gioca a All Fives, Matador, Ungherese, Classico e altro"
+        AppLanguage.PT -> "Jogue Dominó de Cinco, Matador, Húngaro, Clássico e mais"
+        AppLanguage.DE -> "Spiele All Fives, Matador, Ungarisch, Klassisch und mehr"
     }
 
     fun eightModesBtn(): String = when (currentLanguage) {
@@ -896,6 +896,48 @@ object DominoStrings {
         AppLanguage.IT -> "Scarta"
         AppLanguage.PT -> "Descartar"
         AppLanguage.DE -> "Verwerfen"
+    }
+
+    fun modeName(mode: GameMode): String = when (currentLanguage) {
+        AppLanguage.ES -> when (mode) {
+            GameMode.DRAW -> "Dominó Clásico (Con Robo)"
+            GameMode.BLOCK -> "Dominó Trancado (Sin Robo)"
+            GameMode.ALL_FIVES -> "Dominó de Cinco (All Fives)"
+            GameMode.ALL_THREES -> "Múltiplos de 3 (All Threes)"
+            GameMode.FIVES_AND_THREES -> "Fives & Threes (Cinco y Tres)"
+            GameMode.MATADOR -> "Dominó Matador (Suma 7)"
+            GameMode.DRAW_SPECIAL -> "Rama Propia (Especial)"
+            GameMode.BLOCK_HUNGARIAN -> "Dominó Húngaro (Cadenas)"
+        }
+        AppLanguage.EN -> when (mode) {
+            GameMode.DRAW -> "Draw Domino"
+            GameMode.BLOCK -> "Block Domino"
+            GameMode.ALL_FIVES -> "All Fives (Muggins)"
+            GameMode.ALL_THREES -> "All Threes"
+            GameMode.FIVES_AND_THREES -> "Fives & Threes"
+            GameMode.MATADOR -> "Matador (Sum to 7)"
+            GameMode.DRAW_SPECIAL -> "Own Branch (Special)"
+            GameMode.BLOCK_HUNGARIAN -> "Hungarian Block"
+        }
+        else -> mode.title
+    }
+
+    fun selectModeTitle(): String = when (currentLanguage) {
+        AppLanguage.ES -> "Selecciona Modalidad"
+        AppLanguage.EN -> "Select Game Mode"
+        AppLanguage.FR -> "Choisir le mode"
+        AppLanguage.IT -> "Seleziona modalità"
+        AppLanguage.PT -> "Selecionar modalidade"
+        AppLanguage.DE -> "Spielmodus wählen"
+    }
+
+    fun playSelectedModeBtn(): String = when (currentLanguage) {
+        AppLanguage.ES -> "¡Jugar Ahora!"
+        AppLanguage.EN -> "Play Now!"
+        AppLanguage.FR -> "Jouer !"
+        AppLanguage.IT -> "Gioca ora!"
+        AppLanguage.PT -> "Jogar agora!"
+        AppLanguage.DE -> "Jetzt spielen!"
     }
 
     // --- RULES GUIDE SCREEN & GAME MODES ---
