@@ -702,7 +702,7 @@ class GameModeRulesTest {
 
     @Test
     fun tilesAlignment_touchingSeamlesslyWithoutGaps() {
-        // Verifica que los 4 brazos del spinner toquen físicamente la ficha doble sin huecos
+        // Verifica que los 4 brazos del spinner toquen físicamente la ficha inicial (horizontal 31x17) sin huecos
         val engine = DominoEngine(gameMode = GameMode.ALL_FIVES, targetScore = 500)
         stageHand(engine, 0, tiles(6 to 6))
         engine.currentPlayerIndex = 0
@@ -711,39 +711,39 @@ class GameModeRulesTest {
         val spinner = engine.boardChain.first()
         assertEquals(105, spinner.virtX)
         assertEquals(119, spinner.virtY)
-        assertTrue(spinner.isVertical) // 17 de ancho (105..122), 31 de alto (119..150)
+        assertFalse(spinner.isVertical) // 31 de ancho (105..136), 17 de alto (119..136)
 
         // Hueco IZQUIERDA: horizontal 31x17, debe tocar el borde izquierdo (105) con solape
         val leftSlot = engine.getNextSlotForSide(BoardSide.LEFT)
         assertEquals(76, leftSlot.virtX)
-        assertEquals(126, leftSlot.virtY)
+        assertEquals(119, leftSlot.virtY)
         assertFalse(leftSlot.isVertical)
         // 76 + 31 = 107 >= 105 (solapa 2px con el spinner)
         assertTrue("Izquierda debe tocar el spinner", leftSlot.virtX + 31 >= spinner.virtX)
 
-        // Hueco DERECHA: horizontal 31x17, debe tocar el borde derecho (122) con solape
+        // Hueco DERECHA: horizontal 31x17, debe tocar el borde derecho (136) con solape
         val rightSlot = engine.getNextSlotForSide(BoardSide.RIGHT)
-        assertEquals(120, rightSlot.virtX)
-        assertEquals(126, rightSlot.virtY)
+        assertEquals(134, rightSlot.virtX)
+        assertEquals(119, rightSlot.virtY)
         assertFalse(rightSlot.isVertical)
-        // 120 <= 122 (solapa 2px con el borde derecho del spinner)
-        assertTrue("Derecha debe tocar el spinner", rightSlot.virtX <= spinner.virtX + 17)
+        // 134 <= 136 (solapa 2px con el borde derecho del spinner)
+        assertTrue("Derecha debe tocar el spinner", rightSlot.virtX <= spinner.virtX + 31)
 
-        // Hueco ARRIBA: vertical 17x31, debe tocar el borde superior (119)
+        // Hueco ARRIBA: vertical 17x31, centrado sobre el lomo superior del spinner (119)
         val upSlot = engine.getNextSlotForSide(BoardSide.UP)
-        assertEquals(105, upSlot.virtX)
+        assertEquals(112, upSlot.virtX) // Centrado: 105 + (31 - 17)/2 = 112
         assertEquals(90, upSlot.virtY)
         assertTrue(upSlot.isVertical)
-        // 90 + 31 = 121 >= 119 (solapa 2px con el spinner)
+        // 90 + 31 = 121 >= 119 (solapa 2px con el borde superior del spinner)
         assertTrue("Arriba debe tocar el spinner", upSlot.virtY + 31 >= spinner.virtY)
 
-        // Hueco ABAJO: vertical 17x31, debe tocar el borde inferior (150)
+        // Hueco ABAJO: vertical 17x31, centrado bajo el lomo inferior del spinner (136)
         val downSlot = engine.getNextSlotForSide(BoardSide.DOWN)
-        assertEquals(105, downSlot.virtX)
-        assertEquals(148, downSlot.virtY)
+        assertEquals(112, downSlot.virtX) // Centrado: 105 + (31 - 17)/2 = 112
+        assertEquals(134, downSlot.virtY)
         assertTrue(downSlot.isVertical)
-        // 148 <= 150 (solapa 2px con el borde inferior del spinner)
-        assertTrue("Abajo debe tocar el spinner", downSlot.virtY <= spinner.virtY + 31)
+        // 134 <= 136 (solapa 2px con el borde inferior del spinner)
+        assertTrue("Abajo debe tocar el spinner", downSlot.virtY <= spinner.virtY + 17)
     }
 }
 

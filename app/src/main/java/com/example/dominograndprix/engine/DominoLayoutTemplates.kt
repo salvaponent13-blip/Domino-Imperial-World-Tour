@@ -24,12 +24,74 @@ data class BoardPatternTemplate(
     val rightBranch: List<TemplateStep>
 )
 
+data class FourBranchPatternTemplate(
+    val leftBranch: List<TemplateStep>,
+    val rightBranch: List<TemplateStep>,
+    val upBranch: List<TemplateStep>,
+    val downBranch: List<TemplateStep>
+)
+
 /**
  * Los 5 recorridos de tablero de dos ramas incluidos en el juego. Cada patrón enrolla
  * la cadena en escalones y serpentinas en S para que todas las fichas quepan en el
  * tablero vertical de 194x208 con las caras conectadas de forma exacta.
  */
 object DominoLayoutTemplates {
+
+    /**
+     * Patrón oficial de 4 ramas en cruz para Dominó de Cinco (All Fives).
+     * Cada rama se desenvuelve en su propio cuadrante exclusivo sin cruzarse jamás:
+     * - Rama Izquierda (Branch 20): cuadrante superior-izquierdo
+     * - Rama Derecha (Branch 21): cuadrante inferior-derecho
+     * - Rama Superior (Branch 22): cuadrante superior-derecho
+     * - Rama Inferior (Branch 23): cuadrante inferior-izquierdo
+     */
+    val FOUR_BRANCH_PATTERN = FourBranchPatternTemplate(
+        leftBranch = listOf(
+            TemplateStep(0, 0, 1, 0),
+            TemplateStep(-29, 0, 1, 1),
+            TemplateStep(-58, 0, 1, 1),
+            TemplateStep(-58, -29, 0, 2),
+            TemplateStep(-43, -29, 1, 0),
+            TemplateStep(-29, -58, 0, 2),
+            TemplateStep(-58, -58, 1, 1),
+            TemplateStep(-58, -87, 0, 2)
+        ),
+        rightBranch = listOf(
+            TemplateStep(0, 0, 1, 0),
+            TemplateStep(29, 0, 1, 0),
+            TemplateStep(58, 0, 1, 0),
+            TemplateStep(72, 15, 0, 0),
+            TemplateStep(43, 29, 1, 1),
+            TemplateStep(43, 44, 0, 0),
+            TemplateStep(58, 58, 1, 0),
+            TemplateStep(72, 73, 0, 0)
+        ),
+        upBranch = listOf(
+            TemplateStep(0, 0, 1, 0),
+            TemplateStep(7, -29, 0, 2),
+            TemplateStep(22, -29, 1, 0),
+            TemplateStep(51, -29, 1, 0),
+            TemplateStep(65, -58, 0, 2),
+            TemplateStep(36, -58, 1, 1),
+            TemplateStep(7, -58, 1, 1),
+            TemplateStep(7, -87, 0, 2),
+            TemplateStep(22, -87, 1, 0),
+            TemplateStep(51, -87, 1, 0)
+        ),
+        downBranch = listOf(
+            TemplateStep(0, 0, 1, 0),
+            TemplateStep(7, 15, 0, 0),
+            TemplateStep(-22, 29, 1, 1),
+            TemplateStep(-51, 29, 1, 1),
+            TemplateStep(-51, 44, 0, 0),
+            TemplateStep(-36, 58, 1, 0),
+            TemplateStep(-7, 58, 1, 0),
+            TemplateStep(7, 73, 0, 0),
+            TemplateStep(-22, 87, 1, 1),
+            TemplateStep(-51, 87, 1, 1)
+        )
+    )
 
     val PATTERNS: List<BoardPatternTemplate> = listOf(
         // Patrón 0: serpentina clásica

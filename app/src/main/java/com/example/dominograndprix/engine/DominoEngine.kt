@@ -632,6 +632,50 @@ class DominoEngine(
         val firstTilePlaced = boardChain.firstOrNull { it.isFirstTile }
         val isFirstDouble = firstTilePlaced?.isDouble == true
 
+        if (gameMode == GameMode.ALL_FIVES) {
+            val spinnerPlaced = boardChain.firstOrNull { it.tile == spinnerTile }
+                ?: firstTilePlaced
+                ?: boardChain.first()
+
+            val (steps, branchCount) = when (side) {
+                BoardSide.LEFT -> Pair(DominoLayoutTemplates.FOUR_BRANCH_PATTERN.leftBranch, boardChain.count { it.branchSide == BoardSide.LEFT })
+                BoardSide.RIGHT -> Pair(DominoLayoutTemplates.FOUR_BRANCH_PATTERN.rightBranch, boardChain.count { it.branchSide == BoardSide.RIGHT })
+                BoardSide.UP -> Pair(DominoLayoutTemplates.FOUR_BRANCH_PATTERN.upBranch, boardChain.count { it.branchSide == BoardSide.UP })
+                BoardSide.DOWN -> Pair(DominoLayoutTemplates.FOUR_BRANCH_PATTERN.downBranch, boardChain.count { it.branchSide == BoardSide.DOWN })
+            }
+
+            val prevTile = when (side) {
+                BoardSide.LEFT -> boardChain.firstOrNull { it.branchSide == BoardSide.LEFT } ?: spinnerPlaced
+                BoardSide.RIGHT -> boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT } ?: spinnerPlaced
+                BoardSide.UP -> boardChain.lastOrNull { it.branchSide == BoardSide.UP } ?: spinnerPlaced
+                BoardSide.DOWN -> boardChain.lastOrNull { it.branchSide == BoardSide.DOWN } ?: spinnerPlaced
+            }
+
+            val s2 = steps.size
+            var n6 = branchCount
+            var n7 = n6 + 1
+            if (n6 >= s2) {
+                n6 = 4 + (n6 - 4) % (s2 - 4)
+                n7 = n6 + 1
+            }
+            if (n7 >= s2) {
+                n7 = 4 + (n7 - 4) % (s2 - 4)
+                n6 = n7 - 1
+            }
+
+            val stepPrev = steps[n6]
+            val stepCurr = steps[n7]
+            val dx = stepCurr.dx - stepPrev.dx
+            val dy = stepCurr.dy - stepPrev.dy
+
+            return NextSlotPlacement(
+                virtX = prevTile.virtX + dx,
+                virtY = prevTile.virtY + dy,
+                isVertical = stepCurr.isVertical,
+                isForward = stepCurr.isForward
+            )
+        }
+
         if (side == BoardSide.UP) {
             val prevUp = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
             return if (prevUp != null) {
@@ -825,7 +869,7 @@ class DominoEngine(
                     isFirstTile = true,
                     virtX = 105,
                     virtY = 119,
-                    isVertical = tile.isDouble,
+                    isVertical = if (gameMode == GameMode.ALL_FIVES) false else tile.isDouble,
                     branchSide = null,
                     branchStepIndex = 0,
                     placementId = ++placementCounter
@@ -897,19 +941,23 @@ class DominoEngine(
             val target = upOpenPip ?: spinnerTile!!.high
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
             val slot = getNextSlotForSide(BoardSide.UP)
+            val upStep = boardChain.count { it.branchSide == BoardSide.UP } + 1
+
+            val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
+            val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
 
             boardChain.add(
                 BoardPlacedTile(
                     tile = tile,
-                    pipLeft = newOpenPip,
-                    pipRight = connectingPip,
+                    pipLeft = pipTopOrLeft,
+                    pipRight = pipBottomOrRight,
                     isDouble = tile.isDouble,
                     isFirstTile = false,
                     virtX = slot.virtX,
                     virtY = slot.virtY,
-                    isVertical = true,
+                    isVertical = slot.isVertical,
                     branchSide = BoardSide.UP,
-                    branchStepIndex = boardChain.count { it.branchSide == BoardSide.UP } + 1,
+                    branchStepIndex = upStep,
                     placementId = ++placementCounter
                 )
             )
@@ -919,19 +967,23 @@ class DominoEngine(
             val target = downOpenPip ?: spinnerTile!!.high
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
             val slot = getNextSlotForSide(BoardSide.DOWN)
+            val downStep = boardChain.count { it.branchSide == BoardSide.DOWN } + 1
+
+            val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
+            val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
 
             boardChain.add(
                 BoardPlacedTile(
                     tile = tile,
-                    pipLeft = connectingPip,
-                    pipRight = newOpenPip,
+                    pipLeft = pipTopOrLeft,
+                    pipRight = pipBottomOrRight,
                     isDouble = tile.isDouble,
                     isFirstTile = false,
                     virtX = slot.virtX,
                     virtY = slot.virtY,
-                    isVertical = true,
+                    isVertical = slot.isVertical,
                     branchSide = BoardSide.DOWN,
-                    branchStepIndex = boardChain.count { it.branchSide == BoardSide.DOWN } + 1,
+                    branchStepIndex = downStep,
                     placementId = ++placementCounter
                 )
             )

@@ -209,7 +209,7 @@ fun DominoTableScreen(
         val current = engine.value.players[engine.value.currentPlayerIndex]
         if (!current.isHuman && !engine.value.isRoundOver && !engine.value.isMatchOver) {
             isAIThinking = true
-            delay(650)
+            delay(2000L)
             val prevBoardSize = engine.value.boardChain.size
             engine.value.executeAIMove()
             if (engine.value.boardChain.size > prevBoardSize) {
@@ -1003,7 +1003,9 @@ fun PlayerBadge(player: Player, isCurrentTurn: Boolean) {
                 text = "${player.name}: ${player.hand.size}",
                 color = if (isCurrentTurn) GoldAccent else Color.White,
                 fontSize = 10.sp,
-                fontWeight = if (isCurrentTurn) FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (isCurrentTurn) FontWeight.Bold else FontWeight.Normal,
+                maxLines = 1,
+                softWrap = false
             )
         }
     }
