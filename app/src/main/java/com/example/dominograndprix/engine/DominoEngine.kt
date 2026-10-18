@@ -724,76 +724,39 @@ class DominoEngine(
 
         if (side == BoardSide.LEFT) {
             val branchCount = boardChain.count { it.branchSide == BoardSide.LEFT }
-            if (branchCount == 0 && isFirstDouble) {
-                // El spinner inicial está vertical (17x31) en (105, 119).
-                // Conectar rama izquierda horizontal (31x17) tocando el lado izquierdo:
-                // virtX = 105 - 29 = 76, virtY = 119 + 7 = 126
-                return NextSlotPlacement(virtX = 76, virtY = 126, isVertical = false, isForward = false)
-            }
             val branchSteps = currentPattern.leftBranch
-            val prevTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
-                ?: firstTilePlaced
-                ?: boardChain.first()
+            val stepIdx = (branchCount + 1).coerceAtMost(branchSteps.lastIndex)
+            val step = branchSteps[stepIdx]
 
-            val s2 = branchSteps.size
-            var n6 = branchCount
-            var n7 = n6 + 1
-            if (n6 >= s2) {
-                n6 = 4 + (n6 - 4) % (s2 - 4)
-                n7 = n6 + 1
-            }
-            if (n7 >= s2) {
-                n7 = 4 + (n7 - 4) % (s2 - 4)
-                n6 = n7 - 1
-            }
-
-            val stepPrev = branchSteps[n6]
-            val stepCurr = branchSteps[n7]
-            val dx = stepCurr.dx - stepPrev.dx
-            val dy = stepCurr.dy - stepPrev.dy
+            val originTile = firstTilePlaced ?: boardChain.first()
+            val sx = originTile.virtX
+            val sy = originTile.virtY
+            val yOffset = if (isFirstDouble) 7 else 0
 
             return NextSlotPlacement(
-                virtX = prevTile.virtX + dx,
-                virtY = prevTile.virtY + dy,
-                isVertical = stepCurr.isVertical,
-                isForward = stepCurr.isForward
+                virtX = sx + step.dx,
+                virtY = sy + step.dy + yOffset,
+                isVertical = step.isVertical,
+                isForward = step.isForward
             )
         } else {
             // BoardSide.RIGHT
             val branchCount = boardChain.count { it.branchSide == BoardSide.RIGHT }
-            if (branchCount == 0 && isFirstDouble) {
-                // El spinner inicial está vertical (17x31) en (105, 119) con borde derecho en 122.
-                // Conectar rama derecha horizontal (31x17) tocando el lado derecho (con solapamiento 2px):
-                // virtX = 105 + 15 = 120, virtY = 119 + 7 = 126
-                return NextSlotPlacement(virtX = 120, virtY = 126, isVertical = false, isForward = true)
-            }
             val branchSteps = currentPattern.rightBranch
-            val prevTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
-                ?: firstTilePlaced
-                ?: boardChain.last()
+            val stepIdx = (branchCount + 1).coerceAtMost(branchSteps.lastIndex)
+            val step = branchSteps[stepIdx]
 
-            val s2 = branchSteps.size
-            var n6 = branchCount
-            var n7 = n6 + 1
-            if (n6 >= s2) {
-                n6 = 4 + (n6 - 4) % (s2 - 4)
-                n7 = n6 + 1
-            }
-            if (n7 >= s2) {
-                n7 = 4 + (n7 - 4) % (s2 - 4)
-                n6 = n7 - 1
-            }
-
-            val stepPrev = branchSteps[n6]
-            val stepCurr = branchSteps[n7]
-            val dx = stepCurr.dx - stepPrev.dx
-            val dy = stepCurr.dy - stepPrev.dy
+            val originTile = firstTilePlaced ?: boardChain.first()
+            val sx = originTile.virtX
+            val sy = originTile.virtY
+            val xOffset = if (isFirstDouble) -14 else 0
+            val yOffset = if (isFirstDouble) 7 else 0
 
             return NextSlotPlacement(
-                virtX = prevTile.virtX + dx,
-                virtY = prevTile.virtY + dy,
-                isVertical = stepCurr.isVertical,
-                isForward = stepCurr.isForward
+                virtX = sx + step.dx + xOffset,
+                virtY = sy + step.dy + yOffset,
+                isVertical = step.isVertical,
+                isForward = step.isForward
             )
         }
     }

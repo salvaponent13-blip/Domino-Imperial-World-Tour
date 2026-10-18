@@ -145,7 +145,7 @@ object DominoLayoutTemplates {
     )
 
     val PATTERNS: List<BoardPatternTemplate> = listOf(
-        // Patrón 0: serpentina clásica
+        // Patrón 0: serpentina clásica extendida a 28 pasos
         BoardPatternTemplate(
             id = 0,
             leftBranch = listOf(
@@ -153,17 +153,27 @@ object DominoLayoutTemplates {
                 TemplateStep(-58, -29, 0, 2), TemplateStep(-43, -29, 1, 0), TemplateStep(-14, -29, 1, 0),
                 TemplateStep(15, -29, 1, 0), TemplateStep(44, -29, 1, 0), TemplateStep(73, -43, 0, 2),
                 TemplateStep(59, -58, 1, 1), TemplateStep(30, -58, 1, 1), TemplateStep(1, -58, 1, 1),
-                TemplateStep(-28, -58, 1, 1), TemplateStep(-57, -58, 1, 1), TemplateStep(-57, -87, 0, 2)
+                TemplateStep(-28, -58, 1, 1), TemplateStep(-57, -58, 1, 1), TemplateStep(-57, -87, 0, 2),
+                TemplateStep(-42, -87, 1, 0), TemplateStep(-13, -87, 1, 0), TemplateStep(16, -87, 1, 0),
+                TemplateStep(45, -87, 1, 0), TemplateStep(74, -87, 1, 0), TemplateStep(74, -116, 0, 2),
+                TemplateStep(59, -116, 1, 1), TemplateStep(30, -116, 1, 1), TemplateStep(1, -116, 1, 1),
+                TemplateStep(-28, -116, 1, 1), TemplateStep(-57, -116, 1, 1), TemplateStep(-57, -145, 0, 2),
+                TemplateStep(-42, -145, 1, 0), TemplateStep(-13, -145, 1, 0)
             ),
             rightBranch = listOf(
                 TemplateStep(0, 0, 1, 0), TemplateStep(29, 0, 1, 0), TemplateStep(58, 0, 1, 0),
                 TemplateStep(72, 15, 0, 0), TemplateStep(43, 29, 1, 1), TemplateStep(14, 29, 1, 1),
                 TemplateStep(-15, 29, 1, 1), TemplateStep(-44, 29, 1, 1), TemplateStep(-59, 29, 0, 0),
                 TemplateStep(-59, 58, 1, 0), TemplateStep(-30, 58, 1, 0), TemplateStep(-1, 58, 1, 0),
-                TemplateStep(28, 58, 1, 0), TemplateStep(57, 58, 1, 0), TemplateStep(71, 73, 0, 0)
+                TemplateStep(28, 58, 1, 0), TemplateStep(57, 58, 1, 0), TemplateStep(71, 73, 0, 0),
+                TemplateStep(71, 102, 0, 0), TemplateStep(57, 116, 1, 1), TemplateStep(28, 116, 1, 1),
+                TemplateStep(-1, 116, 1, 1), TemplateStep(-30, 116, 1, 1), TemplateStep(-59, 116, 1, 1),
+                TemplateStep(-59, 145, 0, 0), TemplateStep(-45, 159, 1, 0), TemplateStep(-16, 159, 1, 0),
+                TemplateStep(13, 159, 1, 0), TemplateStep(42, 159, 1, 0), TemplateStep(71, 159, 1, 0),
+                TemplateStep(71, 188, 0, 0), TemplateStep(57, 202, 1, 1)
             )
         ),
-        // Patrón 1: serpentina arriba + escalones cuadrados abajo
+        // Patrón 1: serpentina arriba + escalones cuadrados abajo extendida a 28 pasos
         BoardPatternTemplate(
             id = 1,
             leftBranch = listOf(
@@ -171,7 +181,12 @@ object DominoLayoutTemplates {
                 TemplateStep(-58, -29, 0, 2), TemplateStep(-43, -29, 1, 0), TemplateStep(-14, -29, 1, 0),
                 TemplateStep(15, -29, 1, 0), TemplateStep(44, -29, 1, 0), TemplateStep(73, -43, 0, 2),
                 TemplateStep(59, -58, 1, 1), TemplateStep(30, -58, 1, 1), TemplateStep(1, -58, 1, 1),
-                TemplateStep(-28, -58, 1, 1), TemplateStep(-57, -58, 1, 1), TemplateStep(-57, -87, 0, 2)
+                TemplateStep(-28, -58, 1, 1), TemplateStep(-57, -58, 1, 1), TemplateStep(-57, -87, 0, 2),
+                TemplateStep(-42, -87, 1, 0), TemplateStep(-13, -87, 1, 0), TemplateStep(16, -87, 1, 0),
+                TemplateStep(45, -87, 1, 0), TemplateStep(74, -87, 1, 0), TemplateStep(74, -116, 0, 2),
+                TemplateStep(59, -116, 1, 1), TemplateStep(30, -116, 1, 1), TemplateStep(1, -116, 1, 1),
+                TemplateStep(-28, -116, 1, 1), TemplateStep(-57, -116, 1, 1), TemplateStep(-57, -145, 0, 2),
+                TemplateStep(-42, -145, 1, 0), TemplateStep(-13, -145, 1, 0)
             ),
             rightBranch = listOf(
                 TemplateStep(0, 0, 1, 0), TemplateStep(29, 0, 1, 0), TemplateStep(58, 0, 1, 0),
@@ -179,10 +194,14 @@ object DominoLayoutTemplates {
                 TemplateStep(28, 44, 0, 2), TemplateStep(-1, 44, 1, 1), TemplateStep(-16, 44, 0, 0),
                 TemplateStep(-45, 58, 1, 1), TemplateStep(-60, 58, 0, 0), TemplateStep(-60, 87, 0, 0),
                 TemplateStep(-45, 101, 1, 0), TemplateStep(-16, 87, 0, 2), TemplateStep(-1, 87, 1, 0),
-                TemplateStep(28, 87, 0, 0), TemplateStep(43, 101, 1, 0), TemplateStep(72, 101, 0, 0)
+                TemplateStep(28, 87, 0, 0), TemplateStep(43, 101, 1, 0), TemplateStep(72, 101, 0, 0),
+                TemplateStep(72, 130, 0, 0), TemplateStep(58, 144, 1, 1), TemplateStep(29, 144, 1, 1),
+                TemplateStep(0, 144, 1, 1), TemplateStep(-29, 144, 1, 1), TemplateStep(-58, 144, 1, 1),
+                TemplateStep(-58, 173, 0, 0), TemplateStep(-43, 188, 1, 0), TemplateStep(-14, 188, 1, 0),
+                TemplateStep(15, 188, 1, 0), TemplateStep(44, 188, 1, 0)
             )
         ),
-        // Patrón 2: escalones cuadrados arriba y abajo
+        // Patrón 2: escalones cuadrados arriba y abajo extendida a 28 pasos
         BoardPatternTemplate(
             id = 2,
             leftBranch = listOf(
@@ -191,7 +210,11 @@ object DominoLayoutTemplates {
                 TemplateStep(-14, -58, 0, 0), TemplateStep(1, -44, 1, 0), TemplateStep(30, -58, 0, 2),
                 TemplateStep(45, -58, 1, 0), TemplateStep(74, -72, 0, 2), TemplateStep(74, -101, 0, 2),
                 TemplateStep(45, -101, 1, 1), TemplateStep(30, -101, 0, 0), TemplateStep(1, -87, 1, 1),
-                TemplateStep(-14, -101, 0, 2), TemplateStep(-43, -101, 1, 1), TemplateStep(-58, -115, 0, 2)
+                TemplateStep(-14, -101, 0, 2), TemplateStep(-43, -101, 1, 1), TemplateStep(-58, -115, 0, 2),
+                TemplateStep(-58, -144, 0, 2), TemplateStep(-43, -144, 1, 0), TemplateStep(-14, -144, 1, 0),
+                TemplateStep(15, -144, 1, 0), TemplateStep(44, -144, 1, 0), TemplateStep(73, -144, 1, 0),
+                TemplateStep(73, -173, 0, 2), TemplateStep(58, -173, 1, 1), TemplateStep(29, -173, 1, 1),
+                TemplateStep(0, -173, 1, 1), TemplateStep(-29, -173, 1, 1)
             ),
             rightBranch = listOf(
                 TemplateStep(0, 0, 1, 0), TemplateStep(29, 0, 1, 0), TemplateStep(58, 0, 1, 0),
@@ -203,10 +226,10 @@ object DominoLayoutTemplates {
                 TemplateStep(-44, 162, 1, 0), TemplateStep(-15, 148, 0, 2), TemplateStep(-15, 133, 1, 0),
                 TemplateStep(14, 133, 0, 0), TemplateStep(14, 162, 1, 0), TemplateStep(43, 148, 0, 2),
                 TemplateStep(43, 119, 0, 2), TemplateStep(58, 119, 1, 0), TemplateStep(72, 134, 0, 0),
-                TemplateStep(72, 163, 0, 0)
+                TemplateStep(72, 163, 0, 0), TemplateStep(58, 177, 1, 1)
             )
         ),
-        // Patrón 3: escalones simétricos (el que se usa por defecto)
+        // Patrón 3: escalones simétricos (usado por defecto en partidas de 2 ramas), extendido a 28 pasos
         BoardPatternTemplate(
             id = 3,
             leftBranch = listOf(
@@ -215,7 +238,11 @@ object DominoLayoutTemplates {
                 TemplateStep(-14, -58, 1, 0), TemplateStep(15, -58, 0, 0), TemplateStep(30, -44, 1, 0),
                 TemplateStep(59, -44, 1, 0), TemplateStep(73, -73, 0, 2), TemplateStep(59, -88, 1, 1),
                 TemplateStep(44, -102, 0, 2), TemplateStep(15, -102, 1, 1), TemplateStep(0, -102, 0, 0),
-                TemplateStep(-29, -88, 1, 1), TemplateStep(-58, -88, 1, 1), TemplateStep(-58, -117, 0, 2)
+                TemplateStep(-29, -88, 1, 1), TemplateStep(-58, -88, 1, 1), TemplateStep(-58, -117, 0, 2),
+                TemplateStep(-43, -117, 1, 0), TemplateStep(-14, -117, 1, 0), TemplateStep(15, -117, 1, 0),
+                TemplateStep(44, -117, 1, 0), TemplateStep(73, -117, 1, 0), TemplateStep(73, -88, 0, 0),
+                TemplateStep(73, -59, 0, 0), TemplateStep(58, -59, 1, 1), TemplateStep(29, -59, 1, 1),
+                TemplateStep(0, -59, 1, 1), TemplateStep(-29, -59, 1, 1)
             ),
             rightBranch = listOf(
                 TemplateStep(0, 0, 1, 0), TemplateStep(29, 0, 1, 0), TemplateStep(58, 0, 1, 0),
@@ -223,10 +250,14 @@ object DominoLayoutTemplates {
                 TemplateStep(14, 58, 1, 1), TemplateStep(-1, 44, 0, 2), TemplateStep(-30, 44, 1, 1),
                 TemplateStep(-59, 44, 1, 1), TemplateStep(-59, 59, 0, 0), TemplateStep(-59, 88, 0, 0),
                 TemplateStep(-44, 102, 1, 0), TemplateStep(-15, 102, 1, 0), TemplateStep(14, 88, 0, 2),
-                TemplateStep(29, 88, 1, 0), TemplateStep(58, 88, 1, 0), TemplateStep(72, 103, 0, 0)
+                TemplateStep(29, 88, 1, 0), TemplateStep(58, 88, 1, 0), TemplateStep(72, 103, 0, 0),
+                TemplateStep(72, 132, 0, 0), TemplateStep(58, 146, 1, 1), TemplateStep(29, 146, 1, 1),
+                TemplateStep(0, 146, 1, 1), TemplateStep(-29, 146, 1, 1), TemplateStep(-58, 146, 1, 1),
+                TemplateStep(-58, 175, 0, 0), TemplateStep(-43, 190, 1, 0), TemplateStep(-14, 190, 1, 0),
+                TemplateStep(15, 190, 1, 0), TemplateStep(44, 190, 1, 0)
             )
         ),
-        // Patrón 4: escalones anchos
+        // Patrón 4: escalones anchos extendida a 28 pasos
         BoardPatternTemplate(
             id = 4,
             leftBranch = listOf(
@@ -235,7 +266,11 @@ object DominoLayoutTemplates {
                 TemplateStep(-14, -58, 1, 0), TemplateStep(15, -58, 0, 0), TemplateStep(30, -44, 1, 0),
                 TemplateStep(59, -44, 1, 0), TemplateStep(73, -73, 0, 2), TemplateStep(73, -102, 0, 2),
                 TemplateStep(44, -102, 1, 1), TemplateStep(15, -102, 1, 1), TemplateStep(0, -102, 0, 0),
-                TemplateStep(-29, -88, 1, 1), TemplateStep(-58, -88, 1, 1), TemplateStep(-58, -117, 0, 2)
+                TemplateStep(-29, -88, 1, 1), TemplateStep(-58, -88, 1, 1), TemplateStep(-58, -117, 0, 2),
+                TemplateStep(-43, -117, 1, 0), TemplateStep(-14, -117, 1, 0), TemplateStep(15, -117, 1, 0),
+                TemplateStep(44, -117, 1, 0), TemplateStep(73, -117, 1, 0), TemplateStep(73, -88, 0, 0),
+                TemplateStep(73, -59, 0, 0), TemplateStep(58, -59, 1, 1), TemplateStep(29, -59, 1, 1),
+                TemplateStep(0, -59, 1, 1), TemplateStep(-29, -59, 1, 1)
             ),
             rightBranch = listOf(
                 TemplateStep(0, 0, 1, 0), TemplateStep(29, 0, 1, 0), TemplateStep(58, 0, 1, 0),
@@ -243,7 +278,11 @@ object DominoLayoutTemplates {
                 TemplateStep(14, 58, 1, 1), TemplateStep(-1, 44, 0, 2), TemplateStep(-30, 44, 1, 1),
                 TemplateStep(-59, 44, 1, 1), TemplateStep(-59, 59, 0, 0), TemplateStep(-59, 88, 1, 0),
                 TemplateStep(-30, 88, 0, 0), TemplateStep(-15, 102, 1, 0), TemplateStep(14, 88, 0, 2),
-                TemplateStep(29, 88, 1, 0), TemplateStep(58, 88, 1, 0), TemplateStep(72, 103, 0, 0)
+                TemplateStep(29, 88, 1, 0), TemplateStep(58, 88, 1, 0), TemplateStep(72, 103, 0, 0),
+                TemplateStep(72, 132, 0, 0), TemplateStep(58, 146, 1, 1), TemplateStep(29, 146, 1, 1),
+                TemplateStep(0, 146, 1, 1), TemplateStep(-29, 146, 1, 1), TemplateStep(-58, 146, 1, 1),
+                TemplateStep(-58, 175, 0, 0), TemplateStep(-43, 190, 1, 0), TemplateStep(-14, 190, 1, 0),
+                TemplateStep(15, 190, 1, 0), TemplateStep(44, 190, 1, 0)
             )
         )
     )

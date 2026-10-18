@@ -164,17 +164,9 @@ fun DominoTableScreen(
         previousActingSeat = seat
     }
 
-    // Camara vertical en unidades virtuales. Se separa el arrastre manual del encuadre
-    // automatico: el arrastre debe responder al dedo al instante, mientras que el reencuadre
-    // al crecer la cadena se anima para que no de un salto.
+    // Cámara 2D en unidades virtuales para arrastre táctil manual
+    var cameraDragVirtX by remember { mutableFloatStateOf(0f) }
     var cameraDragVirtY by remember { mutableFloatStateOf(0f) }
-    var cameraAutoTargetVirtY by remember { mutableFloatStateOf(0f) }
-    val cameraAutoVirtY by animateFloatAsState(
-        targetValue = cameraAutoTargetVirtY,
-        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
-        label = "cameraAuto"
-    )
-    val verticalCameraVirtY = cameraAutoVirtY + cameraDragVirtY
 
     // Show round dialog and play victory/defeat jingle when round finishes
     LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver) {
@@ -191,10 +183,6 @@ fun DominoTableScreen(
     }
 
     // Guardado de la partida al cerrar cada ronda (enfoque 80/20 del plan).
-    //
-    // El desafio diario NO se guarda a proposito: si se pudiera reanudar, se podria reintentar
-    // el mismo reto tantas veces como se quisiera y dejaria de ser un reto. Al salir de el se
-    // pierde el intento, que es la regla del modo.
     LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver) {
         if (dailySeed != null) return@LaunchedEffect
         val current = engine.value
@@ -209,16 +197,11 @@ fun DominoTableScreen(
         }
     }
 
-    // Auto-adjust vertical camera (like b.e(int, int) in b.java lines 4316-4333)
+    // Auto-reset manual pan when round or board resets
     LaunchedEffect(engine.value.boardChain.size, gameStateVersion) {
         if (engine.value.boardChain.isEmpty()) {
+            cameraDragVirtX = 0f
             cameraDragVirtY = 0f
-            cameraAutoTargetVirtY = 0f
-        } else {
-            val minY = engine.value.boardChain.minOf { it.virtY }
-            val maxY = engine.value.boardChain.maxOf { it.virtY + if (it.isVertical) 31 else 17 }
-            val centerChainY = (minY + maxY) / 2f
-            cameraAutoTargetVirtY = (119f - centerChainY).coerceIn(-90f, 90f)
         }
     }
 
@@ -330,6 +313,64 @@ fun DominoTableScreen(
     val mustDrawFromBoneyard = isMyTurn && !isChaining && playableTiles.isEmpty() &&
             gameMode.allowsDraw && engine.value.boneyard.isNotEmpty() && !engine.value.hasDrawnThisTurn
 
+    // Cálculo dinámico de encuadre centrado 2D para que todas las fichas quepan siempre en pantalla
+    val boardChain = engine.value.boardChain
+    val (targetCenterX, targetCenterY, targetSpanX, targetSpanY) = remember(
+        boardChain.size,
+        selectedTile,
+        gameStateVersion
+    ) {
+        if (boardChain.isEmpty()) {
+            listOf(120.5f, 127.5f, 180f, 200f)
+        } else {
+            var minX = boardChain.minOf { it.virtX }.toFloat()
+            var maxX = boardChain.maxOf { it.virtX + if (it.isVertical) 17 else 31 }.toFloat()
+            var minY = boardChain.minOf { it.virtY }.toFloat()
+            var maxY = boardChain.maxOf { it.virtY + if (it.isVertical) 31 else 17 }.toFloat()
+
+            if (selectedTile != null && selectedTileSides.size > 1) {
+                selectedTileSides.forEach { side ->
+                    val slot = engine.value.getNextSlotForSide(side)
+                    val sMaxX = slot.virtX + if (slot.isVertical) 17 else 31
+                    val sMaxY = slot.virtY + if (slot.isVertical) 31 else 17
+                    minX = minOf(minX, slot.virtX.toFloat())
+                    maxX = maxOf(maxX, sMaxX.toFloat())
+                    minY = minOf(minY, slot.virtY.toFloat())
+                    maxY = maxOf(maxY, sMaxY.toFloat())
+                }
+            }
+
+            val padX = 28f
+            val padY = 28f
+            val cX = (minX + maxX) / 2f
+            val cY = (minY + maxY) / 2f
+            val sX = (maxX - minX + padX * 2f).coerceAtLeast(180f)
+            val sY = (maxY - minY + padY * 2f).coerceAtLeast(200f)
+            listOf(cX, cY, sX, sY)
+        }
+    }
+
+    val animCenterX by animateFloatAsState(
+        targetValue = targetCenterX,
+        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        label = "animCenterX"
+    )
+    val animCenterY by animateFloatAsState(
+        targetValue = targetCenterY,
+        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        label = "animCenterY"
+    )
+    val animSpanX by animateFloatAsState(
+        targetValue = targetSpanX,
+        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        label = "animSpanX"
+    )
+    val animSpanY by animateFloatAsState(
+        targetValue = targetSpanY,
+        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        label = "animSpanY"
+    )
+
     // Auto-Pass when player has no playable tiles and cannot draw (or already drew this turn)
     LaunchedEffect(isMyTurn, isChaining, playableTiles.size, engine.value.boneyard.size, engine.value.hasDrawnThisTurn, gameStateVersion) {
         if (isMyTurn && !isChaining && playableTiles.isEmpty() &&
@@ -436,16 +477,20 @@ fun DominoTableScreen(
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
-                            cameraDragVirtY = (cameraDragVirtY + dragAmount.y / 4f).coerceIn(-120f, 120f)
+                            val scale = 2.0f
+                            cameraDragVirtX = (cameraDragVirtX + dragAmount.x / scale).coerceIn(-120f, 120f)
+                            cameraDragVirtY = (cameraDragVirtY + dragAmount.y / scale).coerceIn(-120f, 120f)
                         }
                     }
             ) {
-                // Virtual coordinate scaling:
-                // La cadena ocupa virtX en [45 .. 196] (ancho 151, centro 120.5)
-                // y virtY alrededor de 119 (span aproximado [15 .. 235], alto 220).
-                val unitDp = (maxWidth / 168f).coerceAtMost(maxHeight / 228f)
-                val originVirtX = 36f
-                val originVirtY = 12f
+                // Escalado y centrado dinámico de coordenadas virtuales:
+                // Se adapta dinámicamente al tamaño y distribución de la cadena sin cortar nunca los bordes.
+                val rawUnit = (maxWidth.value / animSpanX).coerceAtMost(maxHeight.value / animSpanY).coerceIn(1.05f, 2.10f)
+                val unitDp = rawUnit.dp
+                val viewportVirtWidth = maxWidth.value / rawUnit
+                val viewportVirtHeight = maxHeight.value / rawUnit
+                val originVirtX = animCenterX - (viewportVirtWidth / 2f)
+                val originVirtY = animCenterY - (viewportVirtHeight / 2f)
 
                 // Empty board message
                 if (engine.value.boardChain.isEmpty()) {
@@ -473,8 +518,8 @@ fun DominoTableScreen(
                             val isVisualVertical = placed.isVertical
                             val tileW = tileWidth(unitDp, isVisualVertical)
                             val tileH = tileHeight(unitDp, isVisualVertical)
-                            val xDp = unitDp * (placed.virtX - originVirtX)
-                            val yDp = unitDp * (placed.virtY - originVirtY + verticalCameraVirtY)
+                            val xDp = unitDp * (placed.virtX - originVirtX + cameraDragVirtX)
+                            val yDp = unitDp * (placed.virtY - originVirtY + cameraDragVirtY)
 
                             AnimatedPlacedTile(
                                 tile = placed.tile,
@@ -496,8 +541,8 @@ fun DominoTableScreen(
                             val isVisualVert = slot.isVertical
                             val slotW = unitDp * (if (isVisualVert) 17f else 31f)
                             val slotH = unitDp * (if (isVisualVert) 31f else 17f)
-                            val slotXDp = unitDp * (slot.virtX - originVirtX)
-                            val slotYDp = unitDp * (slot.virtY - originVirtY + verticalCameraVirtY)
+                            val slotXDp = unitDp * (slot.virtX - originVirtX + cameraDragVirtX)
+                            val slotYDp = unitDp * (slot.virtY - originVirtY + cameraDragVirtY)
 
                             val targetPip = when (side) {
                                 BoardSide.LEFT -> engine.value.leftOpenPip
