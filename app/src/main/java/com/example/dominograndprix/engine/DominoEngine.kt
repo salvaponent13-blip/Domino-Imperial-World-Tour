@@ -221,6 +221,10 @@ class DominoEngine(
     var lastPointsEarned: Int = 0
         private set
 
+    /** Bonificación por cierre de dominó (con doble, capicúa o doble capicúa). */
+    var lastRoundBonusType: DominoBonusType = DominoBonusType.NONE
+        private set
+
     // --- Acumuladores de la PARTIDA ---
     //
     // Los indicadores de ronda (lastRoundWasBlocked, winnerPlayerId) solo describen la ULTIMA
@@ -382,6 +386,7 @@ class DominoEngine(
         turnNumber = 0
         lastPointsEarned = 0
         lastRoundWasBlocked = false
+        lastRoundBonusType = DominoBonusType.NONE
 
         // Generate standard Double-6 domino set (28 tiles)
         val deck = mutableListOf<DominoTile>()
@@ -825,6 +830,12 @@ class DominoEngine(
         // que la rama esté realmente disponible para este jugador.
         if (boardChain.isNotEmpty() && !getPlayableSides(playerIndex, tile).contains(side)) return false
 
+        val wasCapicuaCandidate = if (player.hand.size == 1 && boardChain.isNotEmpty()) {
+            val leftPip = leftOpenPip
+            val rightPip = rightOpenPip
+            leftPip != null && rightPip != null && canConnectLeft(tile) && canConnectRight(tile)
+        } else false
+
         val newHand = player.hand.toMutableList()
         newHand.remove(tile)
         players[playerIndex] = player.copy(hand = newHand)
@@ -972,6 +983,12 @@ class DominoEngine(
         evaluatePointScoring(playerIndex)
 
         if (newHand.isEmpty()) {
+            lastRoundBonusType = when {
+                tile.isDouble && wasCapicuaCandidate -> DominoBonusType.DOUBLE_CAPICUA
+                tile.isDouble -> DominoBonusType.DOUBLE
+                wasCapicuaCandidate -> DominoBonusType.CAPICUA
+                else -> DominoBonusType.NONE
+            }
             finishRound(winnerIndex = playerIndex, byDomino = true)
             return true
         }
@@ -1227,10 +1244,16 @@ class DominoEngine(
         players[winnerIndex] = winner.copy(score = newScore)
 
         if (byDomino) {
+            val bonusTag = when (lastRoundBonusType) {
+                DominoBonusType.DOUBLE_CAPICUA -> " 👑🌟 ¡DOBLE CAPICÚA!"
+                DominoBonusType.DOUBLE -> " 👑 ¡CON DOBLE!"
+                DominoBonusType.CAPICUA -> " 🌟 ¡CAPICÚA!"
+                DominoBonusType.NONE -> ""
+            }
             roundLog = if (totalOpponentPips > 0) {
-                "¡DOMINÓ de ${winner.name}! (+$totalOpponentPips pts)"
+                "¡DOMINÓ de ${winner.name}!$bonusTag (+$totalOpponentPips pts)"
             } else {
-                "¡DOMINÓ de ${winner.name}!"
+                "¡DOMINÓ de ${winner.name}!$bonusTag"
             }
         }
 
@@ -1437,7 +1460,8 @@ class DominoEngine(
         val matchWinsWithSingleTile: Int,
         val matchPointsScored: Int,
         val matchBestRoundPoints: Int,
-        val matchDrewFromBoneyard: Boolean
+        val matchDrewFromBoneyard: Boolean,
+        val lastRoundBonusType: DominoBonusType
     )
 
     private fun snapshot(): StateSnapshot = StateSnapshot(
@@ -1471,7 +1495,8 @@ class DominoEngine(
         matchWinsWithSingleTile = matchWinsWithSingleTile,
         matchPointsScored = matchPointsScored,
         matchBestRoundPoints = matchBestRoundPoints,
-        matchDrewFromBoneyard = matchDrewFromBoneyard
+        matchDrewFromBoneyard = matchDrewFromBoneyard,
+        lastRoundBonusType = lastRoundBonusType
     )
 
     private fun restore(snapshot: StateSnapshot) {
@@ -1510,6 +1535,7 @@ class DominoEngine(
         matchPointsScored = snapshot.matchPointsScored
         matchBestRoundPoints = snapshot.matchBestRoundPoints
         matchDrewFromBoneyard = snapshot.matchDrewFromBoneyard
+        lastRoundBonusType = snapshot.lastRoundBonusType
     }
 
     /**

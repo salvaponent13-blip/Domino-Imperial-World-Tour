@@ -16,10 +16,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -38,6 +43,7 @@ import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.BoardPlacedTile
 import com.example.dominograndprix.model.BoardSide
 import com.example.dominograndprix.model.Difficulty
+import com.example.dominograndprix.model.DominoBonusType
 import com.example.dominograndprix.model.DominoTile
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.model.Player
@@ -115,6 +121,18 @@ fun DominoTableScreen(
     var isAIThinking by remember { mutableStateOf(false) }
     // Si se reanuda una partida, la ronda ya estaba cerrada: el dialogo debe salir de entrada.
     var showRoundDialog by remember { mutableStateOf(resumeFrom != null) }
+
+    // Bocadillos de reacción animados para rivales
+    var activeReactionSeat by remember { mutableStateOf<Int?>(null) }
+    var activeReactionText by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(activeReactionText, activeReactionSeat) {
+        if (activeReactionText != null) {
+            delay(2400L)
+            activeReactionText = null
+            activeReactionSeat = null
+        }
+    }
 
     // Vista para la respuesta haptica: usarla respeta los ajustes de vibracion del sistema.
     val hapticView = LocalView.current
@@ -204,19 +222,42 @@ fun DominoTableScreen(
         }
     }
 
-    // Auto-advance AI turns with physical domino sound effects
+    // Auto-advance AI turns with physical domino sound effects and animated reactions
     LaunchedEffect(engine.value.currentPlayerIndex, engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
         val current = engine.value.players[engine.value.currentPlayerIndex]
         if (!current.isHuman && !engine.value.isRoundOver && !engine.value.isMatchOver) {
             isAIThinking = true
             delay(2000L)
             val prevBoardSize = engine.value.boardChain.size
+            val prevScore = current.score
+            val prevHandSize = current.hand.size
+            val aiSeat = engine.value.currentPlayerIndex
+
             engine.value.executeAIMove()
-            if (engine.value.boardChain.size > prevBoardSize) {
+
+            val newBoardSize = engine.value.boardChain.size
+            val updatedAI = engine.value.players[aiSeat]
+            val newScore = updatedAI.score
+            val newHandSize = updatedAI.hand.size
+
+            if (newBoardSize > prevBoardSize) {
                 val lastPlaced = engine.value.boardChain.lastOrNull()
                 DominoSoundManager.playTileClack(isDouble = lastPlaced?.isDouble == true)
+                if (newHandSize == 0) {
+                    activeReactionSeat = aiSeat
+                    activeReactionText = "¡Dominó! 🎉"
+                } else if (newScore > prevScore) {
+                    activeReactionSeat = aiSeat
+                    activeReactionText = "+${newScore - prevScore} pts ⭐"
+                }
             } else {
                 DominoSoundManager.playPassKnock()
+                activeReactionSeat = aiSeat
+                if (newHandSize > prevHandSize) {
+                    activeReactionText = "Al pozo... 🦴"
+                } else {
+                    activeReactionText = "¡Paso! ❌"
+                }
             }
             logMessage = engine.value.roundLog
             isAIThinking = false
@@ -348,7 +389,8 @@ fun DominoTableScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         for (seat in 1 until engine.value.players.size) {
-                            PlayerBadge(engine.value.players[seat], engine.value.currentPlayerIndex == seat)
+                            val reaction = if (activeReactionSeat == seat) activeReactionText else null
+                            PlayerBadge(engine.value.players[seat], engine.value.currentPlayerIndex == seat, reactionText = reaction)
                         }
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -554,6 +596,40 @@ fun DominoTableScreen(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
+                    }
+                }
+
+                // Bocadillo animado de reacción de rival en la mesa
+                if (activeReactionText != null) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = DarkNavy.copy(alpha = 0.95f),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, GoldAccent),
+                        shadowElevation = 8.dp,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = if (isBranchGame) 62.dp else 34.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            val seat = activeReactionSeat
+                            val pName = if (seat != null && seat in engine.value.players.indices) engine.value.players[seat].name else "Rival"
+                            Text(
+                                text = "$pName:",
+                                color = GoldAccent,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = activeReactionText ?: "",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
                 }
 
@@ -864,6 +940,36 @@ fun DominoTableScreen(
                 },
                 text = {
                     Column {
+                        val bonus = engine.value.lastRoundBonusType
+                        if (bonus != DominoBonusType.NONE) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = GoldAccent.copy(alpha = 0.2f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = when (bonus) {
+                                            DominoBonusType.DOUBLE_CAPICUA -> "🌟 ¡¡DOBLE CAPICÚA!! 🌟"
+                                            DominoBonusType.CAPICUA -> "✨ ¡¡CAPICÚA!! ✨"
+                                            DominoBonusType.DOUBLE -> "🎯 ¡DOMINÓ CON DOBLE! 🎯"
+                                            DominoBonusType.NONE -> ""
+                                        },
+                                        color = GoldAccent,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 13.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
                         Text(engine.value.roundLog, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.height(8.dp))
                         if (engine.value.isTeamGame) {
@@ -986,7 +1092,11 @@ private fun ScoreValue(score: Int, flash: Float) {
 }
 
 @Composable
-fun PlayerBadge(player: Player, isCurrentTurn: Boolean) {
+fun PlayerBadge(
+    player: Player,
+    isCurrentTurn: Boolean,
+    reactionText: String? = null
+) {
     Surface(
         shape = RoundedCornerShape(6.dp),
         color = if (isCurrentTurn) GoldAccent.copy(alpha = 0.28f) else Color.Black.copy(alpha = 0.45f),
@@ -1007,6 +1117,22 @@ fun PlayerBadge(player: Player, isCurrentTurn: Boolean) {
                 maxLines = 1,
                 softWrap = false
             )
+            if (reactionText != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = GoldAccent
+                ) {
+                    Text(
+                        text = reactionText,
+                        color = DarkNavy,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }

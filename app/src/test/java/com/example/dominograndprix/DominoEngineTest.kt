@@ -2,6 +2,9 @@ package com.example.dominograndprix
 
 import com.example.dominograndprix.engine.DominoEngine
 import com.example.dominograndprix.model.BoardPlacedTile
+import com.example.dominograndprix.model.BoardSide
+import com.example.dominograndprix.model.DominoBonusType
+import com.example.dominograndprix.model.DominoTile
 import com.example.dominograndprix.model.GameMode
 import org.junit.Assert.*
 import org.junit.Test
@@ -383,6 +386,77 @@ class DominoEngineTest {
             val placed = engine.boardChain[i]
             println("BoardChain[$i]: ${placed.tile} at (${placed.virtX}, ${placed.virtY}) side=${placed.branchSide} isVert=${placed.isVertical}")
         }
+    }
+
+    @Test
+    fun testBonusDominoDetection() {
+        val engine = DominoEngine(
+            gameMode = GameMode.BLOCK,
+            targetScore = 100,
+            playerCount = 2,
+            playerNames = listOf("Tú", "Rival"),
+            humanPlayerIndices = setOf(0)
+        )
+
+        // 1. Double Domino: closes with [6|6] when ends are 6 and 2 (only matches 6)
+        engine.startNewRound()
+        engine.players[0] = engine.players[0].copy(hand = listOf(DominoTile(6, 3), DominoTile(6, 6)))
+        engine.players[1] = engine.players[1].copy(hand = listOf(DominoTile(3, 2), DominoTile(0, 0)))
+        engine.currentPlayerIndex = 0
+
+        assertTrue(engine.playTile(0, DominoTile(6, 3), BoardSide.RIGHT))
+        assertTrue(engine.playTile(1, DominoTile(3, 2), BoardSide.RIGHT))
+        assertEquals(6, engine.leftOpenPip)
+        assertEquals(2, engine.rightOpenPip)
+
+        assertTrue(engine.playTile(0, DominoTile(6, 6), BoardSide.LEFT))
+        assertTrue(engine.isRoundOver)
+        assertEquals(DominoBonusType.DOUBLE, engine.lastRoundBonusType)
+
+        // 2. Capicúa: closes with [5|3] when ends are 5 and 3 (matches both open ends)
+        engine.startNewRound()
+        engine.players[0] = engine.players[0].copy(hand = listOf(DominoTile(5, 1), DominoTile(5, 3)))
+        engine.players[1] = engine.players[1].copy(hand = listOf(DominoTile(1, 3), DominoTile(0, 0)))
+        engine.currentPlayerIndex = 0
+
+        assertTrue(engine.playTile(0, DominoTile(5, 1), BoardSide.RIGHT))
+        assertTrue(engine.playTile(1, DominoTile(1, 3), BoardSide.RIGHT))
+        assertEquals(5, engine.leftOpenPip)
+        assertEquals(3, engine.rightOpenPip)
+
+        assertTrue(engine.playTile(0, DominoTile(5, 3), BoardSide.LEFT))
+        assertTrue(engine.isRoundOver)
+        assertEquals(DominoBonusType.CAPICUA, engine.lastRoundBonusType)
+
+        // 3. Double Capicúa: closes with [4|4] when ends are 4 and 4 (is double AND matches both ends)
+        engine.startNewRound()
+        engine.players[0] = engine.players[0].copy(hand = listOf(DominoTile(4, 2), DominoTile(4, 4)))
+        engine.players[1] = engine.players[1].copy(hand = listOf(DominoTile(2, 4), DominoTile(0, 0)))
+        engine.currentPlayerIndex = 0
+
+        assertTrue(engine.playTile(0, DominoTile(4, 2), BoardSide.RIGHT))
+        assertTrue(engine.playTile(1, DominoTile(2, 4), BoardSide.RIGHT))
+        assertEquals(4, engine.leftOpenPip)
+        assertEquals(4, engine.rightOpenPip)
+
+        assertTrue(engine.playTile(0, DominoTile(4, 4), BoardSide.LEFT))
+        assertTrue(engine.isRoundOver)
+        assertEquals(DominoBonusType.DOUBLE_CAPICUA, engine.lastRoundBonusType)
+
+        // 4. Standard Domino: closes with [6|1] when ends are 6 and 2
+        engine.startNewRound()
+        engine.players[0] = engine.players[0].copy(hand = listOf(DominoTile(6, 3), DominoTile(6, 1)))
+        engine.players[1] = engine.players[1].copy(hand = listOf(DominoTile(3, 2), DominoTile(0, 0)))
+        engine.currentPlayerIndex = 0
+
+        assertTrue(engine.playTile(0, DominoTile(6, 3), BoardSide.RIGHT))
+        assertTrue(engine.playTile(1, DominoTile(3, 2), BoardSide.RIGHT))
+        assertEquals(6, engine.leftOpenPip)
+        assertEquals(2, engine.rightOpenPip)
+
+        assertTrue(engine.playTile(0, DominoTile(6, 1), BoardSide.LEFT))
+        assertTrue(engine.isRoundOver)
+        assertEquals(DominoBonusType.NONE, engine.lastRoundBonusType)
     }
 }
 

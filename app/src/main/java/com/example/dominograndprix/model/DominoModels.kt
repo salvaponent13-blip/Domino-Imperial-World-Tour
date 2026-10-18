@@ -184,3 +184,13 @@ data class LuxuryItem(
     val cityName: String,
     var isSold: Boolean = false
 )
+
+/**
+ * Bonificación clásica de cierre por dominó.
+ */
+enum class DominoBonusType {
+    NONE,
+    DOUBLE,
+    CAPICUA,
+    DOUBLE_CAPICUA
+}
