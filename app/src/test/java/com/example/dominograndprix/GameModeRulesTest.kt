@@ -745,6 +745,31 @@ class GameModeRulesTest {
         // 134 <= 136 (solapa 2px con el borde inferior del spinner)
         assertTrue("Abajo debe tocar el spinner", downSlot.virtY <= spinner.virtY + 17)
     }
+
+    @Test
+    fun traceAllFivesRightBranchPlacement() {
+        val engine = DominoEngine(gameMode = GameMode.ALL_FIVES, targetScore = 500)
+        stageHands(
+            engine,
+            0 to tiles(6 to 6),
+            1 to tiles(6 to 5),
+            2 to tiles(5 to 4)
+        )
+
+        engine.currentPlayerIndex = 0
+        assertTrue(engine.playTileLeft(0, tileOf(engine, 0, 6, 6)))
+
+        engine.currentPlayerIndex = 1
+        assertTrue(engine.playTileRight(1, tileOf(engine, 1, 6, 5)))
+
+        engine.currentPlayerIndex = 2
+        assertTrue(engine.playTileRight(2, tileOf(engine, 2, 5, 4)))
+
+        println("=== BOARD CHAIN DUMP ===")
+        engine.boardChain.forEach { placed ->
+            println("PLACED: ${placed.tile} at virtX=${placed.virtX}, virtY=${placed.virtY}, side=${placed.branchSide}, isVert=${placed.isVertical}, pipL=${placed.pipLeft}, pipR=${placed.pipRight}")
+        }
+    }
 }
 
 

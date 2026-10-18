@@ -636,43 +636,24 @@ class DominoEngine(
             val spinnerPlaced = boardChain.firstOrNull { it.tile == spinnerTile }
                 ?: firstTilePlaced
                 ?: boardChain.first()
+            val sx = spinnerPlaced.virtX
+            val sy = spinnerPlaced.virtY
 
-            val (steps, branchCount) = when (side) {
-                BoardSide.LEFT -> Pair(DominoLayoutTemplates.FOUR_BRANCH_PATTERN.leftBranch, boardChain.count { it.branchSide == BoardSide.LEFT })
-                BoardSide.RIGHT -> Pair(DominoLayoutTemplates.FOUR_BRANCH_PATTERN.rightBranch, boardChain.count { it.branchSide == BoardSide.RIGHT })
-                BoardSide.UP -> Pair(DominoLayoutTemplates.FOUR_BRANCH_PATTERN.upBranch, boardChain.count { it.branchSide == BoardSide.UP })
-                BoardSide.DOWN -> Pair(DominoLayoutTemplates.FOUR_BRANCH_PATTERN.downBranch, boardChain.count { it.branchSide == BoardSide.DOWN })
+            val steps = when (side) {
+                BoardSide.LEFT -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.leftBranch
+                BoardSide.RIGHT -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.rightBranch
+                BoardSide.UP -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.upBranch
+                BoardSide.DOWN -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.downBranch
             }
-
-            val prevTile = when (side) {
-                BoardSide.LEFT -> boardChain.firstOrNull { it.branchSide == BoardSide.LEFT } ?: spinnerPlaced
-                BoardSide.RIGHT -> boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT } ?: spinnerPlaced
-                BoardSide.UP -> boardChain.lastOrNull { it.branchSide == BoardSide.UP } ?: spinnerPlaced
-                BoardSide.DOWN -> boardChain.lastOrNull { it.branchSide == BoardSide.DOWN } ?: spinnerPlaced
-            }
-
-            val s2 = steps.size
-            var n6 = branchCount
-            var n7 = n6 + 1
-            if (n6 >= s2) {
-                n6 = 4 + (n6 - 4) % (s2 - 4)
-                n7 = n6 + 1
-            }
-            if (n7 >= s2) {
-                n7 = 4 + (n7 - 4) % (s2 - 4)
-                n6 = n7 - 1
-            }
-
-            val stepPrev = steps[n6]
-            val stepCurr = steps[n7]
-            val dx = stepCurr.dx - stepPrev.dx
-            val dy = stepCurr.dy - stepPrev.dy
+            val branchCount = boardChain.count { it.branchSide == side }
+            val stepIdx = (branchCount + 1).coerceAtMost(steps.lastIndex)
+            val step = steps[stepIdx]
 
             return NextSlotPlacement(
-                virtX = prevTile.virtX + dx,
-                virtY = prevTile.virtY + dy,
-                isVertical = stepCurr.isVertical,
-                isForward = stepCurr.isForward
+                virtX = sx + step.dx,
+                virtY = sy + step.dy,
+                isVertical = step.isVertical,
+                isForward = step.isForward
             )
         }
 
@@ -901,7 +882,6 @@ class DominoEngine(
                 )
             )
             leftOpenPip = newOpenPip
-            if (spinnerTile == null && tile.isDouble) spinnerTile = tile
         } else if (side == BoardSide.RIGHT) {
             val target = rightOpenPip!!
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
@@ -936,7 +916,6 @@ class DominoEngine(
                 )
             )
             rightOpenPip = newOpenPip
-            if (spinnerTile == null && tile.isDouble) spinnerTile = tile
         } else if (side == BoardSide.UP) {
             val target = upOpenPip ?: spinnerTile!!.high
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
@@ -962,7 +941,6 @@ class DominoEngine(
                 )
             )
             upOpenPip = newOpenPip
-            if (spinnerTile == null && tile.isDouble) spinnerTile = tile
         } else if (side == BoardSide.DOWN) {
             val target = downOpenPip ?: spinnerTile!!.high
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
@@ -988,7 +966,6 @@ class DominoEngine(
                 )
             )
             downOpenPip = newOpenPip
-            if (spinnerTile == null && tile.isDouble) spinnerTile = tile
         }
 
         roundLog = "${player.name} jugó $tile"

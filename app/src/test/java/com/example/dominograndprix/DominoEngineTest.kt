@@ -304,4 +304,85 @@ class DominoEngineTest {
             g.fillOval(px - r / 2, py - r / 2, 3, 3)
         }
     }
+
+    @Test
+    fun testAllFivesNoOverlaps() {
+        for (seed in 1L..100L) {
+            val engine = DominoEngine(
+                gameMode = GameMode.ALL_FIVES,
+                targetScore = 100,
+                random = kotlin.random.Random(seed),
+                playerNames = listOf("Carlos", "Mateo", "Rodrigo", "Sofía"),
+                humanPlayerIndices = emptySet()
+            )
+            engine.startNewRound()
+            var turns = 0
+            while (!engine.isRoundOver && turns < 100) {
+                turns++
+                val curr = engine.currentPlayerIndex
+                val p = engine.players[curr]
+                engine.executeAIMove()
+                if (seed == 1L) {
+                    val last = engine.boardChain.lastOrNull()
+                    println("Turn $turns: ${engine.roundLog} -> placed: ${last?.tile} at (${last?.virtX}, ${last?.virtY}) side=${last?.branchSide} isVert=${last?.isVertical}")
+                }
+
+                val chain = engine.boardChain
+                for (i in chain.indices) {
+                    val a = chain[i]
+                    val aw = if (a.isVertical) 15 else 29
+                    val ah = if (a.isVertical) 29 else 15
+                    for (j in i + 1 until chain.size) {
+                        val b = chain[j]
+                        val bw = if (b.isVertical) 15 else 29
+                        val bh = if (b.isVertical) 29 else 15
+                        val overlapX = a.virtX < b.virtX + bw - 1 && a.virtX + aw - 1 > b.virtX
+                        val overlapY = a.virtY < b.virtY + bh - 1 && a.virtY + ah - 1 > b.virtY
+                        if (overlapX && overlapY) {
+                            println("FAIL at seed $seed, turn $turns:")
+                            for (k in chain.indices) {
+                                println("  Tile $k: ${chain[k].tile} at (${chain[k].virtX}, ${chain[k].virtY}) side=${chain[k].branchSide} isVert=${chain[k].isVertical}")
+                            }
+                            fail("Seed $seed: Tile $i (${a.tile}, ${a.branchSide}) and $j (${b.tile}, ${b.branchSide}) overlap at (${a.virtX},${a.virtY}) vs (${b.virtX},${b.virtY})")
+                        }
+                    }
+            }
+        }
+    }
 }
+
+    @Test
+    fun testExactUserScenario() {
+        val engine = DominoEngine(
+            gameMode = GameMode.ALL_FIVES,
+            targetScore = 50,
+            playerNames = listOf("Tú", "Carlos 'El Rayo'", "Mateo", "Rodrigo"),
+            humanPlayerIndices = setOf(0)
+        )
+        engine.startNewRound()
+        // Carlos has [6|6], Mateo has [6|4], Rodrigo has [5|4] plus dead tiles
+        val dead = com.example.dominograndprix.model.DominoTile(0, 0)
+        engine.players[1] = engine.players[1].copy(hand = listOf(com.example.dominograndprix.model.DominoTile(6, 6), dead, dead))
+        engine.players[2] = engine.players[2].copy(hand = listOf(com.example.dominograndprix.model.DominoTile(6, 4), dead, dead))
+        engine.players[3] = engine.players[3].copy(hand = listOf(com.example.dominograndprix.model.DominoTile(5, 4), dead, dead))
+        engine.currentPlayerIndex = 1
+
+        val t1 = engine.players[1].hand.first()
+        val s1 = engine.playTile(1, t1, com.example.dominograndprix.model.BoardSide.RIGHT)
+        println("Turn 1 (Carlos): played $t1 -> success=$s1")
+
+        val t2 = engine.players[2].hand.first()
+        val s2 = engine.playTile(2, t2, com.example.dominograndprix.model.BoardSide.RIGHT)
+        println("Turn 2 (Mateo): played $t2 -> success=$s2")
+
+        val t3 = engine.players[3].hand.first()
+        val s3 = engine.playTile(3, t3, com.example.dominograndprix.model.BoardSide.RIGHT)
+        println("Turn 3 (Rodrigo): played $t3 -> success=$s3")
+
+        for (i in engine.boardChain.indices) {
+            val placed = engine.boardChain[i]
+            println("BoardChain[$i]: ${placed.tile} at (${placed.virtX}, ${placed.virtY}) side=${placed.branchSide} isVert=${placed.isVertical}")
+        }
+    }
+}
+
