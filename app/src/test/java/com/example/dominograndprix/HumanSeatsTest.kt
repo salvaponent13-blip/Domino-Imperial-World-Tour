@@ -43,7 +43,7 @@ class HumanSeatsTest {
             val move = moves.first()
             return engine.playTile(seat, move.tile, move.side)
         }
-        return if (engine.gameMode.allowsDraw && engine.boneyard.isNotEmpty()) {
+        return if (engine.gameMode.allowsDraw && engine.boneyard.isNotEmpty() && !engine.hasDrawnThisTurn) {
             engine.drawTile(seat, 0) != null
         } else {
             engine.passTurn(seat)

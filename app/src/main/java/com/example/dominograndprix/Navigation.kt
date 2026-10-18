@@ -201,6 +201,10 @@ fun MainNavigation() {
                         listOf("Tú", activeRivalName, "Mateo", "Rodrigo")
                     }
 
+                    val savedSnapshot = remember(activeVenueId) {
+                        MatchSnapshotStore.load(context)?.takeIf { it.venueId == activeVenueId }
+                    }
+
                     DominoTableScreen(
                         gameMode = activeMode,
                         cityName = activeCityName,
@@ -212,6 +216,7 @@ fun MainNavigation() {
                         difficulty = Difficulty.STANDARD,
                         humanPlayerIndices = setOf(0),
                         playerNames = playerNames,
+                        resumeFrom = savedSnapshot,
                         onMatchFinished = { won, _, finishedEngine ->
                             val report = CareerReporter.reportFor(
                                 engine = finishedEngine,

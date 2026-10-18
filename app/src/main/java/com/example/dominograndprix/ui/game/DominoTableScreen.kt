@@ -96,7 +96,7 @@ fun DominoTableScreen(
     val context = LocalContext.current
     // Semilla de la partida: la del desafio diario si la hay, y si no una del reloj. Viaja con
     // el guardado, de modo que el reparto de la siguiente ronda es coherente al reanudar.
-    val engine = remember {
+    val engine = remember(gameMode, targetScore, playerCount, resumeFrom) {
         mutableStateOf(
             if (resumeFrom != null) {
                 DominoEngine.resume(resumeFrom)
@@ -177,7 +177,7 @@ fun DominoTableScreen(
     val verticalCameraVirtY = cameraAutoVirtY + cameraDragVirtY
 
     // Show round dialog and play victory/defeat jingle when round finishes
-    LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
+    LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver) {
         if (engine.value.isRoundOver || engine.value.isMatchOver) {
             if (engine.value.winningTeam == 0) {
                 DominoSoundManager.playVictoryJingle()
@@ -195,7 +195,7 @@ fun DominoTableScreen(
     // El desafio diario NO se guarda a proposito: si se pudiera reanudar, se podria reintentar
     // el mismo reto tantas veces como se quisiera y dejaria de ser un reto. Al salir de el se
     // pierde el intento, que es la regla del modo.
-    LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
+    LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver) {
         if (dailySeed != null) return@LaunchedEffect
         val current = engine.value
         if (current.isRoundOver && !current.isMatchOver) {
@@ -226,43 +226,51 @@ fun DominoTableScreen(
     LaunchedEffect(engine.value.currentPlayerIndex, engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
         val current = engine.value.players[engine.value.currentPlayerIndex]
         if (!current.isHuman && !engine.value.isRoundOver && !engine.value.isMatchOver) {
-            isAIThinking = true
-            delay(2000L)
-            val prevBoardSize = engine.value.boardChain.size
-            val prevScore = current.score
-            val prevHandSize = current.hand.size
-            val aiSeat = engine.value.currentPlayerIndex
+            try {
+                isAIThinking = true
+                delay(2000L)
+                val prevBoardSize = engine.value.boardChain.size
+                val prevScore = current.score
+                val prevHandSize = current.hand.size
+                val aiSeat = engine.value.currentPlayerIndex
 
-            engine.value.executeAIMove()
+                engine.value.executeAIMove()
 
-            val newBoardSize = engine.value.boardChain.size
-            val updatedAI = engine.value.players[aiSeat]
-            val newScore = updatedAI.score
-            val newHandSize = updatedAI.hand.size
+                val newBoardSize = engine.value.boardChain.size
+                val updatedAI = engine.value.players[aiSeat]
+                val newScore = updatedAI.score
+                val newHandSize = updatedAI.hand.size
 
-            if (newBoardSize > prevBoardSize) {
-                val lastPlaced = engine.value.boardChain.lastOrNull()
-                DominoSoundManager.playTileClack(isDouble = lastPlaced?.isDouble == true)
-                if (newHandSize == 0) {
-                    activeReactionSeat = aiSeat
-                    activeReactionText = "¡Dominó! 🎉"
-                } else if (newScore > prevScore) {
-                    activeReactionSeat = aiSeat
-                    activeReactionText = "+${newScore - prevScore} pts ⭐"
-                }
-            } else {
-                DominoSoundManager.playPassKnock()
-                activeReactionSeat = aiSeat
-                if (newHandSize > prevHandSize) {
-                    activeReactionText = "Al pozo... 🦴"
+                if (newBoardSize > prevBoardSize) {
+                    val lastPlaced = engine.value.boardChain.lastOrNull()
+                    DominoSoundManager.playTileClack(isDouble = lastPlaced?.isDouble == true)
+                    if (newHandSize == 0) {
+                        activeReactionSeat = aiSeat
+                        activeReactionText = "¡Dominó! 🎉"
+                    } else if (newScore > prevScore) {
+                        activeReactionSeat = aiSeat
+                        activeReactionText = "+${newScore - prevScore} pts ⭐"
+                    }
                 } else {
-                    activeReactionText = "¡Paso! ❌"
+                    DominoSoundManager.playPassKnock()
+                    activeReactionSeat = aiSeat
+                    if (newHandSize > prevHandSize) {
+                        activeReactionText = "Al pozo... 🦴"
+                    } else {
+                        activeReactionText = "¡Paso! ❌"
+                    }
                 }
+                logMessage = engine.value.roundLog
+            } finally {
+                isAIThinking = false
             }
-            logMessage = engine.value.roundLog
-            isAIThinking = false
             gameStateVersion++
         }
+    }
+
+    // Limpiar selección de ficha cuando el turno cambia
+    LaunchedEffect(engine.value.currentPlayerIndex) {
+        selectedTile = null
     }
 
     val isMyTurn = engine.value.isCurrentPlayerHuman && !engine.value.isRoundOver && !isPrivacyCurtainUp
@@ -320,12 +328,12 @@ fun DominoTableScreen(
 
     // Must player draw from face-down boneyard?
     val mustDrawFromBoneyard = isMyTurn && !isChaining && playableTiles.isEmpty() &&
-            gameMode.allowsDraw && engine.value.boneyard.isNotEmpty()
+            gameMode.allowsDraw && engine.value.boneyard.isNotEmpty() && !engine.value.hasDrawnThisTurn
 
-    // Auto-Pass when player has no playable tiles and cannot draw
-    LaunchedEffect(isMyTurn, isChaining, playableTiles.size, engine.value.boneyard.size, gameStateVersion) {
+    // Auto-Pass when player has no playable tiles and cannot draw (or already drew this turn)
+    LaunchedEffect(isMyTurn, isChaining, playableTiles.size, engine.value.boneyard.size, engine.value.hasDrawnThisTurn, gameStateVersion) {
         if (isMyTurn && !isChaining && playableTiles.isEmpty() &&
-            (!gameMode.allowsDraw || engine.value.boneyard.isEmpty())
+            (!gameMode.allowsDraw || engine.value.boneyard.isEmpty() || engine.value.hasDrawnThisTurn)
         ) {
             logMessage = DominoStrings.autoPassMsg()
             delay(950)

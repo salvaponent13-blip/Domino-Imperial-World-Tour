@@ -56,7 +56,13 @@ data class PlayerView(
     /** Turno en que paso el jugador cuyo pase dejo una rama abierta, o `null`. */
     val lastPassTurnNumber: Int?,
     /** Asiento que paso por ultima vez, o `null`. */
-    val lastPassingPlayerIndex: Int?
+    val lastPassingPlayerIndex: Int?,
+    /** Punto abierto superior (All Fives con spinner), o null. */
+    val upOpenPip: Int? = null,
+    /** Punto abierto inferior (All Fives con spinner), o null. */
+    val downOpenPip: Int? = null,
+    /** Ficha spinner activa en All Fives, o null. */
+    val spinnerTile: DominoTile? = null
 ) {
     /** Cuantas fichas tiene este jugador. */
     val handSize: Int get() = myHand.size
@@ -64,8 +70,8 @@ data class PlayerView(
     /** La mesa esta vacia: toca abrir. */
     val isOpeningMove: Boolean get() = boardChain.isEmpty()
 
-    /** Suma de los dos extremos abiertos (0 si la mesa esta vacia). */
-    val openEndsSum: Int get() = (leftOpenPip ?: 0) + (rightOpenPip ?: 0)
+    /** Suma de los extremos abiertos (0 si la mesa esta vacia). */
+    val openEndsSum: Int get() = (leftOpenPip ?: 0) + (rightOpenPip ?: 0) + (upOpenPip ?: 0) + (downOpenPip ?: 0)
 
     /** Puntos que le quedan en la mano; en las reglas de cierre decide quien gana. */
     val myRemainingPips: Int get() = myHand.sumOf { it.totalPips }

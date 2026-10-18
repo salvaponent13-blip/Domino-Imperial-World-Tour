@@ -56,6 +56,9 @@ data class MatchSnapshot(
     val hands: List<List<DominoTile>>,
     val leftOpenPip: Int?,
     val rightOpenPip: Int?,
+    val upOpenPip: Int? = null,
+    val downOpenPip: Int? = null,
+    val spinnerTile: DominoTile? = null,
     val winnerPlayerId: Int?,
     val roundLog: String,
 

@@ -524,10 +524,14 @@ class GameModeRulesTest {
         // Equipo 0 (asientos 0 y 2): 5 + 30 = 35 puntos.
         // Equipo 1 (asientos 1 y 3): 10 + 10 = 20 puntos.
         // Individualmente el asiento 0 tiene 5 (el menor), pero por equipos gana el Equipo 1 (20 < 35).
-        stageExactHand(engine, 0, tiles(5 to 0))
-        stageExactHand(engine, 2, tiles(6 to 6, 6 to 6, 6 to 6))
-        stageExactHand(engine, 1, tiles(5 to 5))
-        stageExactHand(engine, 3, tiles(5 to 5))
+        setExactHands(
+            engine,
+            0 to tiles(5 to 0),
+            2 to tiles(6 to 6, 6 to 6, 6 to 6),
+            1 to tiles(5 to 5),
+            3 to tiles(5 to 5)
+        )
+        engine.currentPlayerIndex = 0
 
         // Apertura [1|1] y se tranca la mesa (nadie puede jugar sobre 1|1).
         engine.leftOpenPip = 1

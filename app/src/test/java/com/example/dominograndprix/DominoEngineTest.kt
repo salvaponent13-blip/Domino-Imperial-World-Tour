@@ -458,5 +458,63 @@ class DominoEngineTest {
         assertTrue(engine.isRoundOver)
         assertEquals(DominoBonusType.NONE, engine.lastRoundBonusType)
     }
+
+    @Test
+    fun testDeepSeekAuditCriticalFixes() {
+        val engine = DominoEngine(
+            gameMode = GameMode.DRAW,
+            targetScore = 100,
+            playerCount = 2,
+            playerNames = listOf("Tú", "Rival"),
+            humanPlayerIndices = setOf(0)
+        )
+        engine.startNewRound()
+
+        // 1. Out of turn play/draw/pass is strictly rejected
+        engine.currentPlayerIndex = 0
+        assertFalse("No puede jugar fuera de turno", engine.playTile(1, DominoTile(6, 6), BoardSide.LEFT))
+        assertNull("No puede robar fuera de turno", engine.drawTile(1, 0))
+        val initialPasses = engine.consecutivePasses
+        engine.passTurn(1)
+        assertEquals("No puede pasar fuera de turno", initialPasses, engine.consecutivePasses)
+
+        // 2. Cannot draw twice in the same turn
+        engine.currentPlayerIndex = 0
+        val firstDraw = engine.drawTile(0, 0)
+        assertNotNull("Primer robo debe permitirse", firstDraw)
+        assertTrue(engine.hasDrawnThisTurn)
+        val secondDraw = engine.drawTile(0, 0)
+        assertNull("Segundo robo consecutivo en el mismo turno debe rechazarse", secondDraw)
+
+        // 3. Later double becomes spinner in ALL_FIVES
+        val engineFives = DominoEngine(gameMode = GameMode.ALL_FIVES, targetScore = 100, playerCount = 2)
+        engineFives.startNewRound()
+        engineFives.players[0] = engineFives.players[0].copy(hand = listOf(DominoTile(5, 4), DominoTile(4, 4)))
+        engineFives.players[1] = engineFives.players[1].copy(hand = listOf(DominoTile(5, 3), DominoTile(0, 0)))
+        engineFives.currentPlayerIndex = 0
+
+        // Asiento 0 abre con [5|4] (NO es doble)
+        assertTrue(engineFives.playTile(0, DominoTile(5, 4), BoardSide.RIGHT))
+        assertNull("Ficha normal no activa el spinner", engineFives.spinnerTile)
+
+        // Asiento 1 juega [5|3]
+        assertTrue(engineFives.playTile(1, DominoTile(5, 3), BoardSide.LEFT))
+        assertNull(engineFives.spinnerTile)
+
+        // Asiento 0 juega [4|4] (primer doble que entra en la mano): debe convertirse en spinner
+        assertTrue(engineFives.playTile(0, DominoTile(4, 4), BoardSide.RIGHT))
+        assertEquals("El primer doble posterior debe convertirse en spinner", DominoTile(4, 4), engineFives.spinnerTile)
+
+        // 4. Victory by points does not count as blocked round (tranca)
+        val enginePoints = DominoEngine(gameMode = GameMode.ALL_FIVES, targetScore = 100)
+        enginePoints.startNewRound()
+        enginePoints.players[0] = enginePoints.players[0].copy(score = 90, hand = listOf(DominoTile(5, 5)))
+        enginePoints.currentPlayerIndex = 0
+        assertTrue(enginePoints.playTile(0, DominoTile(5, 5), BoardSide.RIGHT)) // +10 pts => 100
+        assertTrue(enginePoints.isMatchOver)
+        assertTrue(enginePoints.isRoundOver)
+        assertFalse("Victoria por puntos no debe marcarse como mesa trancada", enginePoints.lastRoundWasBlocked)
+        assertEquals("No debe haber trancas en el acumulador", 0, enginePoints.matchBlockedRounds)
+    }
 }
 

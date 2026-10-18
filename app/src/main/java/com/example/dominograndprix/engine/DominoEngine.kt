@@ -281,6 +281,9 @@ class DominoEngine(
     // Hungarian chaining flag
     var canContinueHungarianTurn: Boolean = false
 
+    // Flag de control de robo: solo se permite robar una vez por turno
+    var hasDrawnThisTurn: Boolean = false
+
     // Draw Special: jugador que abrió la mano. Determina qué rama le corresponde
     // al asiento 0 y, por rotación, a todos los demás.
     private var openingPlayerIndex: Int = 0
@@ -380,6 +383,7 @@ class DominoEngine(
         consecutivePasses = 0
         isRoundOver = false
         canContinueHungarianTurn = false
+        hasDrawnThisTurn = false
         blockedPlayers.clear()
         lastPassingPlayerIndex = null
         lastPassTurnNumber = -1
@@ -524,7 +528,7 @@ class DominoEngine(
         if (canConnectRight(tile) && isBranchOpenFor(playerIndex, BoardSide.RIGHT)) {
             sides.add(BoardSide.RIGHT)
         }
-        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null) {
+        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null && spinnerTile == boardChain.firstOrNull { it.isFirstTile }?.tile) {
             if (canConnectUp(tile)) sides.add(BoardSide.UP)
             if (canConnectDown(tile)) sides.add(BoardSide.DOWN)
         }
@@ -622,7 +626,10 @@ class DominoEngine(
             playableMoves = moves,
             ownBranch = branchForPlayer(playerIndex),
             lastPassTurnNumber = if (lastPassingPlayerIndex != null) lastPassTurnNumber else null,
-            lastPassingPlayerIndex = lastPassingPlayerIndex
+            lastPassingPlayerIndex = lastPassingPlayerIndex,
+            upOpenPip = upOpenPip,
+            downOpenPip = downOpenPip,
+            spinnerTile = spinnerTile
         )
     }
 
@@ -638,11 +645,9 @@ class DominoEngine(
         val isFirstDouble = firstTilePlaced?.isDouble == true
 
         if (gameMode == GameMode.ALL_FIVES) {
-            val spinnerPlaced = boardChain.firstOrNull { it.tile == spinnerTile }
-                ?: firstTilePlaced
-                ?: boardChain.first()
-            val sx = spinnerPlaced.virtX
-            val sy = spinnerPlaced.virtY
+            val originTile = firstTilePlaced ?: boardChain.first()
+            val sx = originTile.virtX
+            val sy = originTile.virtY
 
             val steps = when (side) {
                 BoardSide.LEFT -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.leftBranch
@@ -822,7 +827,8 @@ class DominoEngine(
     }
 
     private fun playTileOnSide(playerIndex: Int, tile: DominoTile, side: BoardSide): Boolean {
-        if (isRoundOver) return false
+        if (isRoundOver || isMatchOver) return false
+        if (playerIndex != currentPlayerIndex) return false
         val player = players[playerIndex]
         if (!player.hand.contains(tile)) return false
 
@@ -841,6 +847,7 @@ class DominoEngine(
         players[playerIndex] = player.copy(hand = newHand)
         consecutivePasses = 0
         turnNumber++
+        hasDrawnThisTurn = false
         blockedPlayers.remove(playerIndex)
 
         if (boardChain.isEmpty()) {
@@ -893,6 +900,9 @@ class DominoEngine(
                 )
             )
             leftOpenPip = newOpenPip
+            if (gameMode == GameMode.ALL_FIVES && spinnerTile == null && tile.isDouble) {
+                spinnerTile = tile
+            }
         } else if (side == BoardSide.RIGHT) {
             val target = rightOpenPip!!
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
@@ -927,6 +937,9 @@ class DominoEngine(
                 )
             )
             rightOpenPip = newOpenPip
+            if (gameMode == GameMode.ALL_FIVES && spinnerTile == null && tile.isDouble) {
+                spinnerTile = tile
+            }
         } else if (side == BoardSide.UP) {
             val target = upOpenPip ?: spinnerTile!!.high
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
@@ -1027,9 +1040,14 @@ class DominoEngine(
             ?: firstTile
             ?: boardChain.last()
 
-        val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-        val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
-        var sum = leftVal + rightVal
+        var sum = if (leftTile == rightTile) {
+            // Aún no hay ramas izquierda ni derecha colocadas (ej. se jugó únicamente en UP o DOWN)
+            if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+        } else {
+            val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+            val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
+            leftVal + rightVal
+        }
 
         if (gameMode == GameMode.ALL_FIVES) {
             if (upOpenPip != null) {
@@ -1072,14 +1090,19 @@ class DominoEngine(
             ?: firstTile
             ?: boardChain.last()
 
-        val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-        val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
-
         val parts = mutableListOf<String>()
-        val lDesc = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$leftVal]" else "[$leftOpenPip]"
-        val rDesc = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) "[$rightOpenPip|$rightOpenPip=$rightVal]" else "[$rightOpenPip]"
-        parts.add(lDesc)
-        parts.add(rDesc)
+        if (leftTile == rightTile) {
+            val v = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+            val d = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$v]" else "[$leftOpenPip]"
+            parts.add(d)
+        } else {
+            val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+            val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
+            val lDesc = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$leftVal]" else "[$leftOpenPip]"
+            val rDesc = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) "[$rightOpenPip|$rightOpenPip=$rightVal]" else "[$rightOpenPip]"
+            parts.add(lDesc)
+            parts.add(rDesc)
+        }
 
         if (gameMode == GameMode.ALL_FIVES) {
             if (upOpenPip != null) {
@@ -1142,17 +1165,41 @@ class DominoEngine(
                 isMatchOver = true
                 winningTeam = p.team
                 winnerPlayerId = playerIndex
-                finishRound(winnerIndex = playerIndex, byDomino = false)
+                finishMatchByPoints(winnerIndex = playerIndex)
             }
         }
     }
 
+    private fun finishMatchByPoints(winnerIndex: Int) {
+        if (isRoundOver) return
+        isRoundOver = true
+        lastRoundWasBlocked = false
+        canContinueHungarianTurn = false
+        winnerPlayerId = winnerIndex
+        val winner = players[winnerIndex]
+        winningTeam = winner.team
+        isMatchOver = true
+        roundLog = "¡${winner.name} alcanza la meta de $targetScore puntos y gana la partida!"
+
+        val playerTeam = players.firstOrNull()?.team ?: 0
+        matchRoundsPlayed++
+        if (winner.team == playerTeam) {
+            matchRoundsWon++
+            matchPointsScored += lastPointsEarned
+            if (lastPointsEarned > matchBestRoundPoints) matchBestRoundPoints = lastPointsEarned
+        }
+    }
+
     fun drawTile(playerIndex: Int, boneyardIndex: Int = 0): DominoTile? {
+        if (isRoundOver || isMatchOver) return null
+        if (playerIndex != currentPlayerIndex) return null
+        if (hasDrawnThisTurn) return null
         if (!gameMode.allowsDraw || boneyard.isEmpty()) return null
         val safeIdx = boneyardIndex.coerceIn(0, boneyard.lastIndex)
         val drawn = boneyard.removeAt(safeIdx)
         val p = players[playerIndex]
         players[playerIndex] = p.copy(hand = p.hand + drawn)
+        hasDrawnThisTurn = true
         // Se recuerda para las misiones de sede del tipo "gana sin robar del pozo": hay que
         // saber si el jugador robo ALGUNA VEZ, no si le quedaban fichas al terminar.
         matchDrewFromBoneyard = true
@@ -1161,6 +1208,8 @@ class DominoEngine(
     }
 
     fun passTurn(playerIndex: Int) {
+        if (isRoundOver || isMatchOver) return
+        if (playerIndex != currentPlayerIndex) return
         consecutivePasses++
         // Registrar el pase: en Draw Special abre la rama de este jugador al resto mientras siga bloqueado.
         blockedPlayers.add(playerIndex)
@@ -1178,16 +1227,21 @@ class DominoEngine(
     }
 
     fun advanceTurn() {
+        hasDrawnThisTurn = false
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size
     }
 
     private fun resolveBlockedRound() {
         lastRoundWasBlocked = true
         if (!isTeamGame) {
-            // Partida individual: gana el jugador con menos puntos en la mano
-            val winner = players.minByOrNull { it.hand.sumOf { t -> t.totalPips } }
-                ?: players.getOrElse(openingPlayerIndex) { players.first() }
-            val minPips = winner.hand.sumOf { it.totalPips }
+            // Partida individual: gana el jugador con menos puntos en la mano (desempate por cercanía a la salida)
+            val minPips = players.minOf { it.hand.sumOf { t -> t.totalPips } }
+            val tied = players.filter { it.hand.sumOf { t -> t.totalPips } == minPips }
+            val winner = if (tied.size == 1) {
+                tied.first()
+            } else {
+                tied.minByOrNull { (it.id - openingPlayerIndex + players.size) % players.size } ?: tied.first()
+            }
             roundLog = "¡Mesa trancada! Gana ${winner.name} con $minPips pts en mano."
             finishRound(winnerIndex = winner.id, byDomino = false)
             return
@@ -1324,8 +1378,16 @@ class DominoEngine(
 
     /** Robar si se puede y si no pasar, para cuando la estrategia no devolvio una jugada util. */
     private fun fallbackTurn(playerIndex: Int): Boolean {
-        if (gameMode.allowsDraw && boneyard.isNotEmpty()) {
-            drawTile(playerIndex, 0)
+        if (gameMode.allowsDraw && boneyard.isNotEmpty() && !hasDrawnThisTurn) {
+            val drawn = drawTile(playerIndex, 0)
+            if (drawn != null) {
+                val playableSides = getPlayableSides(playerIndex, drawn)
+                if (playableSides.isNotEmpty()) {
+                    playTile(playerIndex, drawn, playableSides.first())
+                    return true
+                }
+            }
+            passTurn(playerIndex)
         } else {
             passTurn(playerIndex)
         }
@@ -1361,6 +1423,9 @@ class DominoEngine(
             hands = players.map { it.hand },
             leftOpenPip = leftOpenPip,
             rightOpenPip = rightOpenPip,
+            upOpenPip = upOpenPip,
+            downOpenPip = downOpenPip,
+            spinnerTile = spinnerTile,
             winnerPlayerId = winnerPlayerId,
             roundLog = roundLog,
             randomSeed = randomSeed
@@ -1399,6 +1464,9 @@ class DominoEngine(
         boneyard.clear()
         leftOpenPip = snapshot.leftOpenPip
         rightOpenPip = snapshot.rightOpenPip
+        upOpenPip = snapshot.upOpenPip
+        downOpenPip = snapshot.downOpenPip
+        spinnerTile = snapshot.spinnerTile
 
         isRoundOver = true
         isMatchOver = snapshot.isMatchOver
@@ -1549,6 +1617,7 @@ class DominoEngine(
     fun simulate(playerIndex: Int, move: AiMove.Play): MoveSimulation {
         val snapshot = snapshot()
         try {
+            currentPlayerIndex = playerIndex
             val applied = playTile(playerIndex, move.tile, move.side)
             check(applied) { "No se puede simular una jugada ilegal: $move" }
 
