@@ -678,29 +678,6 @@ class DominoEngine(
 
         if (gameMode == GameMode.ALL_FIVES) {
             val originTile = firstTilePlaced ?: boardChain.first()
-            val isFirstTileSpinner = spinnerTile != null && firstTilePlaced?.tile == spinnerTile
-
-            // Si se juega en UP o DOWN y el spinner es un doble posterior (no la primera ficha),
-            // la rama debe nacer perpendicularmente desde la posición real de esa ficha spinner.
-            if ((side == BoardSide.UP || side == BoardSide.DOWN) && !isFirstTileSpinner && spinnerTile != null) {
-                val spinnerPlaced = boardChain.firstOrNull { it.tile == spinnerTile } ?: originTile
-                if (side == BoardSide.UP) {
-                    val prevUp = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
-                    return if (prevUp != null) {
-                        NextSlotPlacement(virtX = prevUp.virtX, virtY = prevUp.virtY - 29, isVertical = true, isForward = false)
-                    } else {
-                        NextSlotPlacement(virtX = spinnerPlaced.virtX, virtY = spinnerPlaced.virtY - 29, isVertical = true, isForward = false)
-                    }
-                } else {
-                    val prevDown = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
-                    return if (prevDown != null) {
-                        NextSlotPlacement(virtX = prevDown.virtX, virtY = prevDown.virtY + 29, isVertical = true, isForward = true)
-                    } else {
-                        NextSlotPlacement(virtX = spinnerPlaced.virtX, virtY = spinnerPlaced.virtY + 29, isVertical = true, isForward = true)
-                    }
-                }
-            }
-
             val sx = originTile.virtX
             val sy = originTile.virtY
 
@@ -881,6 +858,96 @@ class DominoEngine(
         }
     }
 
+    /**
+     * En Dominó de Cinco (All Fives), si la primera ficha jugada no fue un doble,
+     * el primer doble que se juegue posteriormente se convierte en el "spinner" (cruz de 4 ramas).
+     * Para que las 4 ramas se desenvuelvan sin colisionar en sus cuadrantes respectivos:
+     * - El nuevo doble se centra en (105, 119) como ficha de origen.
+     * - La cadena previa se re-enruta a lo largo de la rama contraria (LEFT si se jugó a la derecha,
+     *   o RIGHT si se jugó a la izquierda).
+     * - Quedan desbloqueadas las 4 ramas en cruz (UP, DOWN, LEFT, RIGHT).
+     */
+    private fun reslotChainForLateSpinner(tile: DominoTile, side: BoardSide) {
+        val doubleVal = tile.high
+        val isPlayedOnRight = (side == BoardSide.RIGHT)
+        val targetBranch = if (isPlayedOnRight) BoardSide.LEFT else BoardSide.RIGHT
+        val templateBranch = if (isPlayedOnRight) {
+            DominoLayoutTemplates.FOUR_BRANCH_PATTERN.leftBranch
+        } else {
+            DominoLayoutTemplates.FOUR_BRANCH_PATTERN.rightBranch
+        }
+
+        // Si se jugó a la DERECHA, la cadena existente se extiende hacia la IZQUIERDA del nuevo doble
+        // (por tanto el más cercano al doble es el último de boardChain, yendo hacia atrás).
+        // Si se jugó a la IZQUIERDA, la cadena existente se extiende hacia la DERECHA del nuevo doble
+        // (el más cercano al doble es el primero de boardChain, yendo hacia adelante).
+        val tilesFromDouble = if (isPlayedOnRight) boardChain.reversed() else boardChain.toList()
+
+        val reslotted = mutableListOf<BoardPlacedTile>()
+        var prevOutwardPip = doubleVal
+
+        for (i in tilesFromDouble.indices) {
+            val stepIdx = i + 1
+            val step = templateBranch[stepIdx]
+            val old = tilesFromDouble[i]
+            val connectingPip = prevOutwardPip
+            val outwardPip = if (old.tile.high == connectingPip) old.tile.low else old.tile.high
+            prevOutwardPip = outwardPip
+
+            val pipTopOrLeft = if (step.isForward) connectingPip else outwardPip
+            val pipBottomOrRight = if (step.isForward) outwardPip else connectingPip
+
+            reslotted.add(
+                BoardPlacedTile(
+                    tile = old.tile,
+                    pipLeft = pipTopOrLeft,
+                    pipRight = pipBottomOrRight,
+                    isDouble = old.isDouble,
+                    isFirstTile = false,
+                    virtX = 105 + step.dx,
+                    virtY = 119 + step.dy,
+                    isVertical = step.isVertical,
+                    branchSide = targetBranch,
+                    branchStepIndex = stepIdx,
+                    placementId = old.placementId
+                )
+            )
+        }
+
+        val centerDouble = BoardPlacedTile(
+            tile = tile,
+            pipLeft = tile.high,
+            pipRight = tile.low,
+            isDouble = true,
+            isFirstTile = true,
+            virtX = 105,
+            virtY = 119,
+            isVertical = false,
+            branchSide = null,
+            branchStepIndex = 0,
+            placementId = ++placementCounter
+        )
+
+        boardChain.clear()
+        if (isPlayedOnRight) {
+            // En boardChain, las fichas de LEFT van de la más lejana (índice 0) a la más cercana al centro
+            boardChain.addAll(reslotted.reversed())
+            boardChain.add(centerDouble)
+            leftOpenPip = prevOutwardPip
+            rightOpenPip = doubleVal
+        } else {
+            // Las fichas de RIGHT van del centro hacia afuera
+            boardChain.add(centerDouble)
+            boardChain.addAll(reslotted)
+            rightOpenPip = prevOutwardPip
+            leftOpenPip = doubleVal
+        }
+
+        spinnerTile = tile
+        upOpenPip = doubleVal
+        downOpenPip = doubleVal
+    }
+
     private fun playTileOnSide(playerIndex: Int, tile: DominoTile, side: BoardSide): Boolean {
         if (isRoundOver || isMatchOver) return false
         if (playerIndex != currentPlayerIndex) return false
@@ -930,74 +997,72 @@ class DominoEngine(
                 )
             )
         } else if (side == BoardSide.LEFT) {
-            val target = leftOpenPip!!
-            val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
-            val slot = getNextSlotForSide(BoardSide.LEFT)
-            val leftStep = boardChain.count { it.branchSide == BoardSide.LEFT } + 1
-
-            val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
-            val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
-
-            boardChain.add(
-                0,
-                BoardPlacedTile(
-                    tile = tile,
-                    pipLeft = pipTopOrLeft,
-                    pipRight = pipBottomOrRight,
-                    isDouble = tile.isDouble,
-                    isFirstTile = false,
-                    virtX = slot.virtX,
-                    virtY = slot.virtY,
-                    isVertical = slot.isVertical,
-                    branchSide = BoardSide.LEFT,
-                    branchStepIndex = leftStep,
-                    placementId = ++placementCounter
-                )
-            )
-            leftOpenPip = newOpenPip
             if (gameMode == GameMode.ALL_FIVES && spinnerTile == null && tile.isDouble) {
-                spinnerTile = tile
-                upOpenPip = tile.high
-                downOpenPip = tile.high
+                reslotChainForLateSpinner(tile, BoardSide.LEFT)
+            } else {
+                val target = leftOpenPip!!
+                val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
+                val slot = getNextSlotForSide(BoardSide.LEFT)
+                val leftStep = boardChain.count { it.branchSide == BoardSide.LEFT } + 1
+
+                val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
+                val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
+
+                boardChain.add(
+                    0,
+                    BoardPlacedTile(
+                        tile = tile,
+                        pipLeft = pipTopOrLeft,
+                        pipRight = pipBottomOrRight,
+                        isDouble = tile.isDouble,
+                        isFirstTile = false,
+                        virtX = slot.virtX,
+                        virtY = slot.virtY,
+                        isVertical = slot.isVertical,
+                        branchSide = BoardSide.LEFT,
+                        branchStepIndex = leftStep,
+                        placementId = ++placementCounter
+                    )
+                )
+                leftOpenPip = newOpenPip
             }
         } else if (side == BoardSide.RIGHT) {
-            val target = rightOpenPip!!
-            val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
-            val slot = getNextSlotForSide(BoardSide.RIGHT)
-            val rightStep = boardChain.count { it.branchSide == BoardSide.RIGHT } + 1
-
-            val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
-            val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
-
-            val lastRightIdx = boardChain.indexOfLast { it.branchSide == BoardSide.RIGHT }
-            val insertIdx = if (lastRightIdx != -1) {
-                lastRightIdx + 1
-            } else {
-                val firstIdx = boardChain.indexOfFirst { it.isFirstTile }
-                if (firstIdx != -1) firstIdx + 1 else boardChain.size
-            }
-
-            boardChain.add(
-                insertIdx,
-                BoardPlacedTile(
-                    tile = tile,
-                    pipLeft = pipTopOrLeft,
-                    pipRight = pipBottomOrRight,
-                    isDouble = tile.isDouble,
-                    isFirstTile = false,
-                    virtX = slot.virtX,
-                    virtY = slot.virtY,
-                    isVertical = slot.isVertical,
-                    branchSide = BoardSide.RIGHT,
-                    branchStepIndex = rightStep,
-                    placementId = ++placementCounter
-                )
-            )
-            rightOpenPip = newOpenPip
             if (gameMode == GameMode.ALL_FIVES && spinnerTile == null && tile.isDouble) {
-                spinnerTile = tile
-                upOpenPip = tile.high
-                downOpenPip = tile.high
+                reslotChainForLateSpinner(tile, BoardSide.RIGHT)
+            } else {
+                val target = rightOpenPip!!
+                val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
+                val slot = getNextSlotForSide(BoardSide.RIGHT)
+                val rightStep = boardChain.count { it.branchSide == BoardSide.RIGHT } + 1
+
+                val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
+                val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
+
+                val lastRightIdx = boardChain.indexOfLast { it.branchSide == BoardSide.RIGHT }
+                val insertIdx = if (lastRightIdx != -1) {
+                    lastRightIdx + 1
+                } else {
+                    val firstIdx = boardChain.indexOfFirst { it.isFirstTile }
+                    if (firstIdx != -1) firstIdx + 1 else boardChain.size
+                }
+
+                boardChain.add(
+                    insertIdx,
+                    BoardPlacedTile(
+                        tile = tile,
+                        pipLeft = pipTopOrLeft,
+                        pipRight = pipBottomOrRight,
+                        isDouble = tile.isDouble,
+                        isFirstTile = false,
+                        virtX = slot.virtX,
+                        virtY = slot.virtY,
+                        isVertical = slot.isVertical,
+                        branchSide = BoardSide.RIGHT,
+                        branchStepIndex = rightStep,
+                        placementId = ++placementCounter
+                    )
+                )
+                rightOpenPip = newOpenPip
             }
         } else if (side == BoardSide.UP) {
             val target = upOpenPip ?: spinnerTile!!.high

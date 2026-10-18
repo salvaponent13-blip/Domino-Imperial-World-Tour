@@ -816,10 +816,67 @@ class GameModeRulesTest {
 
         engine.currentPlayerIndex = 2
         assertTrue(engine.playTileRight(2, tileOf(engine, 2, 5, 4)))
+    }
 
+    @Test
+    fun allFives_lateSpinner_noTileCollisions() {
+        val engine = DominoEngine(gameMode = GameMode.ALL_FIVES, targetScore = 500)
+        stageHands(
+            engine,
+            0 to tiles(4 to 5, 0 to 3),
+            1 to tiles(5 to 3, 3 to 6),
+            2 to tiles(3 to 3, 6 to 1),
+            3 to tiles(4 to 3)
+        )
+
+        // 1. Asiento 0 abre con [4|5] (no es doble)
+        engine.currentPlayerIndex = 0
+        assertTrue(engine.playTileLeft(0, tileOf(engine, 0, 4, 5)))
+
+        // 2. Asiento 1 juega [5|3] por la derecha
+        engine.currentPlayerIndex = 1
+        assertTrue(engine.playTileRight(1, tileOf(engine, 1, 5, 3)))
+
+        // 3. Asiento 2 juega [3|3] por la derecha -> Se convierte en SPINNER
+        engine.currentPlayerIndex = 2
+        assertTrue(engine.playTileRight(2, tileOf(engine, 2, 3, 3)))
+        assertEquals(DominoTile(3, 3), engine.spinnerTile)
+
+        // 4. Asiento 3 juega [4|3] en UP
+        engine.currentPlayerIndex = 3
+        assertTrue(engine.playTileUp(3, tileOf(engine, 3, 4, 3)))
+
+        // 5. Asiento 0 juega [0|3] en DOWN
+        engine.currentPlayerIndex = 0
+        assertTrue(engine.playTileDown(0, tileOf(engine, 0, 0, 3)))
+
+        // 6. Asiento 1 juega [3|6] en RIGHT
+        engine.currentPlayerIndex = 1
+        assertTrue(engine.playTileRight(1, tileOf(engine, 1, 3, 6)))
+
+        // 7. Asiento 2 juega [6|1] en RIGHT
+        engine.currentPlayerIndex = 2
+        assertTrue(engine.playTileRight(2, tileOf(engine, 2, 6, 1)))
+
+        // Dump positions
         println("=== BOARD CHAIN DUMP ===")
         engine.boardChain.forEach { placed ->
-            println("PLACED: ${placed.tile} at virtX=${placed.virtX}, virtY=${placed.virtY}, side=${placed.branchSide}, isVert=${placed.isVertical}, pipL=${placed.pipLeft}, pipR=${placed.pipRight}")
+            println("PLACED: ${placed.tile} at virtX=${placed.virtX}, virtY=${placed.virtY}, side=${placed.branchSide}, isVert=${placed.isVertical}")
+        }
+
+        // Verificar que ninguna ficha solapa con otra ficha
+        for (i in 0 until engine.boardChain.size) {
+            val a = engine.boardChain[i]
+            val aw = if (a.isVertical) 15 else 29
+            val ah = if (a.isVertical) 29 else 15
+            for (j in i + 1 until engine.boardChain.size) {
+                val b = engine.boardChain[j]
+                val bw = if (b.isVertical) 15 else 29
+                val bh = if (b.isVertical) 29 else 15
+                val overlapX = a.virtX < b.virtX + bw - 1 && a.virtX + aw - 1 > b.virtX
+                val overlapY = a.virtY < b.virtY + bh - 1 && a.virtY + ah - 1 > b.virtY
+                assertFalse("Colision entre ${a.tile} en (${a.virtX}, ${a.virtY}) y ${b.tile} en (${b.virtX}, ${b.virtY})", overlapX && overlapY)
+            }
         }
     }
 }
