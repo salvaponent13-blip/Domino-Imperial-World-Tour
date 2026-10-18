@@ -2,6 +2,7 @@ package com.example.dominograndprix.data
 
 import com.example.dominograndprix.model.BoardPlacedTile
 import com.example.dominograndprix.model.Difficulty
+import com.example.dominograndprix.model.DominoBonusType
 import com.example.dominograndprix.model.DominoTile
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.model.Personality
@@ -69,7 +70,20 @@ data class MatchSnapshot(
      * asi que al reanudar la siguiente ronda se reparte con la semilla original. Las manos de
      * la ronda que se reanuda SI son exactas: vienen en [hands].
      */
-    val randomSeed: Long
+    val randomSeed: Long,
+
+    // --- Persistencia completa de partida y acumuladores ---
+    val lastRoundBonusType: DominoBonusType = DominoBonusType.NONE,
+    val blockedPlayers: Set<Int> = emptySet(),
+    val matchRoundsPlayed: Int = 0,
+    val matchRoundsWon: Int = 0,
+    val matchBlockedRounds: Int = 0,
+    val matchDominos: Int = 0,
+    val matchTrancasWon: Int = 0,
+    val matchWinsWithSingleTile: Int = 0,
+    val matchPointsScored: Int = 0,
+    val matchBestRoundPoints: Int = 0,
+    val matchDrewFromBoneyard: Boolean = false
 ) {
     companion object {
         /** Subir esto invalida los guardados anteriores a proposito. */

@@ -20,8 +20,8 @@ android {
         applicationId = "com.horts.dominoimperial"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "2.2.5"
+        versionCode = 13
+        versionName = "2.2.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

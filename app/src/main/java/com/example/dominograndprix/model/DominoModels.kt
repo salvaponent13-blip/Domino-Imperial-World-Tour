@@ -117,7 +117,8 @@ enum class GameMode(
     ),
     MATADOR(
         title = "Matador",
-        summary = "Debes conectar fichas que sumen 7 con el extremo, o usar los 4 comodines Matadores."
+        summary = "Debes conectar fichas que sumen 7 con el extremo, o usar los 4 comodines Matadores.",
+        allowsDraw = false
     ),
     DRAW_SPECIAL(
         title = "Draw Special",

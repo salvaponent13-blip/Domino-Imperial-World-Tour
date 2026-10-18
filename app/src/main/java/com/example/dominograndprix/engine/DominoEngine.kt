@@ -319,7 +319,8 @@ class DominoEngine(
     private val blockedPlayers = mutableSetOf<Int>()
     private var lastPassingPlayerIndex: Int? = null
     private var lastPassTurnNumber: Int = -1
-    private var turnNumber: Int = 0
+    var turnNumber: Int = 0
+        private set
 
     val currentPattern: BoardPatternTemplate
         get() = DominoLayoutTemplates.PATTERNS[patternIndex.coerceIn(0, DominoLayoutTemplates.PATTERNS.lastIndex)]
@@ -519,20 +520,51 @@ class DominoEngine(
      */
     fun getPlayableSides(playerIndex: Int, tile: DominoTile): Set<BoardSide> {
         if (isRoundOver) return emptySet()
+        val player = players[playerIndex]
         if (boardChain.isEmpty()) return setOf(BoardSide.LEFT, BoardSide.RIGHT)
 
         val sides = mutableSetOf<BoardSide>()
         if (canConnectLeft(tile) && isBranchOpenFor(playerIndex, BoardSide.LEFT)) {
-            sides.add(BoardSide.LEFT)
+            val leftSlot = getNextSlotForSide(BoardSide.LEFT)
+            val leftParent = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT } ?: boardChain.firstOrNull { it.isFirstTile }
+            if (!slotCollidesWithOtherTiles(leftSlot, leftParent)) {
+                sides.add(BoardSide.LEFT)
+            }
         }
         if (canConnectRight(tile) && isBranchOpenFor(playerIndex, BoardSide.RIGHT)) {
-            sides.add(BoardSide.RIGHT)
+            val rightSlot = getNextSlotForSide(BoardSide.RIGHT)
+            val rightParent = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT } ?: boardChain.firstOrNull { it.isFirstTile }
+            if (!slotCollidesWithOtherTiles(rightSlot, rightParent)) {
+                sides.add(BoardSide.RIGHT)
+            }
         }
-        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null && spinnerTile == boardChain.firstOrNull { it.isFirstTile }?.tile) {
-            if (canConnectUp(tile)) sides.add(BoardSide.UP)
-            if (canConnectDown(tile)) sides.add(BoardSide.DOWN)
+        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null) {
+            val upSlot = getNextSlotForSide(BoardSide.UP)
+            val upParent = boardChain.lastOrNull { it.branchSide == BoardSide.UP } ?: boardChain.firstOrNull { it.tile == spinnerTile }
+            if (canConnectUp(tile) && !slotCollidesWithOtherTiles(upSlot, upParent)) {
+                sides.add(BoardSide.UP)
+            }
+
+            val downSlot = getNextSlotForSide(BoardSide.DOWN)
+            val downParent = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN } ?: boardChain.firstOrNull { it.tile == spinnerTile }
+            if (canConnectDown(tile) && !slotCollidesWithOtherTiles(downSlot, downParent)) {
+                sides.add(BoardSide.DOWN)
+            }
         }
         return sides
+    }
+
+    private fun slotCollidesWithOtherTiles(slot: NextSlotPlacement, connectingTile: BoardPlacedTile?): Boolean {
+        val sw = if (slot.isVertical) 15 else 29
+        val sh = if (slot.isVertical) 29 else 15
+        return boardChain.any { b ->
+            if (b == connectingTile) return@any false
+            val bw = if (b.isVertical) 15 else 29
+            val bh = if (b.isVertical) 29 else 15
+            val overlapX = slot.virtX < b.virtX + bw - 1 && slot.virtX + sw - 1 > b.virtX
+            val overlapY = slot.virtY < b.virtY + bh - 1 && slot.virtY + sh - 1 > b.virtY
+            overlapX && overlapY
+        }
     }
 
     /** ¿La rama indicada está cerrada para este jugador por la regla de Draw Special? */
@@ -646,6 +678,29 @@ class DominoEngine(
 
         if (gameMode == GameMode.ALL_FIVES) {
             val originTile = firstTilePlaced ?: boardChain.first()
+            val isFirstTileSpinner = spinnerTile != null && firstTilePlaced?.tile == spinnerTile
+
+            // Si se juega en UP o DOWN y el spinner es un doble posterior (no la primera ficha),
+            // la rama debe nacer perpendicularmente desde la posición real de esa ficha spinner.
+            if ((side == BoardSide.UP || side == BoardSide.DOWN) && !isFirstTileSpinner && spinnerTile != null) {
+                val spinnerPlaced = boardChain.firstOrNull { it.tile == spinnerTile } ?: originTile
+                if (side == BoardSide.UP) {
+                    val prevUp = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
+                    return if (prevUp != null) {
+                        NextSlotPlacement(virtX = prevUp.virtX, virtY = prevUp.virtY - 29, isVertical = true, isForward = false)
+                    } else {
+                        NextSlotPlacement(virtX = spinnerPlaced.virtX, virtY = spinnerPlaced.virtY - 29, isVertical = true, isForward = false)
+                    }
+                } else {
+                    val prevDown = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
+                    return if (prevDown != null) {
+                        NextSlotPlacement(virtX = prevDown.virtX, virtY = prevDown.virtY + 29, isVertical = true, isForward = true)
+                    } else {
+                        NextSlotPlacement(virtX = spinnerPlaced.virtX, virtY = spinnerPlaced.virtY + 29, isVertical = true, isForward = true)
+                    }
+                }
+            }
+
             val sx = originTile.virtX
             val sy = originTile.virtY
 
@@ -856,8 +911,8 @@ class DominoEngine(
             openingPlayerIndex = playerIndex
             leftOpenPip = tile.high
             rightOpenPip = tile.low
-            upOpenPip = null
-            downOpenPip = null
+            upOpenPip = if (gameMode == GameMode.ALL_FIVES && tile.isDouble) tile.high else null
+            downOpenPip = if (gameMode == GameMode.ALL_FIVES && tile.isDouble) tile.high else null
             spinnerTile = if (tile.isDouble) tile else null
             boardChain.add(
                 BoardPlacedTile(
@@ -902,6 +957,8 @@ class DominoEngine(
             leftOpenPip = newOpenPip
             if (gameMode == GameMode.ALL_FIVES && spinnerTile == null && tile.isDouble) {
                 spinnerTile = tile
+                upOpenPip = tile.high
+                downOpenPip = tile.high
             }
         } else if (side == BoardSide.RIGHT) {
             val target = rightOpenPip!!
@@ -939,6 +996,8 @@ class DominoEngine(
             rightOpenPip = newOpenPip
             if (gameMode == GameMode.ALL_FIVES && spinnerTile == null && tile.isDouble) {
                 spinnerTile = tile
+                upOpenPip = tile.high
+                downOpenPip = tile.high
             }
         } else if (side == BoardSide.UP) {
             val target = upOpenPip ?: spinnerTile!!.high
@@ -1022,9 +1081,13 @@ class DominoEngine(
 
     /**
      * Calcula la suma de los extremos abiertos para los modos de puntos (All Fives, All Threes, Fives & Threes).
-     * En las reglas oficiales de dominó americano (All Fives / Muggins), cuando una ficha doble queda en un
-     * extremo abierto sin cubrir, sus puntos cuentan por ambos extremos (doble).
-     * Por ejemplo, [6|6] en un extremo y [4|4] en el otro suman 12 + 8 = 20 puntos.
+     * En las reglas oficiales de dominó americano (All Fives / Muggins con spinner):
+     * - Si hay una sola ficha en mesa: cuenta doble si es doble (ej. [6|6] = 12), o la suma de sus dos extremos si no.
+     * - Si hay un spinner establecido en All Fives: hay 4 extremos abiertos (LEFT, RIGHT, UP, DOWN).
+     *   Cada rama abierta no jugada aporta el extremo del spinner (tile.high). Una vez jugada una rama,
+     *   aporta el extremo abierto de la ficha más externa (contando doble sólo si esa ficha extrema es doble).
+     * - En los modos sin spinner (All Threes, Fives & Threes, o All Fives antes del primer doble):
+     *   se suman únicamente los extremos LEFT y RIGHT.
      */
     fun calculateOpenEndsSum(): Int {
         if (boardChain.isEmpty()) return 0
@@ -1032,6 +1095,41 @@ class DominoEngine(
             val tile = boardChain.first()
             return if (tile.isDouble) tile.pipLeft * 2 else tile.pipLeft + tile.pipRight
         }
+
+        val hasCrossBranches = boardChain.any { it.branchSide == BoardSide.UP || it.branchSide == BoardSide.DOWN }
+
+        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null && hasCrossBranches) {
+            val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
+            val leftVal = if (leftTile != null && leftTile.isDouble && leftTile.tile.high == leftOpenPip) {
+                (leftOpenPip ?: 0) * 2
+            } else {
+                leftOpenPip ?: 0
+            }
+
+            val rightTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
+            val rightVal = if (rightTile != null && rightTile.isDouble && rightTile.tile.high == rightOpenPip) {
+                (rightOpenPip ?: 0) * 2
+            } else {
+                rightOpenPip ?: 0
+            }
+
+            val upTile = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
+            val upVal = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) {
+                (upOpenPip ?: 0) * 2
+            } else {
+                upOpenPip ?: 0
+            }
+
+            val downTile = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
+            val downVal = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) {
+                (downOpenPip ?: 0) * 2
+            } else {
+                downOpenPip ?: 0
+            }
+
+            return leftVal + rightVal + upVal + downVal
+        }
+
         val firstTile = boardChain.firstOrNull { it.isFirstTile }
         val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
             ?: firstTile
@@ -1040,28 +1138,9 @@ class DominoEngine(
             ?: firstTile
             ?: boardChain.last()
 
-        var sum = if (leftTile == rightTile) {
-            // Aún no hay ramas izquierda ni derecha colocadas (ej. se jugó únicamente en UP o DOWN)
-            if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-        } else {
-            val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-            val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
-            leftVal + rightVal
-        }
-
-        if (gameMode == GameMode.ALL_FIVES) {
-            if (upOpenPip != null) {
-                val upTile = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
-                val upVal = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) upOpenPip!! * 2 else upOpenPip!!
-                sum += upVal
-            }
-            if (downOpenPip != null) {
-                val downTile = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
-                val downVal = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) downOpenPip!! * 2 else downOpenPip!!
-                sum += downVal
-            }
-        }
-        return sum
+        val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+        val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
+        return leftVal + rightVal
     }
 
     /**
@@ -1082,43 +1161,54 @@ class DominoEngine(
             }
             return if (isScoring) "$desc = $pts pts ⭐" else "$desc = $pts"
         }
-        val firstTile = boardChain.firstOrNull { it.isFirstTile }
-        val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
-            ?: firstTile
-            ?: boardChain.first()
-        val rightTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
-            ?: firstTile
-            ?: boardChain.last()
 
-        val parts = mutableListOf<String>()
-        if (leftTile == rightTile) {
-            val v = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-            val d = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$v]" else "[$leftOpenPip]"
-            parts.add(d)
-        } else {
-            val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-            val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
-            val lDesc = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$leftVal]" else "[$leftOpenPip]"
-            val rDesc = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) "[$rightOpenPip|$rightOpenPip=$rightVal]" else "[$rightOpenPip]"
-            parts.add(lDesc)
-            parts.add(rDesc)
-        }
-
-        if (gameMode == GameMode.ALL_FIVES) {
-            if (upOpenPip != null) {
-                val upTile = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
-                val upVal = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) upOpenPip!! * 2 else upOpenPip!!
-                val uDesc = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) "[$upOpenPip|$upOpenPip=$upVal]" else "[$upOpenPip]"
-                parts.add(uDesc)
-            }
-            if (downOpenPip != null) {
-                val downTile = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
-                val downVal = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) downOpenPip!! * 2 else downOpenPip!!
-                val dDesc = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) "[$downOpenPip|$downOpenPip=$downVal]" else "[$downOpenPip]"
-                parts.add(dDesc)
-            }
-        }
         val sum = calculateOpenEndsSum()
+        val parts = mutableListOf<String>()
+        val hasCrossBranches = boardChain.any { it.branchSide == BoardSide.UP || it.branchSide == BoardSide.DOWN }
+
+        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null && hasCrossBranches) {
+            val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
+            val leftVal = if (leftTile != null && leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+            val lDesc = if (leftTile != null && leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$leftVal]" else "[$leftOpenPip]"
+            parts.add(lDesc)
+
+            val rightTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
+            val rightVal = if (rightTile != null && rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
+            val rDesc = if (rightTile != null && rightTile.isDouble && rightTile.tile.high == rightOpenPip) "[$rightOpenPip|$rightOpenPip=$rightVal]" else "[$rightOpenPip]"
+            parts.add(rDesc)
+
+            val upTile = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
+            val upVal = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) (upOpenPip ?: 0) * 2 else (upOpenPip ?: 0)
+            val uDesc = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) "[$upOpenPip|$upOpenPip=$upVal]" else "[$upOpenPip]"
+            parts.add(uDesc)
+
+            val downTile = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
+            val downVal = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) (downOpenPip ?: 0) * 2 else (downOpenPip ?: 0)
+            val dDesc = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) "[$downOpenPip|$downOpenPip=$downVal]" else "[$downOpenPip]"
+            parts.add(dDesc)
+        } else {
+            val firstTile = boardChain.firstOrNull { it.isFirstTile }
+            val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
+                ?: firstTile
+                ?: boardChain.first()
+            val rightTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
+                ?: firstTile
+                ?: boardChain.last()
+
+            if (leftTile == rightTile) {
+                val v = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+                val d = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$v]" else "[$leftOpenPip]"
+                parts.add(d)
+            } else {
+                val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
+                val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
+                val lDesc = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$leftVal]" else "[$leftOpenPip]"
+                val rDesc = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) "[$rightOpenPip|$rightOpenPip=$rightVal]" else "[$rightOpenPip]"
+                parts.add(lDesc)
+                parts.add(rDesc)
+            }
+        }
+
         val isScoring = when (gameMode) {
             GameMode.ALL_FIVES -> sum > 0 && sum % 5 == 0
             GameMode.ALL_THREES -> sum > 0 && sum % 3 == 0
@@ -1428,7 +1518,18 @@ class DominoEngine(
             spinnerTile = spinnerTile,
             winnerPlayerId = winnerPlayerId,
             roundLog = roundLog,
-            randomSeed = randomSeed
+            randomSeed = randomSeed,
+            lastRoundBonusType = lastRoundBonusType,
+            blockedPlayers = blockedPlayers.toSet(),
+            matchRoundsPlayed = matchRoundsPlayed,
+            matchRoundsWon = matchRoundsWon,
+            matchBlockedRounds = matchBlockedRounds,
+            matchDominos = matchDominos,
+            matchTrancasWon = matchTrancasWon,
+            matchWinsWithSingleTile = matchWinsWithSingleTile,
+            matchPointsScored = matchPointsScored,
+            matchBestRoundPoints = matchBestRoundPoints,
+            matchDrewFromBoneyard = matchDrewFromBoneyard
         )
 
     /**
@@ -1478,6 +1579,19 @@ class DominoEngine(
         lastPassingPlayerIndex = null
         lastPassTurnNumber = -1
         lastPointsEarned = 0
+
+        lastRoundBonusType = snapshot.lastRoundBonusType
+        blockedPlayers.clear()
+        blockedPlayers.addAll(snapshot.blockedPlayers)
+        matchRoundsPlayed = snapshot.matchRoundsPlayed
+        matchRoundsWon = snapshot.matchRoundsWon
+        matchBlockedRounds = snapshot.matchBlockedRounds
+        matchDominos = snapshot.matchDominos
+        matchTrancasWon = snapshot.matchTrancasWon
+        matchWinsWithSingleTile = snapshot.matchWinsWithSingleTile
+        matchPointsScored = snapshot.matchPointsScored
+        matchBestRoundPoints = snapshot.matchBestRoundPoints
+        matchDrewFromBoneyard = snapshot.matchDrewFromBoneyard
 
         // El turno se reanuda en un asiento humano: la siguiente accion del jugador es
         // confirmar el fin de ronda y empezar la siguiente.

@@ -223,7 +223,7 @@ fun DominoTableScreen(
     }
 
     // Auto-advance AI turns with physical domino sound effects and animated reactions
-    LaunchedEffect(engine.value.currentPlayerIndex, engine.value.isRoundOver, engine.value.isMatchOver, gameStateVersion) {
+    LaunchedEffect(engine.value.currentPlayerIndex, engine.value.turnNumber, engine.value.isRoundOver, engine.value.isMatchOver) {
         val current = engine.value.players[engine.value.currentPlayerIndex]
         if (!current.isHuman && !engine.value.isRoundOver && !engine.value.isMatchOver) {
             try {
