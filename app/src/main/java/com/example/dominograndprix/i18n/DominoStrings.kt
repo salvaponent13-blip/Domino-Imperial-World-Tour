@@ -877,6 +877,84 @@ object DominoStrings {
         "• 8 freie Modi"
     )
 
+    fun quickPlayModeSection(): String = multi("6. MODO", "6. MODE", "6. MODE", "6. MODO", "6. MODO", "6. MODUS")
+
+    fun quickPlayOneHuman(): String = multi(
+        "1 humano + IA",
+        "1 human + AI",
+        "1 humain + IA",
+        "1 umano + IA",
+        "1 humano + IA",
+        "1 Mensch + KI"
+    )
+
+    fun quickPlayTwoHumans(): String = multi(
+        "2 humanos (pasa el móvil)",
+        "2 humans (pass the phone)",
+        "2 humains (passe le téléphone)",
+        "2 umani (passa il telefono)",
+        "2 humanos (passe o celular)",
+        "2 Menschen (Handy weitergeben)"
+    )
+
+    // --- Mesa: deshacer y pista ---
+
+    fun undoLabel(): String = multi("Deshacer", "Undo", "Annuler", "Annulla", "Desfazer", "Rückgängig")
+
+    fun hintLabel(): String = multi("Pista", "Hint", "Indice", "Suggerimento", "Dica", "Tipp")
+
+    fun hintPlaySuggestion(tile: String, side: String): String = multi(
+        "Prueba $tile $side",
+        "Try $tile $side",
+        "Essayez $tile $side",
+        "Prova $tile $side",
+        "Tente $tile $side",
+        "Versuche $tile $side"
+    )
+
+    fun hintNoMoves(): String = multi(
+        "No hay jugada posible",
+        "No playable move",
+        "Aucun coup possible",
+        "Nessuna mossa possibile",
+        "Nenhuma jogada possível",
+        "Kein Zug möglich"
+    )
+
+    fun sideName(side: BoardSide): String = when (side) {
+        BoardSide.LEFT -> multi("a la izquierda", "on the left", "à gauche", "a sinistra", "à esquerda", "links")
+        BoardSide.RIGHT -> multi("a la derecha", "on the right", "à droite", "a destra", "à direita", "rechts")
+        BoardSide.UP -> multi("arriba", "above", "en haut", "in alto", "em cima", "oben")
+        BoardSide.DOWN -> multi("abajo", "below", "en bas", "in basso", "embaixo", "unten")
+    }
+
+    // --- Ajustes ---
+
+    fun settingsTitle(): String = multi("AJUSTES", "SETTINGS", "RÉGLAGES", "IMPOSTAZIONI", "AJUSTES", "EINSTELLUNGEN")
+
+    fun settingsSound(): String = multi("Sonido", "Sound", "Son", "Audio", "Som", "Ton")
+
+    fun settingsHaptics(): String = multi("Vibración", "Haptics", "Vibration", "Vibrazione", "Vibração", "Vibration")
+
+    fun settingsOn(): String = multi("Activado", "On", "Activé", "Attivo", "Ativado", "An")
+
+    fun settingsOff(): String = multi("Desactivado", "Off", "Désactivé", "Disattivato", "Desativado", "Aus")
+
+    fun settingsLanguage(): String = multi("Idioma", "Language", "Langue", "Lingua", "Idioma", "Sprache")
+
+    fun settingsClose(): String = multi("CERRAR", "CLOSE", "FERMER", "CHIUDI", "FECHAR", "SCHLIESSEN")
+
+    // --- Desafío diario: cabecera y resultados ---
+
+    fun dailyStreakLabel(streak: Int): String = multi(
+        "Racha: $streak días",
+        "Streak: $streak days",
+        "Série : $streak jours",
+        "Serie: $streak giorni",
+        "Sequência: $streak dias",
+        "Serie: $streak Tage"
+    )
+
     /** Que ocurre al pulsar una ficha jugable (lo anuncia el lector de pantalla). */
     fun tileClickAction(): String = when (currentLanguage) {
         AppLanguage.ES -> "jugar esta ficha"

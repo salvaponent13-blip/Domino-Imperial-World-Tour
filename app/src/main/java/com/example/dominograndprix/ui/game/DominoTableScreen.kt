@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,8 +38,10 @@ import com.example.dominograndprix.audio.DominoHaptics
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.MatchSnapshot
 import com.example.dominograndprix.data.MatchSnapshotStore
+import com.example.dominograndprix.data.SettingsStore
 import com.example.dominograndprix.engine.DominoBoardLayout
 import com.example.dominograndprix.engine.DominoEngine
+import com.example.dominograndprix.engine.ai.AiMove
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.BoardPlacedTile
 import com.example.dominograndprix.model.BoardSide
@@ -161,7 +165,7 @@ fun DominoTableScreen(
 
     // Anuncio flotante de puntos o jugadas destacadas (estilo Google AI Studio)
     var turnAnnouncement by remember { mutableStateOf<String?>(null) }
-    var gameSpeed by remember { mutableIntStateOf(1) } // 1x o 2x (fidelidad a tour-domino-main)
+    var gameSpeed by remember { mutableIntStateOf(SettingsStore.gameSpeed(context).coerceIn(1, 2)) }
     var showTileCounter by remember { mutableStateOf(false) }
 
     LaunchedEffect(turnAnnouncement) {
@@ -213,9 +217,19 @@ fun DominoTableScreen(
     var cameraDragVirtX by remember { mutableFloatStateOf(0f) }
     var cameraDragVirtY by remember { mutableFloatStateOf(0f) }
 
-    // Modos 3D y de iluminación ambiental interactivos (Google AI Studio)
-    var cameraMode by remember { mutableStateOf(CameraViewMode.TOP_2D) }
-    var ambientLightMode by remember { mutableStateOf(AmbientLightMode.WARM_CLUB) }
+    // Cámara, iluminación y velocidad: se recuperan de los ajustes y se guardan al cambiarlas.
+    var cameraMode by remember {
+        mutableStateOf(
+            runCatching { CameraViewMode.valueOf(SettingsStore.cameraMode(context)) }
+                .getOrDefault(CameraViewMode.TOP_2D)
+        )
+    }
+    var ambientLightMode by remember {
+        mutableStateOf(
+            runCatching { AmbientLightMode.valueOf(SettingsStore.ambientLight(context)) }
+                .getOrDefault(AmbientLightMode.WARM_CLUB)
+        )
+    }
 
     val animRotationX by animateFloatAsState(
         targetValue = cameraMode.rotationX,
@@ -401,6 +415,8 @@ fun DominoTableScreen(
     val playMove: (DominoTile, BoardSide) -> Unit = { tileToPlay, sideToPlay ->
         DominoSoundManager.playTileClack(isDouble = tileToPlay.isDouble)
         DominoHaptics.tilePlaced(hapticView)
+        // Punto de deshacer: el estado justo antes de esta jugada.
+        engine.value.markUndoPoint()
         engine.value.playTile(actingSeat, tileToPlay, sideToPlay)
         if (engine.value.lastPointsEarned > 0) {
             turnAnnouncement = DominoStrings.pointsAnnouncement(engine.value.lastPointsEarned, DominoStrings.hudYou())
@@ -638,6 +654,65 @@ fun DominoTableScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Deshacer: vuelve al momento anterior a tu ultima jugada (incluida la
+                            // respuesta de la IA). Solo en partidas de un humano.
+                            if (isMyTurn && engine.value.canUndo && engine.value.humanPlayerIndices.size == 1) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color.Black.copy(alpha = 0.5f),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                                    modifier = Modifier
+                                        .semantics { contentDescription = DominoStrings.undoLabel() }
+                                        .clickable {
+                                            DominoSoundManager.playTileTap()
+                                            if (engine.value.undo()) {
+                                                selectedTile = null
+                                                logMessage = engine.value.roundLog
+                                                gameStateVersion++
+                                            }
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Text("↩", fontSize = 8.sp, color = Color.White)
+                                    }
+                                }
+                            }
+
+                            // Pista: la misma evaluacion que usa la IA media, con el extremo elegido
+                            if (isMyTurn) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color.Black.copy(alpha = 0.5f),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .semantics { contentDescription = DominoStrings.hintLabel() }
+                                        .clickable {
+                                        DominoSoundManager.playTileTap()
+                                        val suggestion = engine.value.suggestedMove(viewingSeat) as? AiMove.Play
+                                        turnAnnouncement = if (suggestion != null) {
+                                            DominoStrings.hintPlaySuggestion(
+                                                "[${suggestion.tile.high}|${suggestion.tile.low}]",
+                                                DominoStrings.sideName(suggestion.side)
+                                            )
+                                        } else {
+                                            DominoStrings.hintNoMoves()
+                                        }
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Text("💡", fontSize = 8.sp)
+                                    }
+                                }
+                            }
+
                             // Selector de Velocidad IA (1x / 2x)
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
@@ -646,6 +721,7 @@ fun DominoTableScreen(
                                 modifier = Modifier.clickable {
                                     DominoSoundManager.playTileTap()
                                     gameSpeed = if (gameSpeed == 1) 2 else 1
+                                    SettingsStore.setGameSpeed(context, gameSpeed)
                                 }
                             ) {
                                 Row(
@@ -700,6 +776,7 @@ fun DominoTableScreen(
                                         CameraViewMode.CLASSIC_3D -> CameraViewMode.DEEP_3D
                                         CameraViewMode.DEEP_3D -> CameraViewMode.TOP_2D
                                     }
+                                    SettingsStore.setCameraMode(context, cameraMode.name)
                                 }
                             ) {
                                 Row(
@@ -729,6 +806,7 @@ fun DominoTableScreen(
                                         AmbientLightMode.TOURNAMENT_PRO -> AmbientLightMode.LOUNGE_DRAMATIC
                                         AmbientLightMode.LOUNGE_DRAMATIC -> AmbientLightMode.WARM_CLUB
                                     }
+                                    SettingsStore.setAmbientLight(context, ambientLightMode.name)
                                 }
                             ) {
                                 Row(

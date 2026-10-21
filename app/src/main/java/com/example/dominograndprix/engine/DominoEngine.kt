@@ -438,6 +438,7 @@ class DominoEngine(
         lastPointsEarned = 0
         lastRoundPointsAwarded = 0
         roundPointsByPlayer.clear()
+        undoPoint = null
         lastRoundWasBlocked = false
         lastRoundBonusType = DominoBonusType.NONE
 
@@ -1204,6 +1205,7 @@ class DominoEngine(
     private fun finishMatchByPoints(winnerIndex: Int) {
         if (isRoundOver) return
         isRoundOver = true
+        undoPoint = null
         lastRoundWasBlocked = false
         canContinueHungarianTurn = false
         winnerPlayerId = winnerIndex
@@ -1216,8 +1218,9 @@ class DominoEngine(
         matchRoundsPlayed++
         if (winner.team == playerTeam) {
             matchRoundsWon++
-            matchPointsScored += lastPointsEarned
-            if (lastPointsEarned > matchBestRoundPoints) matchBestRoundPoints = lastPointsEarned
+            val scoredThisRound = roundPointsForTeam(playerTeam)
+            matchPointsScored += scoredThisRound
+            if (scoredThisRound > matchBestRoundPoints) matchBestRoundPoints = scoredThisRound
         }
     }
 
@@ -1315,6 +1318,7 @@ class DominoEngine(
         lastRoundWasBlocked = !byDomino
         // La ronda ha terminado: no puede quedar pendiente un encadenamiento húngaro,
         // o la UI seguiría pidiendo tirar cuando la mano ya está cerrada.
+        undoPoint = null
         canContinueHungarianTurn = false
         winnerPlayerId = winnerIndex
         val winner = players[winnerIndex]
@@ -1369,10 +1373,28 @@ class DominoEngine(
             // Una sola ficha en la mano: victoria apurada. Solo puede pasar ganando por tranca,
             // porque quien cierra con domino se queda sin ninguna.
             if (winner.hand.size == 1) matchWinsWithSingleTile++
-            matchPointsScored += lastPointsEarned
-            if (lastPointsEarned > matchBestRoundPoints) matchBestRoundPoints = lastPointsEarned
+            // Los puntos de la ronda completos, no los de la ultima jugada: en los modos de
+            // tanteo estos se acumulan jugada a jugada y lastPointsEarned solo guarda la ultima.
+            val scoredThisRound = roundPointsForTeam(playerTeam)
+            matchPointsScored += scoredThisRound
+            if (scoredThisRound > matchBestRoundPoints) matchBestRoundPoints = scoredThisRound
         }
         if (!byDomino) matchBlockedRounds++
+    }
+
+    /**
+     * Puntos que la ronda aporto al equipo indicado, tal y como se contabilizan en la carrera.
+     *
+     * En los modos de tanteo (All Fives y familia) los puntos se ganan durante la ronda, asi que
+     * se suman los acumulados por los asientos del equipo. En el resto, el unico ingreso es el
+     * cierre: los pips de los rivales, que es lo que guarda [lastRoundPointsAwarded].
+     */
+    private fun roundPointsForTeam(team: Int): Int {
+        if (gameMode.isPointGame) {
+            return players.filter { it.team == team }.sumOf { roundPointsByPlayer[it.id] ?: 0 }
+        }
+        val winner = players.getOrNull(winnerPlayerId ?: -1) ?: return 0
+        return if (winner.team == team) lastRoundPointsAwarded else 0
     }
 
     /**
@@ -1746,5 +1768,46 @@ class DominoEngine(
         val anyoneCanPlay = players.indices.any { getPlayableTiles(it).isNotEmpty() }
         if (anyoneCanPlay) return false
         return !gameMode.allowsDraw || boneyard.isEmpty()
+    }
+
+    // --- Deshacer y pista (solo para asientos humanos) ---
+
+    /**
+     * Estado al que volveria un "deshacer". Se marca antes de cada jugada humana: deshacer
+     * devuelve la mesa al momento anterior a esa jugada, incluida la respuesta de la IA, que es
+     * lo que espera el jugador cuando se arrepiente.
+     */
+    private var undoPoint: StateSnapshot? = null
+
+    val canUndo: Boolean get() = undoPoint != null
+
+    fun markUndoPoint() {
+        undoPoint = snapshot()
+    }
+
+    fun clearUndoPoint() {
+        undoPoint = null
+    }
+
+    fun undo(): Boolean {
+        val point = undoPoint ?: return false
+        undoPoint = null
+        restore(point)
+        return true
+    }
+
+    /**
+     * Jugada recomendada para un asiento humano (boton de pista). Usa la misma evaluacion que
+     * la IA media, asi que respeta las reglas de cada modalidad sin duplicarlas.
+     */
+    fun suggestedMove(playerIndex: Int): AiMove? {
+        if (isRoundOver || isMatchOver) return null
+        val view = viewFor(playerIndex)
+        if (view.playableMoves.isEmpty()) return null
+        val personality = players.getOrNull(playerIndex)?.personality ?: Personality.NICE
+        val advisor = MediumStrategy(
+            weights = StrategyCatalog.weightsFor(personality, Difficulty.STANDARD)
+        ) { move -> simulate(playerIndex, move) }
+        return advisor.decide(view)
     }
 }

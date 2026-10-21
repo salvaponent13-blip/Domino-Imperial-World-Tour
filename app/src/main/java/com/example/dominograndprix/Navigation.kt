@@ -19,6 +19,10 @@ import com.example.dominograndprix.data.AchievementCatalog
 import com.example.dominograndprix.data.CareerEconomy
 import com.example.dominograndprix.data.CareerProgressStore
 import com.example.dominograndprix.data.CareerReporter
+import com.example.dominograndprix.data.DailyChallenge
+import com.example.dominograndprix.data.DailyChallengeManager
+import com.example.dominograndprix.data.DailyChallengeResult
+import com.example.dominograndprix.data.DailyChallengeStore
 import com.example.dominograndprix.data.JourneyProgress
 import com.example.dominograndprix.data.MatchSnapshotStore
 import com.example.dominograndprix.data.TournamentCampaign
@@ -33,6 +37,7 @@ import com.example.dominograndprix.ui.game.DominoTableScreen
 import com.example.dominograndprix.ui.game.GoldAccent
 import com.example.dominograndprix.ui.main.MainTitleScreen
 import com.example.dominograndprix.ui.rules.RulesGuideScreen
+import com.example.dominograndprix.ui.settings.SettingsDialog
 import com.example.dominograndprix.ui.tour.VenueStageScreen
 import com.example.dominograndprix.ui.vault.TrophyRoomScreen
 
@@ -103,6 +108,19 @@ fun MainNavigation() {
     var activeIsTeamGame by remember { mutableStateOf(false) }
     var activeDifficulty by remember { mutableStateOf(Difficulty.STANDARD) }
     var activeRivalName by remember { mutableStateOf("Carlos 'El Rayo'") }
+    /** Cuantos asientos ocupa una persona en este movil (1 = contra la IA, 2 = pass-and-play). */
+    var activeHumanCount by remember { mutableIntStateOf(1) }
+
+    // --- Desafío diario ---
+    val dailyChallenge = remember { DailyChallengeManager.today() }
+    var dailyResult by remember { mutableStateOf(DailyChallengeStore.load(context)) }
+    var activeDaily by remember { mutableStateOf<DailyChallenge?>(null) }
+    var pendingDailySummary by remember { mutableStateOf<DailyChallengeResult?>(null) }
+    val dailyAlreadyPlayed = dailyResult?.dayNumber == dailyChallenge.dayNumber
+    val dailyStreak = dailyResult?.streak ?: 0
+
+    // --- Ajustes ---
+    var showSettings by remember { mutableStateOf(false) }
 
     // Botón atrás de Android: retrocede con suavidad
     BackHandler(enabled = currentScreen != AppScreen.TITLE) {
@@ -151,9 +169,11 @@ fun MainNavigation() {
                             activeBet = 0
                             activeTargetScore = config.targetScore
                             activeVenueId = null
+                            activeDaily = null
                             activePlayerCount = config.playerCount
                             activeIsTeamGame = config.isTeamGame
                             activeDifficulty = config.difficulty
+                            activeHumanCount = config.humanPlayerCount.coerceIn(1, 2)
                             activeRivalName = when (config.difficulty) {
                                 Difficulty.RELAXED -> "IA Novata"
                                 Difficulty.TOUGH -> "IA Maestra"
@@ -163,6 +183,27 @@ fun MainNavigation() {
                             // destruir el progreso de un reto a medias.
                             currentScreen = AppScreen.MATCH_TABLE
                         },
+                        dailyChallenge = dailyChallenge,
+                        dailyStreak = dailyStreak,
+                        dailyAlreadyPlayed = dailyAlreadyPlayed,
+                        dailySummary = pendingDailySummary,
+                        onOpenDaily = {
+                            DominoSoundManager.playTileClack(isDouble = true)
+                            activeDaily = dailyChallenge
+                            activeMode = dailyChallenge.mode
+                            activeCityName = DominoStrings.modeName(dailyChallenge.mode)
+                            activeBet = 0
+                            activeTargetScore = dailyChallenge.targetScore
+                            activeVenueId = null
+                            activePlayerCount = 2
+                            activeIsTeamGame = false
+                            activeDifficulty = dailyChallenge.difficulty
+                            activeHumanCount = 1
+                            activeRivalName = "Rival del día"
+                            currentScreen = AppScreen.MATCH_TABLE
+                        },
+                        onOpenSettings = { showSettings = true },
+                        onDismissDailySummary = { pendingDailySummary = null },
                         onShowRules = {
                             DominoSoundManager.playTileTap()
                             currentScreen = AppScreen.RULES
@@ -198,9 +239,10 @@ fun MainNavigation() {
                             activePlayerCount = currentChallenge.playerCount
                             activeIsTeamGame = currentChallenge.isTeamGame
                             activeRivalName = currentChallenge.rivalName
-                            // La dificultad se fija por entrada: si no, una partida libre en
-                            // "Facil" dejaba toda la carrera en RELAXED hasta cerrar la app.
-                            activeDifficulty = Difficulty.STANDARD
+                            // Cada sede tiene su nivel: el torneo empieza suave y acaba en TOUGH.
+                            activeDifficulty = currentChallenge.difficulty
+                            activeDaily = null
+                            activeHumanCount = 1
                             MatchSnapshotStore.clear(context)
                             currentScreen = AppScreen.MATCH_TABLE
                         },
@@ -224,8 +266,15 @@ fun MainNavigation() {
                         listOf("Tú", activeRivalName, "Mateo", "Rodrigo")
                     }
 
+                    // Solo la carrera se reanuda desde un guardado: las partidas libres y el
+                    // desafio diario empiezan siempre de cero (antes, un guardado viejo con
+                    // venueId nulo resucitaba una partida distinta con otro modo y objetivo).
                     val savedSnapshot = remember(activeVenueId) {
-                        MatchSnapshotStore.load(context)?.takeIf { it.venueId == activeVenueId }
+                        if (activeVenueId == null) {
+                            null
+                        } else {
+                            MatchSnapshotStore.load(context)?.takeIf { it.venueId == activeVenueId }
+                        }
                     }
 
                     DominoTableScreen(
@@ -237,11 +286,73 @@ fun MainNavigation() {
                         playerCount = activePlayerCount,
                         isTeamGame = activeIsTeamGame,
                         difficulty = activeDifficulty,
-                        humanPlayerIndices = setOf(0),
+                        humanPlayerIndices = if (activeHumanCount > 1) {
+                            (0 until activeHumanCount.coerceAtMost(activePlayerCount)).toSet()
+                        } else {
+                            setOf(0)
+                        },
                         playerNames = playerNames,
                         resumeFrom = savedSnapshot,
+                        dailySeed = activeDaily?.seed,
                         onMatchFinished = { won, _, finishedEngine ->
+                            // 1. Desafío diario: guarda resultado + racha y alimenta los logros
+                            // (daily_first / daily_streak_7), que hasta ahora eran inalcanzables.
+                            val daily = activeDaily
+                            if (daily != null) {
+                                val streak = DailyChallengeManager.nextStreak(dailyResult, daily.date, won)
+                                val result = DailyChallengeResult(
+                                    dayNumber = daily.dayNumber,
+                                    won = won,
+                                    points = finishedEngine.players.firstOrNull()?.score ?: 0,
+                                    streak = streak
+                                )
+                                DailyChallengeStore.save(context, result)
+                                dailyResult = result
+                                pendingDailySummary = result
+                                val report = CareerReporter.reportFor(
+                                    engine = finishedEngine,
+                                    venueId = null,
+                                    won = won,
+                                    reward = 0,
+                                    bet = 0,
+                                    difficulty = activeDifficulty,
+                                    isDailyChallenge = true
+                                )
+                                val (updatedProgress, newAchievements) = AchievementCatalog.applyReport(
+                                    progress = careerProgress,
+                                    report = report,
+                                    dailyStreak = streak
+                                )
+                                careerProgress = updatedProgress
+                                val achievementIds = AchievementCatalog.ALL.toSet()
+                                newAchievements.firstOrNull { it in achievementIds }?.let {
+                                    pendingAchievement = it
+                                }
+                                activeDaily = null
+                                currentScreen = AppScreen.TITLE
+                                return@DominoTableScreen
+                            }
+                            // 2. Partida libre: cuenta para estadisticas y logros, sin premios.
                             if (activeVenueId == null) {
+                                val report = CareerReporter.reportFor(
+                                    engine = finishedEngine,
+                                    venueId = null,
+                                    won = won,
+                                    reward = 0,
+                                    bet = 0,
+                                    difficulty = activeDifficulty,
+                                    isDailyChallenge = false
+                                )
+                                val (updatedProgress, newAchievements) = AchievementCatalog.applyReport(
+                                    progress = careerProgress,
+                                    report = report,
+                                    dailyStreak = dailyStreak
+                                )
+                                careerProgress = updatedProgress
+                                val achievementIds = AchievementCatalog.ALL.toSet()
+                                newAchievements.firstOrNull { it in achievementIds }?.let {
+                                    pendingAchievement = it
+                                }
                                 currentScreen = AppScreen.TITLE
                                 return@DominoTableScreen
                             }
@@ -314,6 +425,9 @@ fun MainNavigation() {
                         },
                         onBack = {
                             DominoSoundManager.playTileTap()
+                            // Salir de una partida libre o del desafio no debe dejar el modo
+                            // "diario" activo para la siguiente partida.
+                            activeDaily = null
                             currentScreen = if (activeVenueId == null) AppScreen.TITLE else AppScreen.VENUE_STAGE
                         }
                     )
@@ -336,6 +450,8 @@ fun MainNavigation() {
                             activeIsTeamGame = false
                             activeDifficulty = Difficulty.STANDARD
                             activeRivalName = "Carlos 'El Rayo'"
+                            activeDaily = null
+                            activeHumanCount = 1
                             // Sin esto se reanudaba en fantasma la ultima partida libre guardada
                             // (su venueId tambien era null).
                             MatchSnapshotStore.clear(context)
@@ -374,6 +490,11 @@ fun MainNavigation() {
                         }
                     )
                 }
+            }
+
+            // Ajustes (sonido, vibracion, idioma): persistentes entre sesiones
+            if (showSettings) {
+                SettingsDialog(onDismiss = { showSettings = false })
             }
 
             // Aviso de prestamo de honor

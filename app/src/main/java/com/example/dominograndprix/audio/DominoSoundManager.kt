@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.dominograndprix.R
+import com.example.dominograndprix.data.SettingsStore
 
 /**
  * Gestor global de audio y musica regional de Domino Imperial: World Tour.
@@ -40,6 +41,8 @@ object DominoSoundManager {
     fun init(context: Context) {
         if (appContext != null) return
         appContext = context.applicationContext
+        // El silencio elegido por el jugador se recupera al arrancar.
+        isMuted = SettingsStore.isMuted(context)
         try {
             val attrs = AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
@@ -61,6 +64,7 @@ object DominoSoundManager {
 
     fun toggleMute() {
         isMuted = !isMuted
+        appContext?.let { SettingsStore.setMuted(it, isMuted) }
         if (isMuted) {
             try {
                 mediaPlayer?.pause()

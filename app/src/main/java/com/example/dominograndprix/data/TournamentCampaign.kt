@@ -1,6 +1,7 @@
 package com.example.dominograndprix.data
 
 import com.example.dominograndprix.R
+import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.model.LuxuryItem
 
@@ -25,9 +26,23 @@ data class VenueChallenge(
     val rewardWrp: Int,
     val rivalName: String,
     val description: String,
+    /**
+     * Nivel de la IA del rival. Hasta la v2.3.1 la carrera jugaba TODOS los retos en STANDARD,
+     * asi que las 7 sedes se sentian iguales; ahora escala con la sede (ver [difficultyForVenue]).
+     */
+    val difficulty: Difficulty = Difficulty.STANDARD,
     val trophyTitle: String? = null,
     val trophyValue: Int = 0
 )
+
+/** Dificultad por sede: el torneo empieza suave y acaba en el nivel mas duro. */
+fun difficultyForVenue(venueIndex: Int): Difficulty = when (venueIndex.coerceIn(0, 6)) {
+    0, 1 -> Difficulty.RELAXED      // Ciudad de Mexico, La Habana
+    2, 3 -> Difficulty.STANDARD     // San Juan, Nueva Orleans
+    4 -> Difficulty.STANDARD        // Miami (2v2)
+    5 -> Difficulty.TOUGH           // Las Vegas
+    else -> Difficulty.TOUGH        // Tokio
+}
 
 /**
  * Catálogo completo de la campaña del Torneo Mundial:
@@ -745,6 +760,8 @@ object TournamentCampaign {
 
     fun getChallenge(venueIndex: Int, challengeIndex: Int): VenueChallenge {
         val challenges = getChallengesForVenue(venueIndex)
-        return challenges[challengeIndex.coerceIn(0, challenges.lastIndex)]
+        val challenge = challenges[challengeIndex.coerceIn(0, challenges.lastIndex)]
+        // La dificultad se deriva de la sede, no se repite en los 35 retos.
+        return challenge.copy(difficulty = difficultyForVenue(venueIndex))
     }
 }

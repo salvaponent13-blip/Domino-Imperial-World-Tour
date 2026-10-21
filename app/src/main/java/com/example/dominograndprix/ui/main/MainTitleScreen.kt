@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dominograndprix.R
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.data.DailyChallenge
+import com.example.dominograndprix.data.DailyChallengeResult
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
 import com.example.dominograndprix.ui.components.CreditsButton
@@ -48,7 +50,14 @@ fun MainTitleScreen(
     onStartNewTournament: () -> Unit = {},
     onOpenQuickPlay: (QuickPlayConfig) -> Unit = {},
     onShowRules: () -> Unit = {},
-    onShowTrophies: () -> Unit = {}
+    onShowTrophies: () -> Unit = {},
+    dailyChallenge: DailyChallenge? = null,
+    dailyStreak: Int = 0,
+    dailyAlreadyPlayed: Boolean = false,
+    dailySummary: DailyChallengeResult? = null,
+    onOpenDaily: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onDismissDailySummary: () -> Unit = {}
 ) {
     var showResetConfirmDialog by remember { mutableStateOf(false) }
     var showQuickPlayDialog by remember { mutableStateOf(false) }
@@ -131,6 +140,25 @@ fun MainTitleScreen(
 
                 // Créditos y licencias de audio
                 CreditsButton()
+
+                // Ajustes persistentes: sonido, vibracion e idioma
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = DarkNavy.copy(alpha = 0.90f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
+                    modifier = Modifier.clickable {
+                        DominoSoundManager.playTileTap()
+                        onOpenSettings()
+                    }
+                ) {
+                    Text(
+                        text = "⚙",
+                        color = GoldAccent,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
+                    )
+                }
 
                 // Botón silenciar música
                 Surface(
@@ -304,6 +332,95 @@ fun MainTitleScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            // DESAFÍO DIARIO: un reto por dia, igual para todos, con racha
+            if (dailyChallenge != null) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFF13233A).copy(alpha = 0.95f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.5.dp,
+                        if (dailyAlreadyPlayed) Color.White.copy(alpha = 0.25f) else Color(0xFF34D399)
+                    ),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = DominoStrings.dailyChallengeTitle(),
+                                color = Color(0xFFA7F3D0),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 13.sp
+                            )
+                            Text(
+                                text = DominoStrings.dailyStreakLabel(dailyStreak),
+                                color = GoldAccent,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = DominoStrings.dailyChallengeSub(
+                                dailyChallenge.label,
+                                DominoStrings.modeName(dailyChallenge.mode),
+                                dailyChallenge.targetScore
+                            ),
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 10.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (dailyAlreadyPlayed) {
+                            Text(
+                                text = DominoStrings.dailyAlreadyPlayed(),
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            )
+                            Text(
+                                text = DominoStrings.dailyComeBackTomorrow(),
+                                color = Color(0xFF34D399).copy(alpha = 0.8f),
+                                fontSize = 9.sp
+                            )
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFF34D399),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .clickable {
+                                        DominoSoundManager.playTileClack(isDouble = true)
+                                        onOpenDaily()
+                                    }
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Text(
+                                        text = DominoStrings.dailyPlayBtn(),
+                                        color = Color(0xFF06121F),
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+            }
+
             // Enlaces rápidos a Reglas y Vitrina de Trofeos
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -369,6 +486,41 @@ fun MainTitleScreen(
                 onOpenQuickPlay(config)
             }
         )
+
+        // Resultado del desafío diario recién jugado
+        if (dailySummary != null) {
+            AlertDialog(
+                onDismissRequest = onDismissDailySummary,
+                title = {
+                    Text(
+                        text = DominoStrings.dailyChallengeTitle(),
+                        color = Color(0xFF34D399),
+                        fontWeight = FontWeight.Black
+                    )
+                },
+                text = {
+                    Text(
+                        text = DominoStrings.dailyResultSummary(
+                            dailySummary.won,
+                            dailySummary.points,
+                            dailySummary.streak
+                        ),
+                        color = Color.White
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = onDismissDailySummary,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GoldAccent,
+                            contentColor = Color(0xFF131924)
+                        )
+                    ) {
+                        Text(DominoStrings.settingsClose(), fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
 
         // Diálogo de confirmación para reiniciar torneo
         if (showResetConfirmDialog) {

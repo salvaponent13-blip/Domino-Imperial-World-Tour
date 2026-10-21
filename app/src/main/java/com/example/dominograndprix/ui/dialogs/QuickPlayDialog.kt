@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.Difficulty
 import com.example.dominograndprix.model.GameMode
 
@@ -53,7 +54,9 @@ data class QuickPlayConfig(
     val targetScore: Int,
     val playerCount: Int,
     val isTeamGame: Boolean,
-    val difficulty: Difficulty
+    val difficulty: Difficulty,
+    /** Cuantos asientos ocupa una persona delante del mismo movil (1 o 2). */
+    val humanPlayerCount: Int = 1
 )
 
 @Composable
@@ -69,6 +72,7 @@ fun QuickPlayDialog(
     var selectedPlayerCount by remember { mutableIntStateOf(4) }
     var isTeamGame by remember { mutableStateOf(false) }
     var selectedDifficulty by remember { mutableStateOf(Difficulty.STANDARD) }
+    var selectedHumanCount by remember { mutableIntStateOf(1) }
 
     Dialog(
         onDismissRequest = onClose,
@@ -403,6 +407,57 @@ fun QuickPlayDialog(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 5. MODO: un jugador contra la IA o dos personas pasandose el movil
+                Text(
+                    text = DominoStrings.quickPlayModeSection(),
+                    color = Color.White.copy(alpha = 0.65f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        1 to DominoStrings.quickPlayOneHuman(),
+                        2 to DominoStrings.quickPlayTwoHumans()
+                    ).forEach { (humans, label) ->
+                        val isSel = (humans == selectedHumanCount)
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSel) GoldAccent else CardBg,
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSel) GoldAccent else Color.White.copy(alpha = 0.15f)
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    DominoSoundManager.playTileTap()
+                                    selectedHumanCount = humans
+                                }
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = if (isSel) DarkNavy else Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(22.dp))
 
                 // BOTÓN COMENZAR PARTIDA
@@ -421,7 +476,8 @@ fun QuickPlayDialog(
                                     targetScore = selectedScore,
                                     playerCount = selectedPlayerCount,
                                     isTeamGame = isTeamGame,
-                                    difficulty = selectedDifficulty
+                                    difficulty = selectedDifficulty,
+                                    humanPlayerCount = selectedHumanCount
                                 )
                             )
                         }

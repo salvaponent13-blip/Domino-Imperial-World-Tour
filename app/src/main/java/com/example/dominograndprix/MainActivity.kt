@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.example.dominograndprix.audio.DominoHaptics
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.theme.DominoGrandPrixTheme
@@ -20,6 +21,7 @@ class MainActivity : ComponentActivity() {
 
         DominoStrings.init(this)
         DominoSoundManager.init(this)
+        DominoHaptics.init(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowCompat.getInsetsController(window, window.decorView)

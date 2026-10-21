@@ -1,0 +1,161 @@
+package com.example.dominograndprix.ui.settings
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.example.dominograndprix.audio.DominoHaptics
+import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.i18n.DominoStrings
+import com.example.dominograndprix.i18n.LanguageSelectorButton
+
+/**
+ * Ajustes del jugador: sonido, vibracion e idioma.
+ *
+ * Las tres cosas se guardan en [com.example.dominograndprix.data.SettingsStore] y sobreviven al
+ * cierre de la app. Antes el silencio se perdia en cada arranque.
+ */
+@Composable
+fun SettingsDialog(
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var hapticsEnabled by remember { mutableStateOf(DominoHaptics.enabled) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = Color(0xFF131924).copy(alpha = 0.97f),
+            border = BorderStroke(1.5.dp, Color(0xFFFFD700).copy(alpha = 0.6f)),
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = DominoStrings.settingsTitle(),
+                    color = Color(0xFFFFD700),
+                    fontWeight = FontWeight.Black,
+                    fontSize = 15.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                SettingRow(
+                    label = DominoStrings.settingsSound(),
+                    value = if (DominoSoundManager.isMuted) DominoStrings.settingsOff() else DominoStrings.settingsOn(),
+                    enabled = !DominoSoundManager.isMuted
+                ) {
+                    DominoSoundManager.toggleMute()
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SettingRow(
+                    label = DominoStrings.settingsHaptics(),
+                    value = if (hapticsEnabled) DominoStrings.settingsOn() else DominoStrings.settingsOff(),
+                    enabled = hapticsEnabled
+                ) {
+                    hapticsEnabled = !hapticsEnabled
+                    DominoHaptics.setEnabled(context, hapticsEnabled)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = DominoStrings.settingsLanguage(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                    LanguageSelectorButton()
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFD700),
+                        contentColor = Color(0xFF131924)
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(DominoStrings.settingsClose(), fontWeight = FontWeight.Black, fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingRow(
+    label: String,
+    value: String,
+    enabled: Boolean,
+    onToggle: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = Color.Black.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = if (enabled) Color(0xFF064E3B) else Color.White.copy(alpha = 0.08f),
+                border = BorderStroke(
+                    1.dp,
+                    if (enabled) Color(0xFF34D399) else Color.White.copy(alpha = 0.2f)
+                )
+            ) {
+                Text(
+                    text = value,
+                    color = if (enabled) Color(0xFFA7F3D0) else Color.LightGray,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
+            }
+        }
+    }
+}
