@@ -193,6 +193,22 @@ fun DominoTileView(
             cornerRadius = innerCorner
         )
 
+        // 5b. Warm Ambient Radial Sheen (3D specular lighting from overhead lamp)
+        drawRoundRect(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0x35FFFFFF),
+                    Color(0x0AFFFBF0),
+                    Color(0x184A3319)
+                ),
+                center = Offset(bodyW * 0.28f, bodyH * 0.24f),
+                radius = minDim * 0.9f
+            ),
+            topLeft = Offset(bevelInset, bevelInset),
+            size = Size(bodyW - bevelInset * 2f, bodyH - bevelInset * 2f),
+            cornerRadius = innerCorner
+        )
+
         // 6. Specular Acrylic Gloss Highlight along Top-Left Inner Ridge
         drawRoundRect(
             brush = Brush.linearGradient(

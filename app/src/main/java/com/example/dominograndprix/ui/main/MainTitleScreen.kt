@@ -1,5 +1,8 @@
 package com.example.dominograndprix.ui.main
 
+import com.example.dominograndprix.ui.dialogs.QuickPlayDialog
+import com.example.dominograndprix.ui.dialogs.QuickPlayConfig
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,10 +44,12 @@ fun MainTitleScreen(
     currentChallengeNumber: Int = 1,
     onResumeTournament: () -> Unit = {},
     onStartNewTournament: () -> Unit = {},
+    onOpenQuickPlay: (QuickPlayConfig) -> Unit = {},
     onShowRules: () -> Unit = {},
     onShowTrophies: () -> Unit = {}
 ) {
     var showResetConfirmDialog by remember { mutableStateOf(false) }
+    var showQuickPlayDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -249,6 +254,45 @@ fun MainTitleScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // BOTÓN: PARTIDA RÁPIDA (Prueba libremente cualquiera de las 8 modalidades)
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFF1E2836).copy(alpha = 0.95f),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, GoldAccent),
+                shadowElevation = 8.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clickable {
+                        DominoSoundManager.playTileTap()
+                        showQuickPlayDialog = true
+                    }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "⚡ PARTIDA RÁPIDA",
+                        color = GoldAccent,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "• 8 Modalidades Libres",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(14.dp))
 
             // Enlaces rápidos a Reglas y Vitrina de Trofeos
@@ -306,6 +350,15 @@ fun MainTitleScreen(
                 textAlign = TextAlign.Center
             )
         }
+
+        QuickPlayDialog(
+            isOpen = showQuickPlayDialog,
+            onClose = { showQuickPlayDialog = false },
+            onStartMatch = { config ->
+                showQuickPlayDialog = false
+                onOpenQuickPlay(config)
+            }
+        )
 
         // Diálogo de confirmación para reiniciar torneo
         if (showResetConfirmDialog) {

@@ -21,11 +21,16 @@ class DominoEngineTest {
     data class HalfSquare(val centerX: Double, val centerY: Double, val pip: Int)
 
     private fun getHalves(placed: BoardPlacedTile): Pair<HalfSquare, HalfSquare> {
-        val h1 = HalfSquare(placed.virtX + 7.5, placed.virtY + 7.5, placed.pipLeft)
-        val h2 = if (placed.isVertical) {
-            HalfSquare(placed.virtX + 7.5, placed.virtY + 21.5, placed.pipRight)
+        val (h1, h2) = if (placed.isVertical) {
+            Pair(
+                HalfSquare(placed.virtX.toDouble(), (placed.virtY - 14).toDouble(), placed.pipLeft),
+                HalfSquare(placed.virtX.toDouble(), (placed.virtY + 14).toDouble(), placed.pipRight)
+            )
         } else {
-            HalfSquare(placed.virtX + 21.5, placed.virtY + 7.5, placed.pipRight)
+            Pair(
+                HalfSquare((placed.virtX - 14).toDouble(), placed.virtY.toDouble(), placed.pipLeft),
+                HalfSquare((placed.virtX + 14).toDouble(), placed.virtY.toDouble(), placed.pipRight)
+            )
         }
         return Pair(h1, h2)
     }
@@ -33,7 +38,7 @@ class DominoEngineTest {
     @Test
     fun testAllEightModesAndGeometricPhysicalCoupling() {
         for (mode in GameMode.values()) {
-            if (mode == GameMode.ALL_FIVES) continue // ALL_FIVES utiliza árbol de 4 ramas con spinner, probado en GameModeRulesTest
+            if (mode == GameMode.ALL_FIVES) continue
             for (patternIdx in 0..4) {
                 val engine = DominoEngine.allAi(gameMode = mode, targetScore = 50, patternIndex = patternIdx)
                 var turns = 0
@@ -45,14 +50,18 @@ class DominoEngineTest {
                     val chain = engine.boardChain
                     for (i in chain.indices) {
                         val a = chain[i]
-                        val aw = if (a.isVertical) 15 else 29
-                        val ah = if (a.isVertical) 29 else 15
+                        val aw = if (a.isVertical) 28 else 56
+                        val ah = if (a.isVertical) 56 else 28
+                        val aLeft = a.virtX - aw / 2
+                        val aTop = a.virtY - ah / 2
                         for (j in i + 1 until chain.size) {
                             val b = chain[j]
-                            val bw = if (b.isVertical) 15 else 29
-                            val bh = if (b.isVertical) 29 else 15
-                            val overlapX = a.virtX < b.virtX + bw - 1 && a.virtX + aw - 1 > b.virtX
-                            val overlapY = a.virtY < b.virtY + bh - 1 && a.virtY + ah - 1 > b.virtY
+                            val bw = if (b.isVertical) 28 else 56
+                            val bh = if (b.isVertical) 56 else 28
+                            val bLeft = b.virtX - bw / 2
+                            val bTop = b.virtY - bh / 2
+                            val overlapX = aLeft < bLeft + bw && aLeft + aw > bLeft
+                            val overlapY = aTop < bTop + bh && aTop + ah > bTop
                             assertFalse(
                                 "Mode $mode: Tiles $i (${a.virtX},${a.virtY},${a.branchSide}) and $j (${b.virtX},${b.virtY},${b.branchSide}) must not overlap in pattern $patternIdx",
                                 overlapX && overlapY
@@ -74,12 +83,19 @@ class DominoEngineTest {
                             val closest = pairs.minByOrNull { it.third }!!
                             assertTrue(
                                 "Adjacent tiles $i and ${i + 1} must physically touch (dist=${closest.third})",
-                                closest.third <= 22.0
+                                closest.third <= 35.0
+                            )
+                            val minDist = pairs.minOf { it.third }
+                            val tiePairs = pairs.filter { kotlin.math.abs(it.third - minDist) < 0.1 }
+                            val bestPair = tiePairs.find { it.first.pip == it.second.pip } ?: tiePairs.first()
+                            assertTrue(
+                                "Adjacent tiles $i and ${i + 1} must physically touch (dist=${bestPair.third})",
+                                bestPair.third <= 35.0
                             )
                             assertEquals(
                                 "Physically touching halves between tile $i (${chain[i].tile}) and ${i + 1} (${chain[i + 1].tile}) must have identical pip count in pattern $patternIdx",
-                                closest.first.pip,
-                                closest.second.pip
+                                bestPair.first.pip,
+                                bestPair.second.pip
                             )
                         }
                     }

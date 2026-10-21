@@ -192,6 +192,24 @@ class DominoEngine(
 
     // Board Chain (Left to Right)
     val boardChain: MutableList<BoardPlacedTile> = mutableListOf()
+    var firstPlacedTile: BoardPlacedTile? = null
+    val leftBranchTiles: MutableList<BoardPlacedTile> = mutableListOf()
+    val rightBranchTiles: MutableList<BoardPlacedTile> = mutableListOf()
+    val upBranchTiles: MutableList<BoardPlacedTile> = mutableListOf()
+    val downBranchTiles: MutableList<BoardPlacedTile> = mutableListOf()
+
+    fun recomputeBoardLayout() {
+        boardChain.clear()
+        if (firstPlacedTile == null) return
+        val laidOut = DominoBoardLayout.layoutBoardTiles(
+            firstTile = firstPlacedTile,
+            leftBranch = leftBranchTiles,
+            rightBranch = rightBranchTiles,
+            upBranch = upBranchTiles,
+            downBranch = downBranchTiles
+        )
+        boardChain.addAll(laidOut)
+    }
     var leftOpenPip: Int? = null
     var rightOpenPip: Int? = null
     var upOpenPip: Int? = null
@@ -322,6 +340,9 @@ class DominoEngine(
     var turnNumber: Int = 0
         private set
 
+    // Registro de fallas por jugador ("Pasó al X"): números a los que cada jugador ha pasado en esta ronda
+    val playerPassedPips = mutableMapOf<Int, MutableSet<Int>>()
+
     val currentPattern: BoardPatternTemplate
         get() = DominoLayoutTemplates.PATTERNS[patternIndex.coerceIn(0, DominoLayoutTemplates.PATTERNS.lastIndex)]
 
@@ -376,6 +397,11 @@ class DominoEngine(
      */
     fun startNewRound(openerOverride: Int?) {
         boardChain.clear()
+        firstPlacedTile = null
+        leftBranchTiles.clear()
+        rightBranchTiles.clear()
+        upBranchTiles.clear()
+        downBranchTiles.clear()
         leftOpenPip = null
         rightOpenPip = null
         upOpenPip = null
@@ -386,6 +412,7 @@ class DominoEngine(
         canContinueHungarianTurn = false
         hasDrawnThisTurn = false
         blockedPlayers.clear()
+        playerPassedPips.clear()
         lastPassingPlayerIndex = null
         lastPassTurnNumber = -1
         turnNumber = 0
@@ -555,16 +582,7 @@ class DominoEngine(
     }
 
     private fun slotCollidesWithOtherTiles(slot: NextSlotPlacement, connectingTile: BoardPlacedTile?): Boolean {
-        val sw = if (slot.isVertical) 15 else 29
-        val sh = if (slot.isVertical) 29 else 15
-        return boardChain.any { b ->
-            if (b == connectingTile) return@any false
-            val bw = if (b.isVertical) 15 else 29
-            val bh = if (b.isVertical) 29 else 15
-            val overlapX = slot.virtX < b.virtX + bw - 1 && slot.virtX + sw - 1 > b.virtX
-            val overlapY = slot.virtY < b.virtY + bh - 1 && slot.virtY + sh - 1 > b.virtY
-            overlapX && overlapY
-        }
+        return false
     }
 
     /** ¿La rama indicada está cerrada para este jugador por la regla de Draw Special? */
@@ -669,96 +687,16 @@ class DominoEngine(
      * Cálculo del siguiente hueco de una rama a partir de la plantilla de recorrido
      * (coordenadas y orientación en el espacio virtual de 240x320).
      */
-    fun getNextSlotForSide(side: BoardSide): NextSlotPlacement {
-        if (boardChain.isEmpty()) {
-            return NextSlotPlacement(virtX = 105, virtY = 119, isVertical = false, isForward = true)
-        }
-        val firstTilePlaced = boardChain.firstOrNull { it.isFirstTile }
-        val isFirstDouble = firstTilePlaced?.isDouble == true
-
-        if (gameMode == GameMode.ALL_FIVES) {
-            val originTile = firstTilePlaced ?: boardChain.first()
-            val sx = originTile.virtX
-            val sy = originTile.virtY
-
-            val steps = when (side) {
-                BoardSide.LEFT -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.leftBranch
-                BoardSide.RIGHT -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.rightBranch
-                BoardSide.UP -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.upBranch
-                BoardSide.DOWN -> DominoLayoutTemplates.FOUR_BRANCH_PATTERN.downBranch
-            }
-            val branchCount = boardChain.count { it.branchSide == side }
-            val stepIdx = (branchCount + 1).coerceAtMost(steps.lastIndex)
-            val step = steps[stepIdx]
-
-            return NextSlotPlacement(
-                virtX = sx + step.dx,
-                virtY = sy + step.dy,
-                isVertical = step.isVertical,
-                isForward = step.isForward
-            )
-        }
-
-        if (side == BoardSide.UP) {
-            val prevUp = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
-            return if (prevUp != null) {
-                NextSlotPlacement(virtX = prevUp.virtX, virtY = prevUp.virtY - 29, isVertical = true, isForward = false)
-            } else {
-                val spinnerPlaced = boardChain.firstOrNull { it.tile == spinnerTile } ?: firstTilePlaced
-                val sx = spinnerPlaced?.virtX ?: 105
-                val sy = spinnerPlaced?.virtY ?: 119
-                NextSlotPlacement(virtX = sx, virtY = sy - 29, isVertical = true, isForward = false)
-            }
-        }
-        if (side == BoardSide.DOWN) {
-            val prevDown = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
-            return if (prevDown != null) {
-                NextSlotPlacement(virtX = prevDown.virtX, virtY = prevDown.virtY + 29, isVertical = true, isForward = true)
-            } else {
-                val spinnerPlaced = boardChain.firstOrNull { it.tile == spinnerTile } ?: firstTilePlaced
-                val sx = spinnerPlaced?.virtX ?: 105
-                val sy = spinnerPlaced?.virtY ?: 119
-                NextSlotPlacement(virtX = sx, virtY = sy + 29, isVertical = true, isForward = true)
-            }
-        }
-
-        if (side == BoardSide.LEFT) {
-            val branchCount = boardChain.count { it.branchSide == BoardSide.LEFT }
-            val branchSteps = currentPattern.leftBranch
-            val stepIdx = (branchCount + 1).coerceAtMost(branchSteps.lastIndex)
-            val step = branchSteps[stepIdx]
-
-            val originTile = firstTilePlaced ?: boardChain.first()
-            val sx = originTile.virtX
-            val sy = originTile.virtY
-            val yOffset = if (isFirstDouble) 7 else 0
-
-            return NextSlotPlacement(
-                virtX = sx + step.dx,
-                virtY = sy + step.dy + yOffset,
-                isVertical = step.isVertical,
-                isForward = step.isForward
-            )
-        } else {
-            // BoardSide.RIGHT
-            val branchCount = boardChain.count { it.branchSide == BoardSide.RIGHT }
-            val branchSteps = currentPattern.rightBranch
-            val stepIdx = (branchCount + 1).coerceAtMost(branchSteps.lastIndex)
-            val step = branchSteps[stepIdx]
-
-            val originTile = firstTilePlaced ?: boardChain.first()
-            val sx = originTile.virtX
-            val sy = originTile.virtY
-            val xOffset = if (isFirstDouble) -14 else 0
-            val yOffset = if (isFirstDouble) 7 else 0
-
-            return NextSlotPlacement(
-                virtX = sx + step.dx + xOffset,
-                virtY = sy + step.dy + yOffset,
-                isVertical = step.isVertical,
-                isForward = step.isForward
-            )
-        }
+    fun getNextSlotForSide(side: BoardSide, candidateTile: DominoTile? = null): NextSlotPlacement {
+        return DominoBoardLayout.getNextSlotPlacement(
+            firstTile = firstPlacedTile,
+            leftBranch = leftBranchTiles,
+            rightBranch = rightBranchTiles,
+            upBranch = upBranchTiles,
+            downBranch = downBranchTiles,
+            side = side,
+            candidateTile = candidateTile
+        )
     }
 
     fun playTileLeft(playerIndex: Int, tile: DominoTile): Boolean {
@@ -834,81 +772,68 @@ class DominoEngine(
         val doubleVal = tile.high
         val isPlayedOnRight = (side == BoardSide.RIGHT)
         val targetBranch = if (isPlayedOnRight) BoardSide.LEFT else BoardSide.RIGHT
-        val templateBranch = if (isPlayedOnRight) {
-            DominoLayoutTemplates.FOUR_BRANCH_PATTERN.leftBranch
-        } else {
-            DominoLayoutTemplates.FOUR_BRANCH_PATTERN.rightBranch
-        }
 
-        // Si se jugó a la DERECHA, la cadena existente se extiende hacia la IZQUIERDA del nuevo doble
-        // (por tanto el más cercano al doble es el último de boardChain, yendo hacia atrás).
-        // Si se jugó a la IZQUIERDA, la cadena existente se extiende hacia la DERECHA del nuevo doble
-        // (el más cercano al doble es el primero de boardChain, yendo hacia adelante).
         val tilesFromDouble = if (isPlayedOnRight) boardChain.reversed() else boardChain.toList()
 
         val reslotted = mutableListOf<BoardPlacedTile>()
         var prevOutwardPip = doubleVal
 
         for (i in tilesFromDouble.indices) {
-            val stepIdx = i + 1
-            val step = templateBranch[stepIdx]
             val old = tilesFromDouble[i]
             val connectingPip = prevOutwardPip
             val outwardPip = if (old.tile.high == connectingPip) old.tile.low else old.tile.high
             prevOutwardPip = outwardPip
 
-            val pipTopOrLeft = if (step.isForward) connectingPip else outwardPip
-            val pipBottomOrRight = if (step.isForward) outwardPip else connectingPip
-
             reslotted.add(
-                BoardPlacedTile(
-                    tile = old.tile,
-                    pipLeft = pipTopOrLeft,
-                    pipRight = pipBottomOrRight,
-                    isDouble = old.isDouble,
+                old.copy(
+                    pipLeft = connectingPip,
+                    pipRight = outwardPip,
                     isFirstTile = false,
-                    virtX = 105 + step.dx,
-                    virtY = 119 + step.dy,
-                    isVertical = step.isVertical,
                     branchSide = targetBranch,
-                    branchStepIndex = stepIdx,
-                    placementId = old.placementId
+                    branchStepIndex = i + 1,
+                    connectedPip = connectingPip,
+                    openEndPip = outwardPip
                 )
             )
         }
 
         val centerDouble = BoardPlacedTile(
             tile = tile,
-            pipLeft = tile.high,
-            pipRight = tile.low,
+            pipLeft = doubleVal,
+            pipRight = doubleVal,
             isDouble = true,
             isFirstTile = true,
-            virtX = 105,
-            virtY = 119,
-            isVertical = false,
+            virtX = 0,
+            virtY = 0,
+            isVertical = true,
             branchSide = null,
             branchStepIndex = 0,
-            placementId = ++placementCounter
+            placementId = ++placementCounter,
+            connectedPip = null,
+            openEndPip = null
         )
 
-        boardChain.clear()
+        firstPlacedTile = centerDouble
         if (isPlayedOnRight) {
-            // En boardChain, las fichas de LEFT van de la más lejana (índice 0) a la más cercana al centro
-            boardChain.addAll(reslotted.reversed())
-            boardChain.add(centerDouble)
+            leftBranchTiles.clear()
+            leftBranchTiles.addAll(reslotted)
+            rightBranchTiles.clear()
             leftOpenPip = prevOutwardPip
             rightOpenPip = doubleVal
         } else {
-            // Las fichas de RIGHT van del centro hacia afuera
-            boardChain.add(centerDouble)
-            boardChain.addAll(reslotted)
+            rightBranchTiles.clear()
+            rightBranchTiles.addAll(reslotted)
+            leftBranchTiles.clear()
             rightOpenPip = prevOutwardPip
             leftOpenPip = doubleVal
         }
+        upBranchTiles.clear()
+        downBranchTiles.clear()
 
         spinnerTile = tile
         upOpenPip = doubleVal
         downOpenPip = doubleVal
+        recomputeBoardLayout()
     }
 
     private fun playTileOnSide(playerIndex: Int, tile: DominoTile, side: BoardSide): Boolean {
@@ -936,58 +861,58 @@ class DominoEngine(
         blockedPlayers.remove(playerIndex)
 
         if (boardChain.isEmpty()) {
-            // Primera ficha de la mano en el centro del tablero virtual, en horizontal (31x17).
-            // Quien abre de verdad define el reparto de ramas de Draw Special.
+            // Primera ficha de la mano en el centro del tablero virtual
             openingPlayerIndex = playerIndex
             leftOpenPip = tile.high
             rightOpenPip = tile.low
             upOpenPip = if (gameMode == GameMode.ALL_FIVES && tile.isDouble) tile.high else null
             downOpenPip = if (gameMode == GameMode.ALL_FIVES && tile.isDouble) tile.high else null
             spinnerTile = if (tile.isDouble) tile else null
-            boardChain.add(
-                BoardPlacedTile(
-                    tile = tile,
-                    pipLeft = tile.high,
-                    pipRight = tile.low,
-                    isDouble = tile.isDouble,
-                    isFirstTile = true,
-                    virtX = 105,
-                    virtY = 119,
-                    isVertical = if (gameMode == GameMode.ALL_FIVES) false else tile.isDouble,
-                    branchSide = null,
-                    branchStepIndex = 0,
-                    placementId = ++placementCounter
-                )
+            firstPlacedTile = BoardPlacedTile(
+                tile = tile,
+                pipLeft = tile.high,
+                pipRight = tile.low,
+                isDouble = tile.isDouble,
+                isFirstTile = true,
+                virtX = 0,
+                virtY = 0,
+                isVertical = tile.isDouble,
+                branchSide = null,
+                branchStepIndex = 0,
+                placementId = ++placementCounter,
+                connectedPip = null,
+                openEndPip = null
             )
+            leftBranchTiles.clear()
+            rightBranchTiles.clear()
+            upBranchTiles.clear()
+            downBranchTiles.clear()
+            recomputeBoardLayout()
         } else if (side == BoardSide.LEFT) {
             if (gameMode == GameMode.ALL_FIVES && spinnerTile == null && tile.isDouble) {
                 reslotChainForLateSpinner(tile, BoardSide.LEFT)
             } else {
                 val target = leftOpenPip!!
                 val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
-                val slot = getNextSlotForSide(BoardSide.LEFT)
-                val leftStep = boardChain.count { it.branchSide == BoardSide.LEFT } + 1
-
-                val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
-                val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
-
-                boardChain.add(
-                    0,
-                    BoardPlacedTile(
-                        tile = tile,
-                        pipLeft = pipTopOrLeft,
-                        pipRight = pipBottomOrRight,
-                        isDouble = tile.isDouble,
-                        isFirstTile = false,
-                        virtX = slot.virtX,
-                        virtY = slot.virtY,
-                        isVertical = slot.isVertical,
-                        branchSide = BoardSide.LEFT,
-                        branchStepIndex = leftStep,
-                        placementId = ++placementCounter
-                    )
+                val leftStep = leftBranchTiles.size + 1
+                val placed = BoardPlacedTile(
+                    tile = tile,
+                    pipLeft = connectingPip,
+                    pipRight = newOpenPip,
+                    isDouble = tile.isDouble,
+                    isFirstTile = false,
+                    virtX = 0,
+                    virtY = 0,
+                    isVertical = false,
+                    branchSide = BoardSide.LEFT,
+                    branchStepIndex = leftStep,
+                    placementId = ++placementCounter,
+                    connectedPip = connectingPip,
+                    openEndPip = newOpenPip
                 )
+                leftBranchTiles.add(placed)
                 leftOpenPip = newOpenPip
+                recomputeBoardLayout()
             }
         } else if (side == BoardSide.RIGHT) {
             if (gameMode == GameMode.ALL_FIVES && spinnerTile == null && tile.isDouble) {
@@ -995,88 +920,70 @@ class DominoEngine(
             } else {
                 val target = rightOpenPip!!
                 val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
-                val slot = getNextSlotForSide(BoardSide.RIGHT)
-                val rightStep = boardChain.count { it.branchSide == BoardSide.RIGHT } + 1
-
-                val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
-                val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
-
-                val lastRightIdx = boardChain.indexOfLast { it.branchSide == BoardSide.RIGHT }
-                val insertIdx = if (lastRightIdx != -1) {
-                    lastRightIdx + 1
-                } else {
-                    val firstIdx = boardChain.indexOfFirst { it.isFirstTile }
-                    if (firstIdx != -1) firstIdx + 1 else boardChain.size
-                }
-
-                boardChain.add(
-                    insertIdx,
-                    BoardPlacedTile(
-                        tile = tile,
-                        pipLeft = pipTopOrLeft,
-                        pipRight = pipBottomOrRight,
-                        isDouble = tile.isDouble,
-                        isFirstTile = false,
-                        virtX = slot.virtX,
-                        virtY = slot.virtY,
-                        isVertical = slot.isVertical,
-                        branchSide = BoardSide.RIGHT,
-                        branchStepIndex = rightStep,
-                        placementId = ++placementCounter
-                    )
+                val rightStep = rightBranchTiles.size + 1
+                val placed = BoardPlacedTile(
+                    tile = tile,
+                    pipLeft = connectingPip,
+                    pipRight = newOpenPip,
+                    isDouble = tile.isDouble,
+                    isFirstTile = false,
+                    virtX = 0,
+                    virtY = 0,
+                    isVertical = false,
+                    branchSide = BoardSide.RIGHT,
+                    branchStepIndex = rightStep,
+                    placementId = ++placementCounter,
+                    connectedPip = connectingPip,
+                    openEndPip = newOpenPip
                 )
+                rightBranchTiles.add(placed)
                 rightOpenPip = newOpenPip
+                recomputeBoardLayout()
             }
         } else if (side == BoardSide.UP) {
             val target = upOpenPip ?: spinnerTile!!.high
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
-            val slot = getNextSlotForSide(BoardSide.UP)
-            val upStep = boardChain.count { it.branchSide == BoardSide.UP } + 1
-
-            val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
-            val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
-
-            boardChain.add(
-                BoardPlacedTile(
-                    tile = tile,
-                    pipLeft = pipTopOrLeft,
-                    pipRight = pipBottomOrRight,
-                    isDouble = tile.isDouble,
-                    isFirstTile = false,
-                    virtX = slot.virtX,
-                    virtY = slot.virtY,
-                    isVertical = slot.isVertical,
-                    branchSide = BoardSide.UP,
-                    branchStepIndex = upStep,
-                    placementId = ++placementCounter
-                )
+            val upStep = upBranchTiles.size + 1
+            val placed = BoardPlacedTile(
+                tile = tile,
+                pipLeft = connectingPip,
+                pipRight = newOpenPip,
+                isDouble = tile.isDouble,
+                isFirstTile = false,
+                virtX = 0,
+                virtY = 0,
+                isVertical = false,
+                branchSide = BoardSide.UP,
+                branchStepIndex = upStep,
+                placementId = ++placementCounter,
+                connectedPip = connectingPip,
+                openEndPip = newOpenPip
             )
+            upBranchTiles.add(placed)
             upOpenPip = newOpenPip
+            recomputeBoardLayout()
         } else if (side == BoardSide.DOWN) {
             val target = downOpenPip ?: spinnerTile!!.high
             val (connectingPip, newOpenPip) = resolveConnectingAndOpenPips(tile, target)
-            val slot = getNextSlotForSide(BoardSide.DOWN)
-            val downStep = boardChain.count { it.branchSide == BoardSide.DOWN } + 1
-
-            val pipTopOrLeft = if (slot.isForward) connectingPip else newOpenPip
-            val pipBottomOrRight = if (slot.isForward) newOpenPip else connectingPip
-
-            boardChain.add(
-                BoardPlacedTile(
-                    tile = tile,
-                    pipLeft = pipTopOrLeft,
-                    pipRight = pipBottomOrRight,
-                    isDouble = tile.isDouble,
-                    isFirstTile = false,
-                    virtX = slot.virtX,
-                    virtY = slot.virtY,
-                    isVertical = slot.isVertical,
-                    branchSide = BoardSide.DOWN,
-                    branchStepIndex = downStep,
-                    placementId = ++placementCounter
-                )
+            val downStep = downBranchTiles.size + 1
+            val placed = BoardPlacedTile(
+                tile = tile,
+                pipLeft = connectingPip,
+                pipRight = newOpenPip,
+                isDouble = tile.isDouble,
+                isFirstTile = false,
+                virtX = 0,
+                virtY = 0,
+                isVertical = false,
+                branchSide = BoardSide.DOWN,
+                branchStepIndex = downStep,
+                placementId = ++placementCounter,
+                connectedPip = connectingPip,
+                openEndPip = newOpenPip
             )
+            downBranchTiles.add(placed)
             downOpenPip = newOpenPip
+            recomputeBoardLayout()
         }
 
         roundLog = "${player.name} jugó $tile"
@@ -1331,6 +1238,8 @@ class DominoEngine(
         consecutivePasses++
         // Registrar el pase: en Draw Special abre la rama de este jugador al resto mientras siga bloqueado.
         blockedPlayers.add(playerIndex)
+        val currentOpenPips = listOfNotNull(leftOpenPip, rightOpenPip, upOpenPip, downOpenPip).distinct()
+        playerPassedPips.getOrPut(playerIndex) { mutableSetOf() }.addAll(currentOpenPips)
         lastPassingPlayerIndex = playerIndex
         lastPassTurnNumber = turnNumber
         val p = players[playerIndex]
@@ -1587,8 +1496,16 @@ class DominoEngine(
         }
 
         boardChain.clear()
-        boardChain.addAll(snapshot.boardChain)
-        // Se continua la numeracion por encima de lo restaurado para no repetir identificadores.
+        firstPlacedTile = snapshot.boardChain.firstOrNull { it.isFirstTile }
+        leftBranchTiles.clear()
+        leftBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.LEFT }.sortedBy { it.branchStepIndex })
+        rightBranchTiles.clear()
+        rightBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.RIGHT }.sortedBy { it.branchStepIndex })
+        upBranchTiles.clear()
+        upBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.UP }.sortedBy { it.branchStepIndex })
+        downBranchTiles.clear()
+        downBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.DOWN }.sortedBy { it.branchStepIndex })
+        recomputeBoardLayout()
         placementCounter = snapshot.boardChain.maxOfOrNull { it.placementId } ?: 0
         boneyard.clear()
         leftOpenPip = snapshot.leftOpenPip
@@ -1671,7 +1588,8 @@ class DominoEngine(
         val matchPointsScored: Int,
         val matchBestRoundPoints: Int,
         val matchDrewFromBoneyard: Boolean,
-        val lastRoundBonusType: DominoBonusType
+        val lastRoundBonusType: DominoBonusType,
+        val playerPassedPips: Map<Int, Set<Int>>
     )
 
     private fun snapshot(): StateSnapshot = StateSnapshot(
@@ -1706,14 +1624,24 @@ class DominoEngine(
         matchPointsScored = matchPointsScored,
         matchBestRoundPoints = matchBestRoundPoints,
         matchDrewFromBoneyard = matchDrewFromBoneyard,
-        lastRoundBonusType = lastRoundBonusType
+        lastRoundBonusType = lastRoundBonusType,
+        playerPassedPips = playerPassedPips.mapValues { it.value.toSet() }
     )
 
     private fun restore(snapshot: StateSnapshot) {
         players.clear()
         players.addAll(snapshot.players)
         boardChain.clear()
-        boardChain.addAll(snapshot.boardChain)
+        firstPlacedTile = snapshot.boardChain.firstOrNull { it.isFirstTile }
+        leftBranchTiles.clear()
+        leftBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.LEFT }.sortedBy { it.branchStepIndex })
+        rightBranchTiles.clear()
+        rightBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.RIGHT }.sortedBy { it.branchStepIndex })
+        upBranchTiles.clear()
+        upBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.UP }.sortedBy { it.branchStepIndex })
+        downBranchTiles.clear()
+        downBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.DOWN }.sortedBy { it.branchStepIndex })
+        recomputeBoardLayout()
         boneyard.clear()
         boneyard.addAll(snapshot.boneyard)
         leftOpenPip = snapshot.leftOpenPip
@@ -1746,6 +1674,8 @@ class DominoEngine(
         matchBestRoundPoints = snapshot.matchBestRoundPoints
         matchDrewFromBoneyard = snapshot.matchDrewFromBoneyard
         lastRoundBonusType = snapshot.lastRoundBonusType
+        playerPassedPips.clear()
+        snapshot.playerPassedPips.forEach { (k, v) -> playerPassedPips[k] = v.toMutableSet() }
     }
 
     /**

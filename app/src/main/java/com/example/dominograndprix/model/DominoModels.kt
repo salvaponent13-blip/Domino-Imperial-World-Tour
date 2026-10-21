@@ -79,7 +79,9 @@ data class BoardPlacedTile(
      * en la lista no vale: al jugar por la izquierda la cadena se reordena y los indices de
      * las fichas ya colocadas cambian, lo que reiniciaria sus animaciones.
      */
-    val placementId: Int = 0
+    val placementId: Int = 0,
+    val connectedPip: Int? = null,
+    val openEndPip: Int? = null
 )
 
 /**

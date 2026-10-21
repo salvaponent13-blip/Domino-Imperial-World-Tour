@@ -13,12 +13,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -38,6 +41,7 @@ import com.example.dominograndprix.audio.DominoHaptics
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.MatchSnapshot
 import com.example.dominograndprix.data.MatchSnapshotStore
+import com.example.dominograndprix.engine.DominoBoardLayout
 import com.example.dominograndprix.engine.DominoEngine
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.BoardPlacedTile
@@ -52,12 +56,50 @@ import com.example.dominograndprix.ui.components.DominoBackTileView
 import com.example.dominograndprix.ui.components.DominoTileView
 import com.example.dominograndprix.ui.components.tileHeight
 import com.example.dominograndprix.ui.components.tileWidth
+import com.example.dominograndprix.ui.dialogs.DominoPipCounterDialog
+import com.example.dominograndprix.ui.dialogs.DominoRoundSummaryDialog
 import kotlinx.coroutines.delay
 
 val TableFeltGreen = Color(0xFF0F4727)
 val TableWoodFrame = Color(0xFF4A2511)
 val GoldAccent = Color(0xFFFFD700)
 val DarkNavy = Color(0xFF131924)
+
+enum class CameraViewMode(val label: String, val rotationX: Float, val scale: Float) {
+    CLASSIC_3D("3D", 15f, 1f),
+    DEEP_3D("3D+", 26f, 0.96f),
+    TOP_2D("2D", 0f, 1f)
+}
+
+enum class AmbientLightMode(
+    val label: String,
+    val feltCoreColor: Color,
+    val feltMidColor: Color,
+    val feltEdgeColor: Color,
+    val spotlightColor: Color
+) {
+    WARM_CLUB(
+        label = "Club",
+        feltCoreColor = Color(0xFF1E6E3E),
+        feltMidColor = Color(0xFF0F4727),
+        feltEdgeColor = Color(0xFF051A0D),
+        spotlightColor = Color(0x38FFF4D6)
+    ),
+    TOURNAMENT_PRO(
+        label = "Torneo",
+        feltCoreColor = Color(0xFF1B7A42),
+        feltMidColor = Color(0xFF0F5A2F),
+        feltEdgeColor = Color(0xFF062915),
+        spotlightColor = Color(0x30F0F9FF)
+    ),
+    LOUNGE_DRAMATIC(
+        label = "Lounge",
+        feltCoreColor = Color(0xFF14532D),
+        feltMidColor = Color(0xFF09331B),
+        feltEdgeColor = Color(0xFF020D07),
+        spotlightColor = Color(0x50FFC478)
+    )
+}
 
 @Composable
 fun DominoTableScreen(
@@ -126,6 +168,18 @@ fun DominoTableScreen(
     var activeReactionSeat by remember { mutableStateOf<Int?>(null) }
     var activeReactionText by remember { mutableStateOf<String?>(null) }
 
+    // Anuncio flotante de puntos o jugadas destacadas (estilo Google AI Studio)
+    var turnAnnouncement by remember { mutableStateOf<String?>(null) }
+    var gameSpeed by remember { mutableIntStateOf(1) } // 1x o 2x (fidelidad a tour-domino-main)
+    var showTileCounter by remember { mutableStateOf(false) }
+
+    LaunchedEffect(turnAnnouncement) {
+        if (turnAnnouncement != null) {
+            delay(2200L)
+            turnAnnouncement = null
+        }
+    }
+
     LaunchedEffect(activeReactionText, activeReactionSeat) {
         if (activeReactionText != null) {
             delay(2400L)
@@ -167,6 +221,21 @@ fun DominoTableScreen(
     // Cámara 2D en unidades virtuales para arrastre táctil manual
     var cameraDragVirtX by remember { mutableFloatStateOf(0f) }
     var cameraDragVirtY by remember { mutableFloatStateOf(0f) }
+
+    // Modos 3D y de iluminación ambiental interactivos (Google AI Studio)
+    var cameraMode by remember { mutableStateOf(CameraViewMode.TOP_2D) }
+    var ambientLightMode by remember { mutableStateOf(AmbientLightMode.WARM_CLUB) }
+
+    val animRotationX by animateFloatAsState(
+        targetValue = cameraMode.rotationX,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "cameraRotationX"
+    )
+    val animCameraScale by animateFloatAsState(
+        targetValue = cameraMode.scale,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "cameraScale"
+    )
 
     // Show round dialog and play victory/defeat jingle when round finishes
     LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver) {
@@ -211,7 +280,8 @@ fun DominoTableScreen(
         if (!current.isHuman && !engine.value.isRoundOver && !engine.value.isMatchOver) {
             try {
                 isAIThinking = true
-                delay(2000L)
+                val aiDelay = if (gameSpeed == 2) 300L else 750L
+                delay(aiDelay)
                 val prevBoardSize = engine.value.boardChain.size
                 val prevScore = current.score
                 val prevHandSize = current.hand.size
@@ -230,9 +300,11 @@ fun DominoTableScreen(
                     if (newHandSize == 0) {
                         activeReactionSeat = aiSeat
                         activeReactionText = "¡Dominó! 🎉"
+                        turnAnnouncement = "¡${updatedAI.name} cerró la ronda! (Dominó)"
                     } else if (newScore > prevScore) {
                         activeReactionSeat = aiSeat
                         activeReactionText = "+${newScore - prevScore} pts ⭐"
+                        turnAnnouncement = "+${newScore - prevScore} pts (${updatedAI.name})"
                     }
                 } else {
                     DominoSoundManager.playPassKnock()
@@ -241,6 +313,10 @@ fun DominoTableScreen(
                         activeReactionText = "Al pozo... 🦴"
                     } else {
                         activeReactionText = "¡Paso! ❌"
+                        val passedPips = listOfNotNull(engine.value.leftOpenPip, engine.value.rightOpenPip).distinct().joinToString(" y ")
+                        if (passedPips.isNotEmpty()) {
+                            turnAnnouncement = "${updatedAI.name} pasó al $passedPips"
+                        }
                     }
                 }
                 logMessage = engine.value.roundLog
@@ -313,69 +389,56 @@ fun DominoTableScreen(
     val mustDrawFromBoneyard = isMyTurn && !isChaining && playableTiles.isEmpty() &&
             gameMode.allowsDraw && engine.value.boneyard.isNotEmpty() && !engine.value.hasDrawnThisTurn
 
-    // Cálculo dinámico de encuadre centrado 2D para que todas las fichas quepan siempre en pantalla
-    val boardChain = engine.value.boardChain
-    val (targetCenterX, targetCenterY, targetSpanX, targetSpanY) = remember(
-        boardChain.size,
-        selectedTile,
-        gameStateVersion
-    ) {
-        if (boardChain.isEmpty()) {
-            listOf(120.5f, 127.5f, 180f, 200f)
-        } else {
-            var minX = boardChain.minOf { it.virtX }.toFloat()
-            var maxX = boardChain.maxOf { it.virtX + if (it.isVertical) 17 else 31 }.toFloat()
-            var minY = boardChain.minOf { it.virtY }.toFloat()
-            var maxY = boardChain.maxOf { it.virtY + if (it.isVertical) 31 else 17 }.toFloat()
-
-            if (selectedTile != null && selectedTileSides.size > 1) {
-                selectedTileSides.forEach { side ->
-                    val slot = engine.value.getNextSlotForSide(side)
-                    val sMaxX = slot.virtX + if (slot.isVertical) 17 else 31
-                    val sMaxY = slot.virtY + if (slot.isVertical) 31 else 17
-                    minX = minOf(minX, slot.virtX.toFloat())
-                    maxX = maxOf(maxX, sMaxX.toFloat())
-                    minY = minOf(minY, slot.virtY.toFloat())
-                    maxY = maxOf(maxY, sMaxY.toFloat())
-                }
-            }
-
-            val padX = 28f
-            val padY = 28f
-            val cX = (minX + maxX) / 2f
-            val cY = (minY + maxY) / 2f
-            val sX = (maxX - minX + padX * 2f).coerceAtLeast(180f)
-            val sY = (maxY - minY + padY * 2f).coerceAtLeast(200f)
-            listOf(cX, cY, sX, sY)
+    // Función unificada para ejecutar jugada humana con sonido, haptics y anuncio de puntos
+    val playMove: (DominoTile, BoardSide) -> Unit = { tileToPlay, sideToPlay ->
+        DominoSoundManager.playTileClack(isDouble = tileToPlay.isDouble)
+        DominoHaptics.tilePlaced(hapticView)
+        engine.value.playTile(actingSeat, tileToPlay, sideToPlay)
+        if (engine.value.lastPointsEarned > 0) {
+            turnAnnouncement = "+${engine.value.lastPointsEarned} ¡Puntos! (Tú)"
         }
+        selectedTile = null
+        logMessage = engine.value.roundLog
+        gameStateVersion++
     }
 
-    val animCenterX by animateFloatAsState(
-        targetValue = targetCenterX,
-        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-        label = "animCenterX"
-    )
-    val animCenterY by animateFloatAsState(
-        targetValue = targetCenterY,
-        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-        label = "animCenterY"
-    )
-    val animSpanX by animateFloatAsState(
-        targetValue = targetSpanX,
-        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-        label = "animSpanX"
-    )
-    val animSpanY by animateFloatAsState(
-        targetValue = targetSpanY,
-        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
-        label = "animSpanY"
-    )
+    // Lista de fichas en tablero + ranuras de colocación (fórmula exacta de tour-domino-main)
+    val boardChain = engine.value.boardChain
+    val allTilesWithGhosts = remember(boardChain.size, selectedTile, selectedTileSides.size, gameStateVersion) {
+        val list = boardChain.toMutableList()
+        if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
+            selectedTileSides.forEach { side ->
+                val slot = engine.value.getNextSlotForSide(side)
+                list.add(
+                    BoardPlacedTile(
+                        tile = selectedTile!!,
+                        virtX = slot.virtX,
+                        virtY = slot.virtY,
+                        isVertical = slot.isVertical,
+                        pipLeft = 0,
+                        pipRight = 0,
+                        branchSide = side
+                    )
+                )
+            }
+        }
+        list
+    }
+
+    // Límites exactos del tablero con margen de seguridad de 1 celda (14 unidades)
+    val boardBounds = remember(allTilesWithGhosts) {
+        DominoBoardLayout.computeBounds(allTilesWithGhosts)
+    }
 
     // Auto-Pass when player has no playable tiles and cannot draw (or already drew this turn)
     LaunchedEffect(isMyTurn, isChaining, playableTiles.size, engine.value.boneyard.size, engine.value.hasDrawnThisTurn, gameStateVersion) {
         if (isMyTurn && !isChaining && playableTiles.isEmpty() &&
             (!gameMode.allowsDraw || engine.value.boneyard.isEmpty() || engine.value.hasDrawnThisTurn)
         ) {
+            val passedPips = listOfNotNull(engine.value.leftOpenPip, engine.value.rightOpenPip).distinct().joinToString(" y ")
+            if (passedPips.isNotEmpty()) {
+                turnAnnouncement = "Pasaste al $passedPips"
+            }
             logMessage = DominoStrings.autoPassMsg()
             delay(950)
             DominoSoundManager.playPassKnock()
@@ -395,69 +458,298 @@ fun DominoTableScreen(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // 1. COMPACT TOP HUD + TOP PARTNER + AUDIO TOGGLE
+            // 1. COMPACT TOP HUD + SCOREBOARD + AUDIO TOGGLE
+            val teamScore = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
+            val rivalScore = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
+
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = DarkNavy.copy(alpha = 0.92f),
+                color = DarkNavy.copy(alpha = 0.95f),
                 border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.6f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 5.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color.White.copy(alpha = 0.12f),
-                            modifier = Modifier.clickable { onBack() }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "⬅",
-                                color = GoldAccent,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color.White.copy(alpha = 0.12f),
+                                modifier = Modifier.clickable { onBack() }
+                            ) {
+                                Text(
+                                    text = "⬅",
+                                    color = GoldAccent,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        cityName.uppercase(),
+                                        color = GoldAccent,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = GoldAccent.copy(alpha = 0.2f),
+                                        border = androidx.compose.foundation.BorderStroke(0.5.dp, GoldAccent)
+                                    ) {
+                                        Text(
+                                            text = gameMode.title.uppercase(),
+                                            color = GoldAccent,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Black,
+                                            modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Meta: $targetScore pts" + (if (betAmount > 0) " | \$$betAmount" else ""),
+                                    color = Color.LightGray,
+                                    fontSize = 9.sp
+                                )
+                            }
                         }
-                        Column {
-                            Text(cityName.uppercase(), color = GoldAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            Text(DominoStrings.ruleAndTarget(gameMode.title, targetScore), color = Color.LightGray, fontSize = 9.sp)
+
+                        // Marcador de Equipos (Tú vs Rival)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Team / Player Score (Emerald)
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF064E3B),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF34D399).copy(alpha = 0.8f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Text(
+                                        text = if (isTeamGame) "TÚ:" else "TÚ:",
+                                        color = Color(0xFFA7F3D0),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "$teamScore",
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
+
+                            // Rival Score (Ruby)
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF7F1D1D),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF87171).copy(alpha = 0.8f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Text(
+                                        text = if (isTeamGame) "RIV:" else "RIV:",
+                                        color = Color(0xFFFECACA),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "$rivalScore",
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    // Partner & Rivals compact strip + Audio Mute Toggle
+                    // Fila 2: Tira de Rivales + Controles (Velocidad, Contar, Cámara 3D, Iluminación, Mute)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        for (seat in 1 until engine.value.players.size) {
-                            val reaction = if (activeReactionSeat == seat) activeReactionText else null
-                            PlayerBadge(engine.value.players[seat], engine.value.currentPlayerIndex == seat, reactionText = reaction)
+                        // Rivals & Partner compact strip con mini-atriles y fallas
+                        if (engine.value.players.size > 1) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                for (seat in 1 until engine.value.players.size) {
+                                    val isPartner = isTeamGame && seat == 2
+                                    val passed = engine.value.playerPassedPips[seat] ?: emptySet()
+                                    val reaction = if (activeReactionSeat == seat) activeReactionText else null
+                                    PlayerBadge(
+                                        player = engine.value.players[seat],
+                                        isCurrentTurn = engine.value.currentPlayerIndex == seat,
+                                        isPartner = isPartner,
+                                        passedPips = passed,
+                                        reactionText = reaction,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
                         }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = Color.Black.copy(alpha = 0.5f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f)),
-                            modifier = Modifier.clickable { DominoSoundManager.toggleMute() }
+
+                        // Botones de Acción (Velocidad, Contar, Cámara 3D, Iluminación y Mute)
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = if (DominoSoundManager.isMuted) "🔇" else "🔊",
-                                fontSize = 11.sp,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 3.dp)
-                            )
+                            // Selector de Velocidad IA (1x / 2x)
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (gameSpeed == 2) GoldAccent.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (gameSpeed == 2) GoldAccent else Color.White.copy(alpha = 0.25f)),
+                                modifier = Modifier.clickable {
+                                    DominoSoundManager.playTileTap()
+                                    gameSpeed = if (gameSpeed == 1) 2 else 1
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text("⏩", fontSize = 8.sp)
+                                    Text(
+                                        text = "${gameSpeed}x",
+                                        color = if (gameSpeed == 2) GoldAccent else Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                            }
+
+                            // Botón Contar Fichas
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (showTileCounter) Color(0xFF064E3B) else Color.Black.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (showTileCounter) Color(0xFF34D399) else Color.White.copy(alpha = 0.25f)),
+                                modifier = Modifier.clickable {
+                                    DominoSoundManager.playTileTap()
+                                    showTileCounter = !showTileCounter
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text("#", color = Color(0xFFA7F3D0), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                                    Text(
+                                        text = "Contar",
+                                        color = if (showTileCounter) Color(0xFFA7F3D0) else Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            // 3D Camera Perspective Toggle (2D Cenital, 3D Clásico, 3D Profundo)
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (cameraMode != CameraViewMode.TOP_2D) GoldAccent.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (cameraMode != CameraViewMode.TOP_2D) GoldAccent else Color.White.copy(alpha = 0.25f)),
+                                modifier = Modifier.clickable {
+                                    DominoSoundManager.playTileTap()
+                                    cameraMode = when (cameraMode) {
+                                        CameraViewMode.TOP_2D -> CameraViewMode.CLASSIC_3D
+                                        CameraViewMode.CLASSIC_3D -> CameraViewMode.DEEP_3D
+                                        CameraViewMode.DEEP_3D -> CameraViewMode.TOP_2D
+                                    }
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text("🎥", fontSize = 8.sp)
+                                    Text(
+                                        text = cameraMode.label,
+                                        color = if (cameraMode != CameraViewMode.TOP_2D) GoldAccent else Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                            }
+
+                            // Ambient Lighting Toggle (Club Cálido, Torneo Pro, Lounge Dramático)
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color.Black.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f)),
+                                modifier = Modifier.clickable {
+                                    DominoSoundManager.playTileTap()
+                                    ambientLightMode = when (ambientLightMode) {
+                                        AmbientLightMode.WARM_CLUB -> AmbientLightMode.TOURNAMENT_PRO
+                                        AmbientLightMode.TOURNAMENT_PRO -> AmbientLightMode.LOUNGE_DRAMATIC
+                                        AmbientLightMode.LOUNGE_DRAMATIC -> AmbientLightMode.WARM_CLUB
+                                    }
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text("💡", fontSize = 8.sp)
+                                    Text(
+                                        text = ambientLightMode.label,
+                                        color = GoldAccent,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            // Sound Mute Toggle
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color.Black.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f)),
+                                modifier = Modifier.clickable { DominoSoundManager.toggleMute() }
+                            ) {
+                                Text(
+                                    text = if (DominoSoundManager.isMuted) "🔇" else "🔊",
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // 2. CENTRAL 2D DOMINO FEVER TABLE (Exact 240x320 virtual layout template!)
+            // 2. CENTRAL DOMINO FEVER TABLE WITH 3D PERSPECTIVE & AMBIENT LIGHTING
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -468,9 +760,9 @@ fun DominoTableScreen(
                     .background(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                Color(0xFF1E6E3E),
-                                TableFeltGreen,
-                                Color(0xFF082614)
+                                ambientLightMode.feltCoreColor,
+                                ambientLightMode.feltMidColor,
+                                ambientLightMode.feltEdgeColor
                             )
                         )
                     )
@@ -483,93 +775,200 @@ fun DominoTableScreen(
                         }
                     }
             ) {
-                // Escalado y centrado dinámico de coordenadas virtuales:
-                // Se adapta dinámicamente al tamaño y distribución de la cadena sin cortar nunca los bordes.
-                val rawUnit = (maxWidth.value / animSpanX).coerceAtMost(maxHeight.value / animSpanY).coerceIn(1.05f, 2.10f)
-                val unitDp = rawUnit.dp
-                val viewportVirtWidth = maxWidth.value / rawUnit
-                val viewportVirtHeight = maxHeight.value / rawUnit
-                val originVirtX = animCenterX - (viewportVirtWidth / 2f)
-                val originVirtY = animCenterY - (viewportVirtHeight / 2f)
-
-                // Empty board message
-                if (engine.value.boardChain.isEmpty()) {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = DominoStrings.emptyTableTitle(),
-                            color = Color.White.copy(alpha = 0.55f),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                // Dynamic Overhead Lamp Spotlight & Recessed Concave Pit Vignette
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    ambientLightMode.spotlightColor,
+                                    ambientLightMode.spotlightColor.copy(alpha = 0.15f),
+                                    Color.Transparent
+                                ),
+                                center = Offset(maxWidth.value * 0.5f, maxHeight.value * 0.40f),
+                                radius = (maxWidth.value.coerceAtLeast(maxHeight.value) * 0.70f)
+                            )
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = DominoStrings.emptyTableSub(isMyTurn),
-                            color = GoldAccent,
-                            fontSize = 12.sp
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.12f),
+                                    Color.Black.copy(alpha = 0.60f)
+                                )
+                            )
                         )
-                    }
-                } else {
-                    // Renderizar cada ficha colocada en su coordenada virtual exacta (virtX, virtY).
-                    engine.value.boardChain.forEach { placed ->
-                        key(placed.placementId) {
-                            val isVisualVertical = placed.isVertical
-                            val tileW = tileWidth(unitDp, isVisualVertical)
-                            val tileH = tileHeight(unitDp, isVisualVertical)
-                            val xDp = unitDp * (placed.virtX - originVirtX + cameraDragVirtX)
-                            val yDp = unitDp * (placed.virtY - originVirtY + cameraDragVirtY)
+                )
 
-                            AnimatedPlacedTile(
-                                tile = placed.tile,
-                                pip1 = placed.pipLeft,
-                                pip2 = placed.pipRight,
-                                isHorizontal = !isVisualVertical,
-                                width = tileW,
-                                height = tileH,
-                                placementId = placed.placementId,
-                                modifier = Modifier.offset(x = xDp, y = yDp)
+                // Pinstripe dorado interior del tapete de torneo
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(6.dp)
+                        .border(1.dp, GoldAccent.copy(alpha = 0.20f), RoundedCornerShape(10.dp))
+                )
+
+                // Remaches esquineros de latón dorado (Brass Corner Studs estilo casino)
+                val brassStudGradient = Brush.radialGradient(
+                    colors = listOf(Color(0xFFFFF59D), Color(0xFFF59E0B), Color(0xFF78350F))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .align(Alignment.TopStart)
+                        .offset(x = 6.dp, y = 6.dp)
+                        .clip(CircleShape)
+                        .background(brassStudGradient)
+                        .border(0.5.dp, Color.Black.copy(alpha = 0.7f), CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-6).dp, y = 6.dp)
+                        .clip(CircleShape)
+                        .background(brassStudGradient)
+                        .border(0.5.dp, Color.Black.copy(alpha = 0.7f), CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .align(Alignment.BottomStart)
+                        .offset(x = 6.dp, y = (-6).dp)
+                        .clip(CircleShape)
+                        .background(brassStudGradient)
+                        .border(0.5.dp, Color.Black.copy(alpha = 0.7f), CircleShape)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = (-6).dp, y = (-6).dp)
+                        .clip(CircleShape)
+                        .background(brassStudGradient)
+                        .border(0.5.dp, Color.Black.copy(alpha = 0.7f), CircleShape)
+                )
+                // Cuadrícula y escala exacta calculada directamente de tour-domino-main
+                val availW = (maxWidth.value - 24f).coerceAtLeast(120f)
+                val availH = (maxHeight.value - 24f).coerceAtLeast(120f)
+                val rawCellW = availW / boardBounds.totalCols
+                val rawCellH = availH / boardBounds.totalRows
+                val targetCellDp = kotlin.math.min(rawCellW, rawCellH).coerceIn(6f, 23f).dp
+
+                val animCellDp by animateDpAsState(
+                    targetValue = targetCellDp,
+                    animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                    label = "animCellDp"
+                )
+
+                val gridW = animCellDp * boardBounds.totalCols
+                val gridH = animCellDp * boardBounds.totalRows
+                val gridOriginX = (maxWidth - gridW) / 2f
+                val gridOriginY = (maxHeight - gridH) / 2f
+
+                // 3D Tilted Board Surface (Superficie con perspectiva 3D realista)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            rotationX = animRotationX
+                            scaleX = animCameraScale
+                            scaleY = animCameraScale
+                            cameraDistance = 14f * density
+                        }
+                ) {
+                    // Empty board message
+                    if (engine.value.boardChain.isEmpty()) {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = DominoStrings.emptyTableTitle(),
+                                color = Color.White.copy(alpha = 0.55f),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = DominoStrings.emptyTableSub(isMyTurn),
+                                color = GoldAccent,
+                                fontSize = 12.sp
                             )
                         }
-                    }
+                    } else {
+                        // Renderizar cada ficha usando la fórmula exacta de tour-domino-main
+                        engine.value.boardChain.forEach { placed ->
+                            key(placed.placementId) {
+                                val isVisualVertical = placed.isVertical
+                                val halfW = if (isVisualVertical) 14 else 28
+                                val halfH = if (isVisualVertical) 28 else 14
+                                val colSpan = if (isVisualVertical) 2f else 4f
+                                val rowSpan = if (isVisualVertical) 4f else 2f
+                                val colStart = (placed.virtX - halfW - boardBounds.minX) / 14f
+                                val rowStart = (placed.virtY - halfH - boardBounds.minY) / 14f
 
-                    // Si el jugador seleccionó una ficha jugable por múltiples extremos, mostrar ranuras brillantes en cada extremo
-                    if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
-                        selectedTileSides.forEach { side ->
-                            val slot = engine.value.getNextSlotForSide(side)
-                            val isVisualVert = slot.isVertical
-                            val slotW = unitDp * (if (isVisualVert) 17f else 31f)
-                            val slotH = unitDp * (if (isVisualVert) 31f else 17f)
-                            val slotXDp = unitDp * (slot.virtX - originVirtX + cameraDragVirtX)
-                            val slotYDp = unitDp * (slot.virtY - originVirtY + cameraDragVirtY)
+                                val tileW = animCellDp * colSpan
+                                val tileH = animCellDp * rowSpan
+                                val xDp = gridOriginX + (animCellDp * colStart) + cameraDragVirtX.dp
+                                val yDp = gridOriginY + (animCellDp * rowStart) + cameraDragVirtY.dp
 
-                            val targetPip = when (side) {
-                                BoardSide.LEFT -> engine.value.leftOpenPip
-                                BoardSide.RIGHT -> engine.value.rightOpenPip
-                                BoardSide.UP -> engine.value.upOpenPip ?: engine.value.spinnerTile?.high
-                                BoardSide.DOWN -> engine.value.downOpenPip ?: engine.value.spinnerTile?.high
+                                AnimatedPlacedTile(
+                                    tile = placed.tile,
+                                    pip1 = placed.pipLeft,
+                                    pip2 = placed.pipRight,
+                                    isHorizontal = !isVisualVertical,
+                                    width = tileW,
+                                    height = tileH,
+                                    placementId = placed.placementId,
+                                    modifier = Modifier.offset(x = xDp, y = yDp)
+                                )
                             }
+                        }
 
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = slotXDp, y = slotYDp)
-                                    .size(width = slotW, height = slotH)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(GoldAccent.copy(alpha = 0.55f))
-                                    .border(2.dp, GoldAccent, RoundedCornerShape(4.dp))
-                                    .clickable {
-                                        val t = selectedTile!!
-                                        DominoSoundManager.playTileClack(isDouble = t.isDouble)
-                                        DominoHaptics.tilePlaced(hapticView)
-                                        engine.value.playTile(actingSeat, t, side)
-                                        selectedTile = null
-                                        logMessage = engine.value.roundLog
-                                        gameStateVersion++
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("${targetPip ?: ""}", color = DarkNavy, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                        // Si el jugador seleccionó una ficha jugable por múltiples extremos, mostrar ranuras brillantes
+                        if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
+                            selectedTileSides.forEach { side ->
+                                val slot = engine.value.getNextSlotForSide(side)
+                                val isVisualVert = slot.isVertical
+                                val halfW = if (isVisualVert) 14 else 28
+                                val halfH = if (isVisualVert) 28 else 14
+                                val colSpan = if (isVisualVert) 2f else 4f
+                                val rowSpan = if (isVisualVert) 4f else 2f
+                                val colStart = (slot.virtX - halfW - boardBounds.minX) / 14f
+                                val rowStart = (slot.virtY - halfH - boardBounds.minY) / 14f
+
+                                val slotW = animCellDp * colSpan
+                                val slotH = animCellDp * rowSpan
+                                val slotXDp = gridOriginX + (animCellDp * colStart) + cameraDragVirtX.dp
+                                val slotYDp = gridOriginY + (animCellDp * rowStart) + cameraDragVirtY.dp
+
+                                val targetPip = when (side) {
+                                    BoardSide.LEFT -> engine.value.leftOpenPip
+                                    BoardSide.RIGHT -> engine.value.rightOpenPip
+                                    BoardSide.UP -> engine.value.upOpenPip ?: engine.value.spinnerTile?.high
+                                    BoardSide.DOWN -> engine.value.downOpenPip ?: engine.value.spinnerTile?.high
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = slotXDp, y = slotYDp)
+                                        .size(width = slotW, height = slotH)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(GoldAccent.copy(alpha = 0.55f))
+                                        .border(2.dp, GoldAccent, RoundedCornerShape(4.dp))
+                                        .clickable {
+                                            playMove(selectedTile!!, side)
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("${targetPip ?: ""}", color = DarkNavy, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                }
                             }
                         }
                     }
@@ -683,6 +1082,27 @@ fun DominoTableScreen(
                                 fontWeight = FontWeight.ExtraBold
                             )
                         }
+                    }
+                }
+
+                // LIVE TURN ANNOUNCEMENT POPUP (Pill animado de puntos o avisos de turno)
+                if (turnAnnouncement != null) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = GoldAccent,
+                        shadowElevation = 8.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.White),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 8.dp)
+                    ) {
+                        Text(
+                            text = turnAnnouncement ?: "",
+                            color = DarkNavy,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                        )
                     }
                 }
 
@@ -843,21 +1263,10 @@ fun DominoTableScreen(
                                     if (sides.isEmpty()) return@DominoTileView
 
                                     if (sides.size == 1) {
-                                        val side = sides.first()
-                                        DominoSoundManager.playTileClack(isDouble = tile.isDouble)
-                                        DominoHaptics.tilePlaced(hapticView)
-                                        engine.value.playTile(actingSeat, tile, side)
-                                        logMessage = engine.value.roundLog
-                                        selectedTile = null
-                                        gameStateVersion++
+                                        playMove(tile, sides.first())
                                     } else if (sides == setOf(BoardSide.LEFT, BoardSide.RIGHT) && engine.value.leftOpenPip == engine.value.rightOpenPip) {
                                         // Ambos extremos valen lo mismo: no hay elección real
-                                        DominoSoundManager.playTileClack(isDouble = tile.isDouble)
-                                        DominoHaptics.tilePlaced(hapticView)
-                                        engine.value.playTile(actingSeat, tile, BoardSide.LEFT)
-                                        logMessage = engine.value.roundLog
-                                        selectedTile = null
-                                        gameStateVersion++
+                                        playMove(tile, BoardSide.LEFT)
                                     } else {
                                         DominoSoundManager.playTileTap()
                                         selectedTile = if (isSelected) null else tile
@@ -869,40 +1278,60 @@ fun DominoTableScreen(
 
                     // Botones de elección cuando la ficha seleccionada puede jugarse en varios extremos
                     if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
-                        Row(
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF0F172A).copy(alpha = 0.95f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 5.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                .padding(top = 4.dp)
                         ) {
-                            selectedTileSides.forEach { side ->
-                                val pip = when (side) {
-                                    BoardSide.LEFT -> engine.value.leftOpenPip
-                                    BoardSide.RIGHT -> engine.value.rightOpenPip
-                                    BoardSide.UP -> engine.value.upOpenPip ?: engine.value.spinnerTile?.high
-                                    BoardSide.DOWN -> engine.value.downOpenPip ?: engine.value.spinnerTile?.high
-                                }
-                                Button(
-                                    onClick = {
-                                        val t = selectedTile!!
-                                        DominoSoundManager.playTileClack(isDouble = t.isDouble)
-                                        DominoHaptics.tilePlaced(hapticView)
-                                        engine.value.playTile(actingSeat, t, side)
-                                        selectedTile = null
-                                        logMessage = engine.value.roundLog
-                                        gameStateVersion++
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.weight(1f).height(34.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                            Column(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "¿En qué extremo deseas colocar [${selectedTile!!.high}|${selectedTile!!.low}]?",
+                                    color = GoldAccent,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                )
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Text(
-                                        text = DominoStrings.endChoiceBtn(side, pip),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        maxLines = 1
-                                    )
+                                    selectedTileSides.forEach { side ->
+                                        val pip = when (side) {
+                                            BoardSide.LEFT -> engine.value.leftOpenPip
+                                            BoardSide.RIGHT -> engine.value.rightOpenPip
+                                            BoardSide.UP -> engine.value.upOpenPip ?: engine.value.spinnerTile?.high
+                                            BoardSide.DOWN -> engine.value.downOpenPip ?: engine.value.spinnerTile?.high
+                                        }
+                                        val label = when (side) {
+                                            BoardSide.LEFT -> "⬅ Izquierda ($pip)"
+                                            BoardSide.RIGHT -> "Derecha ($pip) ➡"
+                                            BoardSide.UP -> "⬆ Arriba ($pip)"
+                                            BoardSide.DOWN -> "⬇ Abajo ($pip)"
+                                        }
+                                        Button(
+                                            onClick = { playMove(selectedTile!!, side) },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = GoldAccent,
+                                                contentColor = DarkNavy
+                                            ),
+                                            shape = RoundedCornerShape(6.dp),
+                                            modifier = Modifier.weight(1f).height(32.dp),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 10.sp,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -971,117 +1400,44 @@ fun DominoTableScreen(
             }
         }
 
-        // 5. ROUND FINISHED DIALOG
+        // 5. DETAILED ROUND FINISHED / MATCH OVER DIALOG (fiel a tour-domino-main)
         if (showRoundDialog) {
             val didPlayerWin = if (engine.value.isTeamGame) {
                 engine.value.winningTeam == 0
             } else {
                 engine.value.winnerPlayerId == 0
             }
-            AlertDialog(
-                onDismissRequest = {},
-                title = {
-                    Text(
-                        text = if (engine.value.isMatchOver) {
-                            if (didPlayerWin) "¡RETO SUPERADO!" else "DERROTA"
-                        } else {
-                            DominoStrings.roundDialogTitle(didPlayerWin)
-                        },
-                        color = if (didPlayerWin) GoldAccent else Color(0xFFFF6B6B),
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Column {
-                        val bonus = engine.value.lastRoundBonusType
-                        if (bonus != DominoBonusType.NONE) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = GoldAccent.copy(alpha = 0.2f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = when (bonus) {
-                                            DominoBonusType.DOUBLE_CAPICUA -> "🌟 ¡¡DOBLE CAPICÚA!! 🌟"
-                                            DominoBonusType.CAPICUA -> "✨ ¡¡CAPICÚA!! ✨"
-                                            DominoBonusType.DOUBLE -> "🎯 ¡DOMINÓ CON DOBLE! 🎯"
-                                            DominoBonusType.NONE -> ""
-                                        },
-                                        color = GoldAccent,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 13.sp,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                        }
-                        Text(engine.value.roundLog, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        if (engine.value.isTeamGame) {
-                            val scoreTeamA = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
-                            val scoreTeamB = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
-                            Text(DominoStrings.teamScoreLine(scoreTeamA, targetScore))
-                            Text(DominoStrings.rivalScoreLine(scoreTeamB))
-                        } else {
-                            engine.value.players.forEach { p ->
-                                Text(
-                                    "${p.name}: ${p.score} / $targetScore pts",
-                                    color = if (p.id == 0) GoldAccent else Color.White,
-                                    fontWeight = if (p.id == 0) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showRoundDialog = false
-                            if (engine.value.isMatchOver) {
-                                onMatchFinished(didPlayerWin, betAmount * 2, engine.value)
-                            } else {
-                                DominoSoundManager.playVenueMusic(venueId)
-                                // Arrastre de mano: abre quien gano la ronda anterior. Tener la
-                                // salida es una ventaja tactica real, y quitarsela al ganador
-                                // haria que ganar una ronda no sirviera de nada.
-                                engine.value.startNewRound(
-                                    openerOverride = engine.value.nextRoundOpener()
-                                )
-                                selectedTile = null
-                                logMessage = engine.value.roundLog
-                                gameStateVersion++
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = GoldAccent, contentColor = DarkNavy)
-                    ) {
-                        Text(
-                            if (engine.value.isMatchOver) {
-                                if (didPlayerWin) "SIGUIENTE RETO ➔" else "REINTENTAR RETO"
-                            } else {
-                                DominoStrings.nextRoundOrFinishBtn(false)
-                            },
-                            fontWeight = FontWeight.Bold
+            DominoRoundSummaryDialog(
+                engine = engine.value,
+                targetScore = targetScore,
+                humanWon = didPlayerWin,
+                onNextRound = {
+                    showRoundDialog = false
+                    if (engine.value.isMatchOver) {
+                        onMatchFinished(didPlayerWin, betAmount * 2, engine.value)
+                    } else {
+                        DominoSoundManager.playVenueMusic(venueId)
+                        engine.value.startNewRound(
+                            openerOverride = engine.value.nextRoundOpener()
                         )
+                        selectedTile = null
+                        logMessage = engine.value.roundLog
+                        gameStateVersion++
                     }
                 },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showRoundDialog = false
-                            onBack()
-                        }
-                    ) {
-                        Text(DominoStrings.exitToMenuBtn())
-                    }
+                onExitMatch = {
+                    showRoundDialog = false
+                    onBack()
                 }
+            )
+        }
+
+        // 6. PIP COUNTER MODAL (fiel a tour-domino-main)
+        if (showTileCounter) {
+            DominoPipCounterDialog(
+                engine = engine.value,
+                humanSeat = 0,
+                onDismiss = { showTileCounter = false }
             )
         }
     }
@@ -1148,40 +1504,125 @@ private fun ScoreValue(score: Int, flash: Float) {
 fun PlayerBadge(
     player: Player,
     isCurrentTurn: Boolean,
-    reactionText: String? = null
+    isPartner: Boolean = false,
+    passedPips: Set<Int> = emptySet(),
+    reactionText: String? = null,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(6.dp),
-        color = if (isCurrentTurn) GoldAccent.copy(alpha = 0.28f) else Color.Black.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(8.dp),
+        color = if (isCurrentTurn) {
+            GoldAccent.copy(alpha = 0.28f)
+        } else if (isPartner) {
+            Color(0xFF064E3B).copy(alpha = 0.75f)
+        } else {
+            Color.Black.copy(alpha = 0.50f)
+        },
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            if (isCurrentTurn) GoldAccent else Color.White.copy(alpha = 0.2f)
-        )
+            if (isCurrentTurn) GoldAccent else if (isPartner) Color(0xFF34D399).copy(alpha = 0.6f) else Color.White.copy(alpha = 0.18f)
+        ),
+        modifier = modifier
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Text(
-                text = "${player.name}: ${player.hand.size}",
-                color = if (isCurrentTurn) GoldAccent else Color.White,
-                fontSize = 10.sp,
-                fontWeight = if (isCurrentTurn) FontWeight.Bold else FontWeight.Normal,
-                maxLines = 1,
-                softWrap = false
-            )
-            if (reactionText != null) {
-                Spacer(modifier = Modifier.width(4.dp))
+            if (isPartner) {
                 Surface(
-                    shape = RoundedCornerShape(4.dp),
+                    shape = RoundedCornerShape(3.dp),
+                    color = Color(0xFF34D399).copy(alpha = 0.25f),
+                    border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFF34D399))
+                ) {
+                    Text(
+                        text = "PAR",
+                        color = Color(0xFFA7F3D0),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(horizontal = 2.5.dp, vertical = 0.5.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = player.name,
+                color = if (isCurrentTurn) GoldAccent else Color.White,
+                fontSize = 9.sp,
+                fontWeight = if (isCurrentTurn) FontWeight.Bold else FontWeight.SemiBold,
+                maxLines = 1
+            )
+
+            Text(
+                text = "(${player.hand.size})",
+                color = GoldAccent,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Black
+            )
+
+            // Mini-atril 3D de fichas de pie (representación visual de fichas ocultas de espaldas)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(1.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val count = minOf(7, player.hand.size)
+                for (i in 0 until count) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 3.5.dp, height = 8.dp)
+                            .clip(RoundedCornerShape(0.8.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFFFBF8E6), Color(0xFFC7BBA5))
+                                )
+                            )
+                            .border(0.3.dp, Color.Black.copy(alpha = 0.45f), RoundedCornerShape(0.8.dp))
+                    )
+                }
+            }
+
+            // Indicador de Fallas ("Pasó al X") en chips rojos
+            if (passedPips.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(1.5.dp),
+                    modifier = Modifier.padding(start = 1.dp)
+                ) {
+                    Text(
+                        text = "Pasó:",
+                        color = Color(0xFFFECACA),
+                        fontSize = 7.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    passedPips.sorted().forEach { pip ->
+                        Surface(
+                            shape = RoundedCornerShape(2.dp),
+                            color = Color(0xFF7F1D1D),
+                            border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFF87171))
+                        ) {
+                            Text(
+                                text = "$pip",
+                                color = Color.White,
+                                fontSize = 7.5.sp,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.padding(horizontal = 2.dp, vertical = 0.2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (reactionText != null) {
+                Surface(
+                    shape = RoundedCornerShape(3.dp),
                     color = GoldAccent
                 ) {
                     Text(
                         text = reactionText,
                         color = DarkNavy,
-                        fontSize = 9.sp,
+                        fontSize = 8.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                        modifier = Modifier.padding(horizontal = 3.dp, vertical = 0.5.dp),
                         maxLines = 1
                     )
                 }

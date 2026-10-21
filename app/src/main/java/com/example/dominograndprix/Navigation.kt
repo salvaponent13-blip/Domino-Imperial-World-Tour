@@ -93,19 +93,6 @@ fun MainNavigation() {
         TournamentCampaign.getChallenge(careerProgress.currentVenueIndex, careerProgress.currentChallengeIndex)
     }
 
-    // Botón atrás de Android: retrocede con suavidad
-    BackHandler(enabled = currentScreen != AppScreen.TITLE) {
-        DominoSoundManager.playTileTap()
-        currentScreen = when (currentScreen) {
-            AppScreen.VENUE_STAGE,
-            AppScreen.RULES,
-            AppScreen.TROPHIES,
-            AppScreen.ACHIEVEMENTS -> AppScreen.TITLE
-            AppScreen.MATCH_TABLE -> AppScreen.VENUE_STAGE
-            AppScreen.TITLE -> AppScreen.TITLE
-        }
-    }
-
     // Parámetros de la partida activa
     var activeMode by remember { mutableStateOf(GameMode.BLOCK) }
     var activeCityName by remember { mutableStateOf("Ciudad de México") }
@@ -114,7 +101,21 @@ fun MainNavigation() {
     var activeVenueId by remember { mutableStateOf<String?>("mexico") }
     var activePlayerCount by remember { mutableIntStateOf(4) }
     var activeIsTeamGame by remember { mutableStateOf(false) }
+    var activeDifficulty by remember { mutableStateOf(Difficulty.STANDARD) }
     var activeRivalName by remember { mutableStateOf("Carlos 'El Rayo'") }
+
+    // Botón atrás de Android: retrocede con suavidad
+    BackHandler(enabled = currentScreen != AppScreen.TITLE) {
+        DominoSoundManager.playTileTap()
+        currentScreen = when (currentScreen) {
+            AppScreen.VENUE_STAGE,
+            AppScreen.RULES,
+            AppScreen.TROPHIES,
+            AppScreen.ACHIEVEMENTS -> AppScreen.TITLE
+            AppScreen.MATCH_TABLE -> if (activeVenueId == null) AppScreen.TITLE else AppScreen.VENUE_STAGE
+            AppScreen.TITLE -> AppScreen.TITLE
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -142,6 +143,20 @@ fun MainNavigation() {
                             careerProgress = JourneyProgress()
                             CareerProgressStore.save(context, careerProgress)
                             currentScreen = AppScreen.VENUE_STAGE
+                        },
+                        onOpenQuickPlay = { config ->
+                            DominoSoundManager.playTileClack(isDouble = true)
+                            activeMode = config.gameMode
+                            activeCityName = DominoStrings.modeName(config.gameMode)
+                            activeBet = 0
+                            activeTargetScore = config.targetScore
+                            activeVenueId = null
+                            activePlayerCount = config.playerCount
+                            activeIsTeamGame = config.isTeamGame
+                            activeDifficulty = config.difficulty
+                            activeRivalName = "IA Experta"
+                            MatchSnapshotStore.clear(context)
+                            currentScreen = AppScreen.MATCH_TABLE
                         },
                         onShowRules = {
                             DominoSoundManager.playTileTap()
@@ -213,11 +228,15 @@ fun MainNavigation() {
                         targetScore = activeTargetScore,
                         playerCount = activePlayerCount,
                         isTeamGame = activeIsTeamGame,
-                        difficulty = Difficulty.STANDARD,
+                        difficulty = activeDifficulty,
                         humanPlayerIndices = setOf(0),
                         playerNames = playerNames,
                         resumeFrom = savedSnapshot,
                         onMatchFinished = { won, _, finishedEngine ->
+                            if (activeVenueId == null) {
+                                currentScreen = AppScreen.TITLE
+                                return@DominoTableScreen
+                            }
                             val report = CareerReporter.reportFor(
                                 engine = finishedEngine,
                                 venueId = activeVenueId,
@@ -287,7 +306,7 @@ fun MainNavigation() {
                         },
                         onBack = {
                             DominoSoundManager.playTileTap()
-                            currentScreen = AppScreen.VENUE_STAGE
+                            currentScreen = if (activeVenueId == null) AppScreen.TITLE else AppScreen.VENUE_STAGE
                         }
                     )
                 }
