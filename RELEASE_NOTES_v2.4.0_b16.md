@@ -1,58 +1,84 @@
 # Notas de versión — v2.4.0 (versionCode 16)
 
-> Reemplaza a la v2.3.1 (b16), que no llegó a subirse. Mismo versionCode 16: si ya subiste un
-> artefacto de prueba con ese código y Play no te deja reutilizarlo, sube este como 16 y borra
-> el borrador anterior.
+> Sustituye a la v2.3.1 (b16), que no llegó a subirse. Mismo versionCode 16: si ya subiste un
+> artefacto de prueba con ese código y Play no te deja reutilizarlo, borra el borrador anterior.
 
-## Español (Google Play, ≤ 500 caracteres)
+## Para pegar en Play Console (≤ 500 caracteres por idioma)
 
 ```
-v2.4.0 · Contenido nuevo
-
-• DESAFÍO DIARIO: un reto al día, igual para todos, con racha de días y dos logros nuevos que ya se pueden conseguir.
-• Cada sede del torneo tiene su nivel: La Habana es asequible y Tokio es un rival duro de verdad.
-• Pass-and-play: juega con otra persona en el mismo móvil (1 o 2 humanos) en cualquiera de las 8 modalidades.
+<es-ES>
+• Desafío diario: un reto al día con racha y dos logros nuevos ya disponibles.
+• Dificultad por sede: La Habana es asequible, Tokio es duro de verdad.
+• Pass-and-play: dos personas en el mismo móvil.
 • Pista y deshacer en la mesa, para aprender sin frustrarte.
-• Ajustes que se guardan: sonido, vibración e idioma. La cámara, la iluminación y la velocidad también se recuerdan.
-• La partida rápida ya cuenta para tus estadísticas y logros.
-```
-
-## English (Google Play, ≤ 500 characters)
-
-```
-v2.4.0 · New content
-
-• DAILY CHALLENGE: one challenge a day, the same for everyone, with a day streak and two new achievements that are finally obtainable.
-• Each tour venue now has its own level: Havana is friendly, Tokyo is genuinely tough.
-• Pass-and-play: play with a friend on the same phone (1 or 2 humans) in any of the 8 modes.
+• Ajustes que se guardan: sonido, vibración, idioma y cámara.
+• Tablero 2D/3D centrado y sin solapes, también en cadenas largas.
+• Tanteo real, marcador correcto con 3-4 jugadores y la partida rápida ya cuenta para tus logros.
+</es-ES>
+<en-US>
+• Daily Challenge: one challenge a day, a streak, and two new achievements.
+• Per-venue difficulty: Havana is friendly, Tokyo is genuinely tough.
+• Pass-and-play: two people on the same phone.
 • Hint and undo at the table, so you can learn without frustration.
-• Settings that stick: sound, haptics and language. Camera, lighting and AI speed are remembered too.
-• Quick Play now counts toward your stats and achievements.
+• Settings that stick: sound, haptics, language and camera.
+• 2D/3D board centred and overlap-free, even on long chains.
+• Real scoring, correct scoreboard with 3-4 players, and Quick Play now counts toward achievements.
+</en-US>
 ```
 
-## Detalle técnico (interno, no va a la ficha de tienda)
+Longitud: ES 487 caracteres · EN 481 caracteres.
 
-- **Desafío diario conectado**: `Navigation` construye el reto con `DailyChallengeManager.today()`,
-  pasa `dailySeed` a la mesa (que ya no guarda snapshot en modo diario), guarda
-  `DailyChallengeResult` con `nextStreak` y alimenta `AchievementCatalog.applyReport(dailyStreak)`,
-  de modo que `daily_first` y `daily_streak_7` dejan de ser inalcanzables. Tarjeta en el título
-  con modo, objetivo y racha (todas las cadenas ya existían traducidas).
-- **Dificultad por sede**: `VenueChallenge.difficulty` + `difficultyForVenue()` (La Habana/México
-  RELAXED, San Juan/Nueva Orleans/Miami STANDARD, Las Vegas/Tokio TOUGH); antes los 35 retos
-  corrían en STANDARD.
-- **Pass-and-play**: `QuickPlayConfig.humanPlayerCount` (1 o 2) y `humanPlayerIndices` reales en
-  la mesa. La infraestructura (cortina de privacidad, `HandViewRules`) ya estaba probada.
-- **Deshacer**: `markUndoPoint()` / `undo()` / `canUndo` en el motor (usa `snapshot`/`restore`);
-  se descarta al empezar ronda y al cerrarla. Solo en partidas de un humano.
-- **Pista**: `suggestedMove()` reutiliza `MediumStrategy` + `simulate()` para proponer una jugada
-  legal; se anuncia con `hintPlaySuggestion` y el extremo elegido.
-- **Ajustes persistentes**: `SettingsStore` (sonido, háptica, cámara, iluminación, velocidad) +
-  `SettingsDialog` en el título. El silencio y la háptica ya se recuperan al arrancar.
-- **Partida rápida con informe**: aplica `CareerReporter` (venueId nulo, sin premios) y actualiza
-  estadísticas y logros.
-- **Estadísticas**: `matchPointsScored` / `matchBestRoundPoints` usan los puntos reales de la ronda
-  (`roundPointsForTeam`) en vez de los de la última jugada.
-- **Reanudación endurecida**: solo la carrera carga snapshot (`activeVenueId != null`), así que
-  ninguna partida libre o diaria puede resucitar un guardado viejo.
-- **Tests nuevos**: `PlayAssistTest` (deshacer restaura el estado completo, pista legal, pista
-  nula sin jugadas, dificultad por sede y en los 35 retos). Total: 239 tests.
+---
+
+## Todo lo que se hizo hoy (resumen completo, no cabe en Play)
+
+**Contenido nuevo**
+
+- Desafío diario: un reto por día, con la misma mano para todo el mundo, racha de días y dos
+  logros nuevos (`daily_first`, `daily_streak_7`) que antes eran inalcanzables.
+- Dificultad por sede: México y La Habana `RELAXED`, San Juan/Nueva Orleans/Miami `STANDARD`,
+  Las Vegas y Tokio `TOUGH`. Antes los 35 retos jugaban todos en `STANDARD`.
+- Pass-and-play: 1 o 2 personas en el mismo móvil, con cortina de privacidad entre turnos.
+- Pista en la mesa: propone una jugada legal y el extremo, usando la evaluación de la IA media.
+- Deshacer: vuelve al momento anterior a tu última jugada (incluida la respuesta de la IA).
+  Solo en partidas de un humano.
+- Ajustes persistentes: sonido, vibración, idioma, cámara, iluminación y velocidad de la IA.
+- La partida rápida ya cuenta para estadísticas y logros.
+- Contador de fichas 0-6 con el pozo separado (v15, mejorado).
+- Fallas de los rivales en tiempo real (v15, ahora se limpian al volver a jugar).
+- Tanteo detallado al cerrar la mano, con desglose real de puntos (v15, corregido).
+
+**Correcciones**
+
+- All Fives: las cadenas largas ya no cruzan los brazos del spinner (era el único caso en que
+  dos fichas se solapaban). Franja central reservada y 13.689 tableros verificados sin solapes.
+- Tablero centrado desde la ficha de salida (antes se iba 2 celdas a la izquierda).
+- Marcador correcto en partidas individuales de 3 y 4 jugadores (antes solo contaba a un rival).
+- El resumen de ronda muestra los puntos que suma el motor de verdad, sin los «×2 / ×3» de
+  capicúa que nunca se aplicaron, y sin narrar "dominó" cuando la ronda cerró por puntos.
+- La partida rápida ya no borra el progreso de la carrera ni contagia la dificultad a los retos.
+- Solo la carrera reanuda partida guardada: ninguna partida libre o diaria resucita un guardado
+  viejo con otro modo y otro objetivo.
+- `matchPointsScored` suma los puntos reales de la ronda, no los de la última jugada.
+- Arrastre del tablero convertido de píxeles a dp (se movía de más).
+- HUD de rivales con scroll: en pantallas estrechas ya no se recortan los badges.
+- El contador de fichas no se queda encima del resumen de ronda.
+
+**Calidad**
+
+- 239 tests en verde (antes 227), con `PlayAssistTest` nuevo y las aserciones de colisión
+  actualizadas a la convención real del tablero (centro, 56x28).
+- Decisiones ambiguas documentadas en `DECISIONES.md` (capicúa, cierre a mitad de ronda en los
+  modos de puntos, estadísticas históricas).
+
+## Detalle técnico (interno)
+
+- `SettingsStore` + `SettingsDialog`; `DominoSoundManager` y `DominoHaptics` recuperan su estado
+  al arrancar y lo guardan al cambiar.
+- `DominoEngine`: `markUndoPoint`/`undo`/`canUndo`, `suggestedMove`, `lastRoundPointsAwarded`,
+  `roundPointsByPlayer` y `roundPointsForTeam` (acumuladores de ronda correctos).
+- `VenueChallenge.difficulty` + `difficultyForVenue()`; `Navigation` deja de forzar `STANDARD`.
+- `QuickPlayConfig.humanPlayerCount` (1 o 2) → `humanPlayerIndices` reales en la mesa.
+- `DailyChallengeManager`/`DailyChallengeStore` conectados a `Navigation` y a
+  `AchievementCatalog.applyReport(dailyStreak)`.
+- `MatchSnapshot` gana `lastRoundPointsAwarded` (default, compatible con guardados anteriores).
