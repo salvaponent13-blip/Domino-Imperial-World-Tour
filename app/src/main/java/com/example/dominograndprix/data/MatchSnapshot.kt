@@ -74,6 +74,9 @@ data class MatchSnapshot(
 
     // --- Persistencia completa de partida y acumuladores ---
     val lastRoundBonusType: DominoBonusType = DominoBonusType.NONE,
+
+    /** Lo que el cierre de la ronda sumo al ganador (se muestra en el resumen al reanudar). */
+    val lastRoundPointsAwarded: Int = 0,
     val blockedPlayers: Set<Int> = emptySet(),
     val matchRoundsPlayed: Int = 0,
     val matchRoundsWon: Int = 0,

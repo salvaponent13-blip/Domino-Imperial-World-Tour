@@ -867,14 +867,19 @@ class GameModeRulesTest {
         // Verificar que ninguna ficha solapa con otra ficha
         for (i in 0 until engine.boardChain.size) {
             val a = engine.boardChain[i]
-            val aw = if (a.isVertical) 15 else 29
-            val ah = if (a.isVertical) 29 else 15
+            // virtX/virtY es el centro de la ficha y estas miden 56x28 (convencion de la v2.3.1).
+            val aw = if (a.isVertical) 28 else 56
+            val ah = if (a.isVertical) 56 else 28
+            val aLeft = a.virtX - aw / 2
+            val aTop = a.virtY - ah / 2
             for (j in i + 1 until engine.boardChain.size) {
                 val b = engine.boardChain[j]
-                val bw = if (b.isVertical) 15 else 29
-                val bh = if (b.isVertical) 29 else 15
-                val overlapX = a.virtX < b.virtX + bw - 1 && a.virtX + aw - 1 > b.virtX
-                val overlapY = a.virtY < b.virtY + bh - 1 && a.virtY + ah - 1 > b.virtY
+                val bw = if (b.isVertical) 28 else 56
+                val bh = if (b.isVertical) 56 else 28
+                val bLeft = b.virtX - bw / 2
+                val bTop = b.virtY - bh / 2
+                val overlapX = aLeft < bLeft + bw && aLeft + aw > bLeft
+                val overlapY = aTop < bTop + bh && aTop + ah > bTop
                 assertFalse("Colision entre ${a.tile} en (${a.virtX}, ${a.virtY}) y ${b.tile} en (${b.virtX}, ${b.virtY})", overlapX && overlapY)
             }
         }

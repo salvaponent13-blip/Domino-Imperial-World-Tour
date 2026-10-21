@@ -198,6 +198,13 @@ class DominoEngine(
     val upBranchTiles: MutableList<BoardPlacedTile> = mutableListOf()
     val downBranchTiles: MutableList<BoardPlacedTile> = mutableListOf()
 
+    /**
+     * En ALL_FIVES, en cuanto hay un doble en el centro, la franja central queda reservada
+     * para los brazos ARRIBA/ABAJO y las serpentinas giran antes de entrar en ella.
+     */
+    private val reservesCenterCorridor: Boolean
+        get() = gameMode == GameMode.ALL_FIVES && spinnerTile != null
+
     fun recomputeBoardLayout() {
         boardChain.clear()
         if (firstPlacedTile == null) return
@@ -206,7 +213,8 @@ class DominoEngine(
             leftBranch = leftBranchTiles,
             rightBranch = rightBranchTiles,
             upBranch = upBranchTiles,
-            downBranch = downBranchTiles
+            downBranch = downBranchTiles,
+            crossMode = reservesCenterCorridor
         )
         boardChain.addAll(laidOut)
     }
@@ -238,6 +246,17 @@ class DominoEngine(
     /** Puntos que otorgo la ultima jugada (0 en modos que no puntuan extremos). */
     var lastPointsEarned: Int = 0
         private set
+
+    /**
+     * Puntos que el CIERRE de la ronda sumo al ganador: los pips de los rivales, o los de la
+     * jugada que alcanzo la meta en los modos de puntos. Es lo que debe mostrar el resumen de
+     * ronda; [lastPointsEarned] es solo de la ultima jugada y no sirve para eso.
+     */
+    var lastRoundPointsAwarded: Int = 0
+        private set
+
+    /** Puntos de mesa ganados por cada asiento durante la ronda en curso (modos de puntos). */
+    val roundPointsByPlayer: MutableMap<Int, Int> = mutableMapOf()
 
     /** Bonificación por cierre de dominó (con doble, capicúa o doble capicúa). */
     var lastRoundBonusType: DominoBonusType = DominoBonusType.NONE
@@ -417,6 +436,8 @@ class DominoEngine(
         lastPassTurnNumber = -1
         turnNumber = 0
         lastPointsEarned = 0
+        lastRoundPointsAwarded = 0
+        roundPointsByPlayer.clear()
         lastRoundWasBlocked = false
         lastRoundBonusType = DominoBonusType.NONE
 
@@ -547,42 +568,20 @@ class DominoEngine(
      */
     fun getPlayableSides(playerIndex: Int, tile: DominoTile): Set<BoardSide> {
         if (isRoundOver) return emptySet()
-        val player = players[playerIndex]
         if (boardChain.isEmpty()) return setOf(BoardSide.LEFT, BoardSide.RIGHT)
 
         val sides = mutableSetOf<BoardSide>()
         if (canConnectLeft(tile) && isBranchOpenFor(playerIndex, BoardSide.LEFT)) {
-            val leftSlot = getNextSlotForSide(BoardSide.LEFT)
-            val leftParent = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT } ?: boardChain.firstOrNull { it.isFirstTile }
-            if (!slotCollidesWithOtherTiles(leftSlot, leftParent)) {
-                sides.add(BoardSide.LEFT)
-            }
+            sides.add(BoardSide.LEFT)
         }
         if (canConnectRight(tile) && isBranchOpenFor(playerIndex, BoardSide.RIGHT)) {
-            val rightSlot = getNextSlotForSide(BoardSide.RIGHT)
-            val rightParent = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT } ?: boardChain.firstOrNull { it.isFirstTile }
-            if (!slotCollidesWithOtherTiles(rightSlot, rightParent)) {
-                sides.add(BoardSide.RIGHT)
-            }
+            sides.add(BoardSide.RIGHT)
         }
         if (gameMode == GameMode.ALL_FIVES && spinnerTile != null) {
-            val upSlot = getNextSlotForSide(BoardSide.UP)
-            val upParent = boardChain.lastOrNull { it.branchSide == BoardSide.UP } ?: boardChain.firstOrNull { it.tile == spinnerTile }
-            if (canConnectUp(tile) && !slotCollidesWithOtherTiles(upSlot, upParent)) {
-                sides.add(BoardSide.UP)
-            }
-
-            val downSlot = getNextSlotForSide(BoardSide.DOWN)
-            val downParent = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN } ?: boardChain.firstOrNull { it.tile == spinnerTile }
-            if (canConnectDown(tile) && !slotCollidesWithOtherTiles(downSlot, downParent)) {
-                sides.add(BoardSide.DOWN)
-            }
+            if (canConnectUp(tile)) sides.add(BoardSide.UP)
+            if (canConnectDown(tile)) sides.add(BoardSide.DOWN)
         }
         return sides
-    }
-
-    private fun slotCollidesWithOtherTiles(slot: NextSlotPlacement, connectingTile: BoardPlacedTile?): Boolean {
-        return false
     }
 
     /** ¿La rama indicada está cerrada para este jugador por la regla de Draw Special? */
@@ -684,8 +683,9 @@ class DominoEngine(
     }
 
     /**
-     * Cálculo del siguiente hueco de una rama a partir de la plantilla de recorrido
-     * (coordenadas y orientación en el espacio virtual de 240x320).
+     * Cálculo del siguiente hueco de una rama (coordenadas y orientación en la rejilla virtual
+     * de 14 unidades). [candidateTile] permite previsualizar el hueco real de una ficha
+     * concreta: un doble no ocupa lo mismo ni se orienta igual que una ficha normal.
      */
     fun getNextSlotForSide(side: BoardSide, candidateTile: DominoTile? = null): NextSlotPlacement {
         return DominoBoardLayout.getNextSlotPlacement(
@@ -695,7 +695,8 @@ class DominoEngine(
             upBranch = upBranchTiles,
             downBranch = downBranchTiles,
             side = side,
-            candidateTile = candidateTile
+            candidateTile = candidateTile,
+            crossMode = reservesCenterCorridor
         )
     }
 
@@ -987,6 +988,9 @@ class DominoEngine(
         }
 
         roundLog = "${player.name} jugó $tile"
+        // Si vuelve a jugar, las fallas que se le apuntaron dejan de estar vigentes: el chip
+        // "pasó al 5" no debe quedarse pegado toda la ronda.
+        playerPassedPips.remove(playerIndex)
         evaluatePointScoring(playerIndex)
 
         if (newHand.isEmpty()) {
@@ -1182,6 +1186,7 @@ class DominoEngine(
 
         if (pointsEarned > 0) {
             lastPointsEarned = pointsEarned
+            roundPointsByPlayer[playerIndex] = (roundPointsByPlayer[playerIndex] ?: 0) + pointsEarned
             val p = players[playerIndex]
             val newScore = p.score + pointsEarned
             players[playerIndex] = p.copy(score = newScore)
@@ -1190,6 +1195,7 @@ class DominoEngine(
                 isMatchOver = true
                 winningTeam = p.team
                 winnerPlayerId = playerIndex
+                lastRoundPointsAwarded = pointsEarned
                 finishMatchByPoints(winnerIndex = playerIndex)
             }
         }
@@ -1323,6 +1329,9 @@ class DominoEngine(
 
         val newScore = winner.score + totalOpponentPips
         players[winnerIndex] = winner.copy(score = newScore)
+        // Lo que este cierre sumo de verdad al ganador. Es la unica fuente valida para el
+        // desglose del resumen de ronda (lastPointsEarned es solo de la ultima jugada).
+        lastRoundPointsAwarded = totalOpponentPips
 
         if (byDomino) {
             val bonusTag = when (lastRoundBonusType) {
@@ -1457,6 +1466,7 @@ class DominoEngine(
             roundLog = roundLog,
             randomSeed = randomSeed,
             lastRoundBonusType = lastRoundBonusType,
+            lastRoundPointsAwarded = lastRoundPointsAwarded,
             blockedPlayers = blockedPlayers.toSet(),
             matchRoundsPlayed = matchRoundsPlayed,
             matchRoundsWon = matchRoundsWon,
@@ -1505,7 +1515,6 @@ class DominoEngine(
         upBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.UP }.sortedBy { it.branchStepIndex })
         downBranchTiles.clear()
         downBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.DOWN }.sortedBy { it.branchStepIndex })
-        recomputeBoardLayout()
         placementCounter = snapshot.boardChain.maxOfOrNull { it.placementId } ?: 0
         boneyard.clear()
         leftOpenPip = snapshot.leftOpenPip
@@ -1513,6 +1522,8 @@ class DominoEngine(
         upOpenPip = snapshot.upOpenPip
         downOpenPip = snapshot.downOpenPip
         spinnerTile = snapshot.spinnerTile
+        // Despues de restaurar el spinner: el layout necesita saber si hay 4 ramas activas.
+        recomputeBoardLayout()
 
         isRoundOver = true
         isMatchOver = snapshot.isMatchOver
@@ -1524,6 +1535,8 @@ class DominoEngine(
         lastPassingPlayerIndex = null
         lastPassTurnNumber = -1
         lastPointsEarned = 0
+        lastRoundPointsAwarded = snapshot.lastRoundPointsAwarded
+        roundPointsByPlayer.clear()
 
         lastRoundBonusType = snapshot.lastRoundBonusType
         blockedPlayers.clear()
@@ -1589,6 +1602,8 @@ class DominoEngine(
         val matchBestRoundPoints: Int,
         val matchDrewFromBoneyard: Boolean,
         val lastRoundBonusType: DominoBonusType,
+        val lastRoundPointsAwarded: Int,
+        val roundPointsByPlayer: Map<Int, Int>,
         val playerPassedPips: Map<Int, Set<Int>>
     )
 
@@ -1625,6 +1640,8 @@ class DominoEngine(
         matchBestRoundPoints = matchBestRoundPoints,
         matchDrewFromBoneyard = matchDrewFromBoneyard,
         lastRoundBonusType = lastRoundBonusType,
+        lastRoundPointsAwarded = lastRoundPointsAwarded,
+        roundPointsByPlayer = roundPointsByPlayer.toMap(),
         playerPassedPips = playerPassedPips.mapValues { it.value.toSet() }
     )
 
@@ -1641,7 +1658,6 @@ class DominoEngine(
         upBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.UP }.sortedBy { it.branchStepIndex })
         downBranchTiles.clear()
         downBranchTiles.addAll(snapshot.boardChain.filter { it.branchSide == BoardSide.DOWN }.sortedBy { it.branchStepIndex })
-        recomputeBoardLayout()
         boneyard.clear()
         boneyard.addAll(snapshot.boneyard)
         leftOpenPip = snapshot.leftOpenPip
@@ -1649,6 +1665,8 @@ class DominoEngine(
         upOpenPip = snapshot.upOpenPip
         downOpenPip = snapshot.downOpenPip
         spinnerTile = snapshot.spinnerTile
+        // Despues de restaurar el spinner: el layout necesita saber si hay 4 ramas activas.
+        recomputeBoardLayout()
         currentPlayerIndex = snapshot.currentPlayerIndex
         consecutivePasses = snapshot.consecutivePasses
         isRoundOver = snapshot.isRoundOver
@@ -1674,6 +1692,9 @@ class DominoEngine(
         matchBestRoundPoints = snapshot.matchBestRoundPoints
         matchDrewFromBoneyard = snapshot.matchDrewFromBoneyard
         lastRoundBonusType = snapshot.lastRoundBonusType
+        lastRoundPointsAwarded = snapshot.lastRoundPointsAwarded
+        roundPointsByPlayer.clear()
+        roundPointsByPlayer.putAll(snapshot.roundPointsByPlayer)
         playerPassedPips.clear()
         snapshot.playerPassedPips.forEach { (k, v) -> playerPassedPips[k] = v.toMutableSet() }
     }

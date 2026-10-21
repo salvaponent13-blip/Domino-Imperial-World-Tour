@@ -154,8 +154,13 @@ fun MainNavigation() {
                             activePlayerCount = config.playerCount
                             activeIsTeamGame = config.isTeamGame
                             activeDifficulty = config.difficulty
-                            activeRivalName = "IA Experta"
-                            MatchSnapshotStore.clear(context)
+                            activeRivalName = when (config.difficulty) {
+                                Difficulty.RELAXED -> "IA Novata"
+                                Difficulty.TOUGH -> "IA Maestra"
+                                else -> "IA Experta"
+                            }
+                            // No se toca el guardado de la carrera: una partida libre no debe
+                            // destruir el progreso de un reto a medias.
                             currentScreen = AppScreen.MATCH_TABLE
                         },
                         onShowRules = {
@@ -193,6 +198,9 @@ fun MainNavigation() {
                             activePlayerCount = currentChallenge.playerCount
                             activeIsTeamGame = currentChallenge.isTeamGame
                             activeRivalName = currentChallenge.rivalName
+                            // La dificultad se fija por entrada: si no, una partida libre en
+                            // "Facil" dejaba toda la carrera en RELAXED hasta cerrar la app.
+                            activeDifficulty = Difficulty.STANDARD
                             MatchSnapshotStore.clear(context)
                             currentScreen = AppScreen.MATCH_TABLE
                         },
@@ -243,7 +251,7 @@ fun MainNavigation() {
                                 won = won,
                                 reward = if (won) currentChallenge.rewardCash else 0,
                                 bet = activeBet,
-                                difficulty = Difficulty.STANDARD,
+                                difficulty = activeDifficulty,
                                 isDailyChallenge = false
                             )
 
@@ -326,7 +334,11 @@ fun MainNavigation() {
                             activeVenueId = null
                             activePlayerCount = 4
                             activeIsTeamGame = false
+                            activeDifficulty = Difficulty.STANDARD
                             activeRivalName = "Carlos 'El Rayo'"
+                            // Sin esto se reanudaba en fantasma la ultima partida libre guardada
+                            // (su venueId tambien era null).
+                            MatchSnapshotStore.clear(context)
                             currentScreen = AppScreen.MATCH_TABLE
                         }
                     )

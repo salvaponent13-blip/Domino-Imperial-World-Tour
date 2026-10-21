@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -148,14 +150,21 @@ fun MainTitleScreen(
             }
         }
 
-        // Panel de Botones Principales en la mitad inferior
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 22.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.Bottom,
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Panel de Botones Principales en la mitad inferior.
+        // Envoltorio con scroll: con la Partida Rapida el panel crecio y en pantallas bajas o
+        // en apaisado el contenido se salia por arriba (el boton de continuar quedaba oculto).
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 22.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.Bottom,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             if (hasSavedProgress) {
                 // BOTÓN: CONTINUAR TORNEO (Destacado en Oro)
                 Surface(
@@ -278,14 +287,14 @@ fun MainTitleScreen(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "⚡ PARTIDA RÁPIDA",
+                        text = DominoStrings.quickPlayButton(),
                         color = GoldAccent,
                         fontWeight = FontWeight.Black,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "• 8 Modalidades Libres",
+                        text = DominoStrings.quickPlaySubtitle(),
                         color = Color.White.copy(alpha = 0.8f),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 12.sp
@@ -349,6 +358,7 @@ fun MainTitleScreen(
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center
             )
+            }
         }
 
         QuickPlayDialog(

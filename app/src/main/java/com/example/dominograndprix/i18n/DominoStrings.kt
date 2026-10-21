@@ -621,6 +621,262 @@ object DominoStrings {
         AppLanguage.DE -> "nicht spielbar"
     }
 
+    // ---------------------------------------------------------------------------------------
+    // Textos de la mesa, el contador de fichas y el resumen de ronda.
+    //
+    // Hasta la v2.3.0 estos textos estaban escritos en espanol directamente en la UI, asi que
+    // la app "traducida" seguia mostrando espanol. Todos pasan por aqui.
+    // ---------------------------------------------------------------------------------------
+
+    private fun multi(es: String, en: String, fr: String, it: String, pt: String, de: String): String =
+        when (currentLanguage) {
+            AppLanguage.ES -> es
+            AppLanguage.EN -> en
+            AppLanguage.FR -> fr
+            AppLanguage.IT -> it
+            AppLanguage.PT -> pt
+            AppLanguage.DE -> de
+        }
+
+    fun hudYou(): String = multi("TÚ", "YOU", "VOUS", "TU", "VOCÊ", "DU")
+
+    fun hudRival(): String = multi("RIVAL", "RIVAL", "RIVAL", "RIVALE", "RIVAL", "GEGNER")
+
+    fun targetLabel(): String = multi("Meta", "Target", "Objectif", "Obiettivo", "Meta", "Ziel")
+
+    fun countTilesLabel(): String = multi("CONTAR", "COUNT", "COMPTER", "CONTARE", "CONTAR", "ZÄHLEN")
+
+    fun passedTo(pips: String): String = multi(
+        "Pasó al $pips",
+        "Passed on $pips",
+        "A passé sur $pips",
+        "Ha passato $pips",
+        "Passou em $pips",
+        "Hat $pips gepasst"
+    )
+
+    fun youPassedTo(pips: String): String = multi(
+        "Pasaste al $pips",
+        "You passed on $pips",
+        "Vous avez passé sur $pips",
+        "Hai passato $pips",
+        "Você passou em $pips",
+        "Du hast $pips gepasst"
+    )
+
+    /** Etiqueta corta del chip de fallas en la ficha del rival. */
+    fun passedChip(): String = multi("Pasó:", "Passed:", "Passé :", "Passato:", "Passou:", "Gepasst:")
+
+    fun pointsAnnouncement(points: Int, who: String): String = multi(
+        "+$points pts ($who)",
+        "+$points pts ($who)",
+        "+$points pts ($who)",
+        "+$points pt ($who)",
+        "+$points pts ($who)",
+        "+$points Pkt. ($who)"
+    )
+
+    fun dominoAnnouncement(name: String): String = multi(
+        "¡$name cerró la mano! (Dominó)",
+        "$name closed the hand! (Domino)",
+        "$name a fermé la main ! (Domino)",
+        "$name ha chiuso la mano! (Domino)",
+        "$name fechou a mão! (Dominó)",
+        "$name hat die Hand geschlossen! (Domino)"
+    )
+
+    fun chooseEndTitle(high: Int, low: Int): String = multi(
+        "¿En qué extremo colocas [$high|$low]?",
+        "Where do you place [$high|$low]?",
+        "Où placez-vous [$high|$low] ?",
+        "Dove metti [$high|$low]?",
+        "Onde coloca [$high|$low]?",
+        "Wohin legst du [$high|$low]?"
+    )
+
+    // --- Contador de fichas ---
+
+    fun pipCounterTitle(): String =
+        multi("CONTADOR DE FICHAS", "TILE COUNTER", "COMPTEUR DE PIÈCES", "CONTATORE PEDINE", "CONTADOR DE PEÇAS", "STEINZÄHLER")
+
+    fun pipCounterSubtitle(): String = multi(
+        "7 fichas totales por número (0 al 6)",
+        "7 tiles per number (0 to 6)",
+        "7 pièces par numéro (0 à 6)",
+        "7 pedine per numero (0 a 6)",
+        "7 peças por número (0 a 6)",
+        "7 Steine pro Zahl (0 bis 6)"
+    )
+
+    fun colNumber(): String = multi("NÚMERO", "NUMBER", "NUMÉRO", "NUMERO", "NÚMERO", "ZAHL")
+
+    fun colOnBoard(): String =
+        multi("EN MESA", "ON TABLE", "SUR TABLE", "SUL TAVOLO", "NA MESA", "AUF DEM TISCH")
+
+    fun colInHand(): String = multi("TU MANO", "YOUR HAND", "TA MAIN", "TUA MANO", "SUA MÃO", "DEINE HAND")
+
+    fun colRemaining(): String = multi("RESTAN", "LEFT", "RESTENT", "RIMANGONO", "RESTAM", "ÜBRIG")
+
+    fun exhaustedLabel(): String =
+        multi("AGOTADO", "EXHAUSTED", "ÉPUISÉ", "ESAURITO", "ESGOTADO", "ERSCHÖPFT")
+
+    // --- Resumen de ronda ---
+
+    fun summaryChallengeWon(): String = multi(
+        "¡VICTORIA EN EL RETO!", "CHALLENGE WON!", "DÉFI REMPORTÉ !", "SFIDA VINTA!",
+        "DESAFIO VENCIDO!", "HERAUSFORDERUNG GEWONNEN!"
+    )
+
+    fun summaryChallengeLost(): String = multi(
+        "DERROTA EN EL RETO", "CHALLENGE LOST", "DÉFI PERDU", "SFIDA PERSA",
+        "DESAFIO PERDIDO", "HERAUSFORDERUNG VERLOREN"
+    )
+
+    fun summaryHandWon(): String =
+        multi("¡MANO GANADA!", "HAND WON!", "MANCHE GAGNÉE !", "MANO VINTA!", "MÃO VENCIDA!", "RUNDE GEWONNEN!")
+
+    fun summaryHandLost(): String =
+        multi("MANO PERDIDA", "HAND LOST", "MANCHE PERDUE", "MANO PERSA", "MÃO PERDIDA", "RUNDE VERLOREN")
+
+    fun summaryClosedDomino(name: String): String = multi(
+        "$name cerró la mano con ¡Dominó!",
+        "$name closed the hand with a domino!",
+        "$name a fermé la main avec un domino !",
+        "$name ha chiuso la mano con un domino!",
+        "$name fechou a mão com um dominó!",
+        "$name hat mit einem Domino geschlossen!"
+    )
+
+    fun summaryReachedTarget(name: String, target: Int): String = multi(
+        "$name alcanzó la meta de $target puntos",
+        "$name reached the $target-point target",
+        "$name a atteint l'objectif de $target points",
+        "$name ha raggiunto l'obiettivo di $target punti",
+        "$name alcançou a meta de $target pontos",
+        "$name hat das Ziel von $target Punkten erreicht"
+    )
+
+    fun summaryBlocked(name: String): String = multi(
+        "Mesa trancada · gana $name por menor conteo",
+        "Board blocked · $name wins with fewer pips",
+        "Table bloquée · $name gagne avec moins de points",
+        "Tavolo bloccato · $name vince con meno punti",
+        "Mesa travada · $name vence com menos pontos",
+        "Tisch blockiert · $name gewinnt mit weniger Augen"
+    )
+
+    fun summaryHandsTitle(): String = multi(
+        "FICHAS EN MANO AL CERRARSE LA RONDA",
+        "TILES LEFT IN HAND AT ROUND END",
+        "PIÈCES EN MAIN À LA FIN DE LA MANCHE",
+        "PEDINE IN MANO A FINE MANO",
+        "PEÇAS NA MÃO NO FIM DA RODADA",
+        "STEINE AUF DER HAND BEIM RUNDENENDE"
+    )
+
+    fun summaryBreakdownTitle(): String = multi(
+        "DESGLOSE DE PUNTOS SUMADOS",
+        "POINTS BREAKDOWN",
+        "DÉTAIL DES POINTS",
+        "DETTAGLIO PUNTI",
+        "DETALHE DOS PONTOS",
+        "PUNKTEAUFSCHLÜSSELUNG"
+    )
+
+    fun summaryRivalPips(): String = multi(
+        "Suma de fichas rivales:",
+        "Opponents' pips:",
+        "Points des adversaires :",
+        "Punti degli avversari:",
+        "Pontos dos adversários:",
+        "Augen der Gegner:"
+    )
+
+    fun summaryTablePoints(): String = multi(
+        "Puntos de mesa de la ronda:",
+        "Table points this round:",
+        "Points de table de la manche :",
+        "Punti da tavolo della mano:",
+        "Pontos de mesa da rodada:",
+        "Tischpunkte dieser Runde:"
+    )
+
+    fun summaryTotalTo(name: String): String = multi(
+        "Total sumado a $name:",
+        "Total added to $name:",
+        "Total ajouté à $name :",
+        "Totale aggiunto a $name:",
+        "Total somado a $name:",
+        "Gesamt für $name:"
+    )
+
+    fun summaryStandings(target: Int): String = multi(
+        "MARCADOR ACUMULADO (OBJETIVO: $target PTS)",
+        "RUNNING SCORE (TARGET: $target PTS)",
+        "SCORE CUMULÉ (OBJECTIF : $target PTS)",
+        "PUNTEGGIO (OBIETTIVO: $target PT)",
+        "PLACAR (META: $target PTS)",
+        "SPIELSTAND (ZIEL: $target Pkt.)"
+    )
+
+    fun summaryTeamYou(): String = multi("Equipo Tú:", "Your team:", "Votre équipe :", "Tua squadra:", "Sua equipe:", "Dein Team:")
+
+    fun summaryTeamRival(): String =
+        multi("Equipo Rival:", "Rival team:", "Équipe adverse :", "Squadra rivale:", "Equipe rival:", "Gegnerteam:")
+
+    fun summaryEmptyHand(): String = multi("¡Sin fichas! (0 pts)", "No tiles left! (0 pts)", "Plus de pièces ! (0 pts)", "Nessuna pedina! (0 pt)", "Sem peças! (0 pts)", "Keine Steine! (0 Pkt.)")
+
+    fun summaryCountsForWinner(points: Int): String = multi(
+        "Suma al ganador: +$points pts",
+        "Adds to winner: +$points pts",
+        "Ajouté au gagnant : +$points pts",
+        "Somma al vincitore: +$points pt",
+        "Soma ao vencedor: +$points pts",
+        "Zählt für den Sieger: +$points Pkt."
+    )
+
+    fun summaryNextRound(): String =
+        multi("SIGUIENTE RONDA ➔", "NEXT ROUND ➔", "MANCHE SUIVANTE ➔", "MANO SUCCESSIVA ➔", "PRÓXIMA RODADA ➔", "NÄCHSTE RUNDE ➔")
+
+    fun summaryNextChallenge(): String = multi(
+        "SIGUIENTE RETO ➔", "NEXT CHALLENGE ➔", "DÉFI SUIVANT ➔", "SFIDA SUCCESSIVA ➔",
+        "PRÓXIMO DESAFIO ➔", "NÄCHSTE HERAUSFORDERUNG ➔"
+    )
+
+    fun summaryRetry(): String = multi(
+        "REINTENTAR RETO", "RETRY CHALLENGE", "RÉESSAYER LE DÉFI", "RIPROVA SFIDA",
+        "TENTAR DE NOVO", "HERAUSFORDERUNG WIEDERHOLEN"
+    )
+
+    fun summaryBackToMenu(): String =
+        multi("VOLVER AL MENÚ", "BACK TO MENU", "RETOUR AU MENU", "TORNA AL MENU", "VOLTAR AO MENU", "ZURÜCK ZUM MENÜ")
+
+    fun summaryExit(): String = multi("SALIR", "EXIT", "QUITTER", "ESCI", "SAIR", "VERLASSEN")
+
+    fun bonusCapicua(): String = multi("✨ CAPICÚA ✨", "✨ CAPICUA ✨", "✨ CAPICUA ✨", "✨ CAPICUA ✨", "✨ CAPICUA ✨", "✨ CAPICUA ✨")
+
+    fun bonusDoubleCapicua(): String = multi(
+        "🌟 DOBLE CAPICÚA 🌟", "🌟 DOUBLE CAPICUA 🌟", "🌟 DOUBLE CAPICUA 🌟",
+        "🌟 DOPPIA CAPICUA 🌟", "🌟 CAPICUA DUPLA 🌟", "🌟 DOPPEL-CAPICUA 🌟"
+    )
+
+    fun bonusDominoWithDouble(): String = multi(
+        "🎯 DOMINÓ CON DOBLE 🎯", "🎯 DOMINO WITH DOUBLE 🎯", "🎯 DOMINO AVEC DOUBLE 🎯",
+        "🎯 DOMINO CON DOPPIA 🎯", "🎯 DOMINÓ COM DUPLA 🎯", "🎯 DOMINO MIT DOPPEL 🎯"
+    )
+
+    fun quickPlayButton(): String =
+        multi("⚡ PARTIDA RÁPIDA", "⚡ QUICK PLAY", "⚡ PARTIE RAPIDE", "⚡ PARTITA RAPIDA", "⚡ PARTIDA RÁPIDA", "⚡ SCHNELLSPIEL")
+
+    fun quickPlaySubtitle(): String = multi(
+        "• 8 Modalidades Libres",
+        "• 8 free modes",
+        "• 8 modes libres",
+        "• 8 modalità libere",
+        "• 8 modalidades livres",
+        "• 8 freie Modi"
+    )
+
     /** Que ocurre al pulsar una ficha jugable (lo anuncia el lector de pantalla). */
     fun tileClickAction(): String = when (currentLanguage) {
         AppLanguage.ES -> "jugar esta ficha"

@@ -96,9 +96,8 @@ fun AnimatedPlacedTile(
     }
 }
 
-/** Anchura de una ficha segn su orientacin y la escala de la mesa (grid de 14 unidades: 2x4 celdas = 28x56 unidades virtuales). */
-/** Anchura de una ficha según su orientación y el tamaño de celda de la mesa (grid de 14 unidades: 2x4 celdas). */
+/** Anchura de una ficha según su orientación y el tamaño de celda (rejilla de 14: 2x4 celdas). */
 fun tileWidth(unit: Dp, isVertical: Boolean): Dp = unit * (if (isVertical) 2f else 4f)
 
-/** Altura de una ficha según su orientación y el tamaño de celda de la mesa (grid de 14 unidades: 2x4 celdas). */
+/** Altura de una ficha según su orientación y el tamaño de celda (rejilla de 14: 2x4 celdas). */
 fun tileHeight(unit: Dp, isVertical: Boolean): Dp = unit * (if (isVertical) 4f else 2f)

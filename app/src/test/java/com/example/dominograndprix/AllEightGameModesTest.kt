@@ -275,14 +275,19 @@ class AllEightGameModesTest {
                 val chain = engine.boardChain
                 for (i in chain.indices) {
                     val a = chain[i]
-                    val aw = if (a.isVertical) 15 else 29
-                    val ah = if (a.isVertical) 29 else 15
+                    // Convencion real: virtX/virtY es el centro y la ficha mide 56x28.
+                    val aw = if (a.isVertical) 28 else 56
+                    val ah = if (a.isVertical) 56 else 28
+                    val aLeft = a.virtX - aw / 2
+                    val aTop = a.virtY - ah / 2
                     for (j in i + 1 until chain.size) {
                         val b = chain[j]
-                        val bw = if (b.isVertical) 15 else 29
-                        val bh = if (b.isVertical) 29 else 15
-                        val overlapX = a.virtX < b.virtX + bw - 1 && a.virtX + aw - 1 > b.virtX
-                        val overlapY = a.virtY < b.virtY + bh - 1 && a.virtY + ah - 1 > b.virtY
+                        val bw = if (b.isVertical) 28 else 56
+                        val bh = if (b.isVertical) 56 else 28
+                        val bLeft = b.virtX - bw / 2
+                        val bTop = b.virtY - bh / 2
+                        val overlapX = aLeft < bLeft + bw && aLeft + aw > bLeft
+                        val overlapY = aTop < bTop + bh && aTop + ah > bTop
                         assertFalse(
                             "Colisión en modo $mode entre ficha $i (${a.tile}) en (${a.virtX},${a.virtY}) y ficha $j (${b.tile}) en (${b.virtX},${b.virtY})",
                             overlapX && overlapY

@@ -4,38 +4,60 @@ import com.example.dominograndprix.model.BoardPlacedTile
 import com.example.dominograndprix.model.BoardSide
 import com.example.dominograndprix.model.DominoTile
 
+/**
+ * Geometria exacta del tablero.
+ *
+ * Todas las coordenadas son el **centro** de la ficha y son multiplos de 14: la ficha mide
+ * 56x28 (dos mitades de 28) y se dibuja sobre una rejilla de celdas de 14.
+ *
+ * - La ficha de salida se coloca en (0, 0) y, si es doble, en cruz (vertical).
+ * - La rama DERECHA crece hacia la derecha, baja 84 unidades y vuelve; la IZQUIERDA crece
+ *   hacia la izquierda, sube 84 y vuelve. Las filas paralelas nunca se tocan.
+ * - Todos los dobles van en cruz (perpendiculares al sentido de la cadena).
+ * - En modo de 4 ramas (ALL_FIVES con spinner) la franja central queda reservada para los
+ *   brazos ARRIBA/ABAJO: las serpentinas giran dentro de su propio lado antes de entrar en
+ *   esa franja, de modo que nunca se cruzan con los brazos por larga que sea la cadena.
+ */
 object DominoBoardLayout {
     const val HALF_SHORT = 14
     const val TILE_SHORT = 28
     const val HALF_LONG = 28
     const val TILE_LONG = 56
 
-    // Horizontal threshold (13 * 14 = 182) before starting a vertical corner bridge
+    /** Umbral horizontal (13 * 14 = 182) antes de iniciar el puente vertical de giro. */
     const val TURN_LIMIT_X = 182
-    // Vertical center-to-center distance between parallel serpentine rows (6 * 14 = 84)
-    // Guarantees 56 units of green felt between normal tiles and 28 units between opposing vertical doubles
+
+    /** Separacion vertical entre filas paralelas de la serpentina (6 * 14 = 84). */
     const val ROW_SPACING_Y = 84
 
+    /** Semiancho de la franja central que ocupan los brazos ARRIBA/ABAJO (|x| <= 14). */
+    const val CENTER_ARM_HALF_WIDTH = 14
+
+    /** Huelgo de una celda entre la franja central y cualquier ficha horizontal. */
+    const val CENTER_CLEARANCE = CENTER_ARM_HALF_WIDTH + 14
+
+    /** Extremo minimo (en valor absoluto) al que puede llegar una fila que vuelve al centro. */
+    const val CROSS_MIN_END = CENTER_CLEARANCE + TILE_SHORT
+
     /**
-     * Computes exact mathematical coordinates and orientations for all domino tiles on the table.
+     * Calcula la posicion y orientacion de todas las fichas de la mesa.
      *
-     * Every coordinate (virtX, virtY) and half-dimension (14 or 28) is an exact integer multiple of 14.
-     * - First tile is placed at (0, 0).
-     * - Right branch grows RIGHT, then makes a 2-tile vertical bridge DOWN (y += 84) and returns LEFT.
-     * - Left branch grows LEFT, then makes a 2-tile vertical bridge UP (y -= 84) and returns RIGHT.
-     * - Parallel rows never touch or overlap, even when two doubles sit directly across from each other.
-     * - All doubles are placed crosswise (en cruz: perpendicular to chain direction).
+     * @param crossMode reserva la franja central para los brazos del spinner. El motor lo
+     *   activa en ALL_FIVES en cuanto hay un doble en el centro; si hay brazos, se activa solo.
      */
     fun layoutBoardTiles(
         firstTile: BoardPlacedTile?,
         leftBranch: List<BoardPlacedTile>,
         rightBranch: List<BoardPlacedTile>,
         upBranch: List<BoardPlacedTile> = emptyList(),
-        downBranch: List<BoardPlacedTile> = emptyList()
+        downBranch: List<BoardPlacedTile> = emptyList(),
+        crossMode: Boolean = false
     ): List<BoardPlacedTile> {
         if (firstTile == null) return emptyList()
 
-        // 1. Place opening tile at center (0, 0)
+        val reserveCorridor = crossMode || upBranch.isNotEmpty() || downBranch.isNotEmpty()
+
+        // 1. Ficha de salida en el centro (0, 0)
         val isFirstDouble = firstTile.tile.isDouble
         val updatedFirst = firstTile.copy(
             virtX = 0,
@@ -45,12 +67,12 @@ object DominoBoardLayout {
             pipRight = firstTile.tile.low
         )
 
-        // 2. Lay out RIGHT branch (moves RIGHT, turns DOWN by 84 units, returns LEFT)
+        // 2. Rama DERECHA: avanza a la derecha, baja 84 y vuelve
         val rightLaidOut = mutableListOf<BoardPlacedTile>()
         var rX = if (isFirstDouble) HALF_SHORT else HALF_LONG
         var rY = 0
-        var rDir = 1 // 1 for RIGHT, -1 for LEFT
-        var rTurnStep = 0 // 0 = horizontal, 1 = 1st vertical corner, 2 = 2nd vertical bridge, 3 = horizontal exit
+        var rDir = 1 // 1 = derecha, -1 = izquierda
+        var rTurnStep = 0 // 0 = horizontal, 1 = primer tramo del giro, 2 = puente, 3 = salida de fila
         var rCurrentOpenPip = updatedFirst.pipRight
 
         for (placed in rightBranch) {
@@ -59,45 +81,48 @@ object DominoBoardLayout {
                 ?: if (placed.tile.high == rCurrentOpenPip) placed.tile.high else placed.tile.low
             val openPip = placed.openEndPip
                 ?: if (placed.tile.high == rCurrentOpenPip) placed.tile.low else placed.tile.high
+            val advance = if (isDbl) TILE_SHORT else TILE_LONG
 
             if (rTurnStep == 0 && !isDbl) {
                 if (rDir == 1 && rX >= TURN_LIMIT_X) {
                     rTurnStep = 1
-                } else if (rDir == -1 && rX <= -TURN_LIMIT_X) {
+                } else if (rDir == -1 && reserveCorridor && rX - advance < CROSS_MIN_END) {
+                    // La fila ya no puede seguir hacia el centro: gira dentro de su propio lado
+                    rTurnStep = 1
+                } else if (rDir == -1 && !reserveCorridor && rX <= -TURN_LIMIT_X) {
                     rTurnStep = 1
                 }
             }
 
             val updatedPlaced: BoardPlacedTile
             if (rTurnStep == 1) {
-                // 1st vertical turn tile going DOWN
+                // Primer tramo vertical del giro (baja)
                 updatedPlaced = placed.copy(
                     isVertical = true,
                     virtX = if (rDir == 1) rX + HALF_SHORT else rX - HALF_SHORT,
-                    virtY = rY + HALF_SHORT, // spans [rY - 14, rY + 42]
-                    pipLeft = matchPip,      // top half touches end of horizontal row
-                    pipRight = openPip       // bottom half faces down
+                    virtY = rY + HALF_SHORT,
+                    pipLeft = matchPip,
+                    pipRight = openPip
                 )
                 rTurnStep = 2
             } else if (rTurnStep == 2) {
-                // 2nd vertical bridge tile going DOWN to create wide felt separation between rows
+                // Segundo tramo vertical: separa las filas para que no se toquen
                 updatedPlaced = placed.copy(
                     isVertical = true,
                     virtX = if (rDir == 1) rX + HALF_SHORT else rX - HALF_SHORT,
-                    virtY = rY + 70,         // spans [rY + 42, rY + 98], bottom square centered at rY + 84
-                    pipLeft = matchPip,      // top half touches 1st vertical turn tile at rY + 42
-                    pipRight = openPip       // bottom half [rY + 70, rY + 98] faces new horizontal row
+                    virtY = rY + 70,
+                    pipLeft = matchPip,
+                    pipRight = openPip
                 )
-                rY += ROW_SPACING_Y          // new row centered at rY + 84
-                rDir = -rDir                 // reverse horizontal direction
+                rY += ROW_SPACING_Y
+                rDir = -rDir
                 rTurnStep = 3
             } else {
-                // Horizontal movement along row
-                val placeCrosswiseDouble = isDbl && rTurnStep == 0
+                val placeCrosswiseDouble = isDbl
                 rTurnStep = 0
 
                 if (placeCrosswiseDouble) {
-                    // Doble SIEMPRE en cruz (vertical en fila horizontal)
+                    // Doble SIEMPRE en cruz (vertical dentro de una fila horizontal)
                     if (rDir == 1) {
                         updatedPlaced = placed.copy(
                             isVertical = true,
@@ -145,11 +170,11 @@ object DominoBoardLayout {
             rightLaidOut.add(updatedPlaced)
         }
 
-        // 3. Lay out LEFT branch (moves LEFT, turns UP by 84 units, returns RIGHT)
+        // 3. Rama IZQUIERDA: avanza a la izquierda, sube 84 y vuelve
         val leftLaidOut = mutableListOf<BoardPlacedTile>()
         var lX = if (isFirstDouble) -HALF_SHORT else -HALF_LONG
         var lY = 0
-        var lDir = -1 // -1 for LEFT, 1 for RIGHT
+        var lDir = -1 // -1 = izquierda, 1 = derecha
         var lTurnStep = 0
         var lCurrentOpenPip = updatedFirst.pipLeft
 
@@ -159,45 +184,45 @@ object DominoBoardLayout {
                 ?: if (placed.tile.high == lCurrentOpenPip) placed.tile.high else placed.tile.low
             val openPip = placed.openEndPip
                 ?: if (placed.tile.high == lCurrentOpenPip) placed.tile.low else placed.tile.high
+            val advance = if (isDbl) TILE_SHORT else TILE_LONG
 
             if (lTurnStep == 0 && !isDbl) {
                 if (lDir == -1 && lX <= -TURN_LIMIT_X) {
                     lTurnStep = 1
-                } else if (lDir == 1 && lX >= TURN_LIMIT_X) {
+                } else if (lDir == 1 && reserveCorridor && lX + advance > -CROSS_MIN_END) {
+                    // La fila ya no puede seguir hacia el centro: gira dentro de su propio lado
+                    lTurnStep = 1
+                } else if (lDir == 1 && !reserveCorridor && lX >= TURN_LIMIT_X) {
                     lTurnStep = 1
                 }
             }
 
             val updatedPlaced: BoardPlacedTile
             if (lTurnStep == 1) {
-                // 1st vertical turn tile going UP
                 updatedPlaced = placed.copy(
                     isVertical = true,
                     virtX = if (lDir == -1) lX - HALF_SHORT else lX + HALF_SHORT,
-                    virtY = lY - HALF_SHORT, // spans [lY - 42, lY + 14]
-                    pipLeft = openPip,       // top half faces up
-                    pipRight = matchPip      // bottom half touches end of horizontal row
+                    virtY = lY - HALF_SHORT,
+                    pipLeft = openPip,
+                    pipRight = matchPip
                 )
                 lTurnStep = 2
             } else if (lTurnStep == 2) {
-                // 2nd vertical bridge tile going UP to create wide felt separation between rows
                 updatedPlaced = placed.copy(
                     isVertical = true,
                     virtX = if (lDir == -1) lX - HALF_SHORT else lX + HALF_SHORT,
-                    virtY = lY - 70,         // spans [lY - 98, lY - 42], top square centered at lY - 84
-                    pipLeft = openPip,       // top half [lY - 98, lY - 70] faces new horizontal row
-                    pipRight = matchPip      // bottom half touches 1st vertical turn tile at lY - 42
+                    virtY = lY - 70,
+                    pipLeft = openPip,
+                    pipRight = matchPip
                 )
-                lY -= ROW_SPACING_Y          // new row centered at lY - 84
-                lDir = -lDir                 // reverse horizontal direction
+                lY -= ROW_SPACING_Y
+                lDir = -lDir
                 lTurnStep = 3
             } else {
-                // Horizontal movement along row
-                val placeCrosswiseDouble = isDbl && lTurnStep == 0
+                val placeCrosswiseDouble = isDbl
                 lTurnStep = 0
 
                 if (placeCrosswiseDouble) {
-                    // Doble SIEMPRE en cruz (vertical en fila horizontal)
                     if (lDir == -1) {
                         updatedPlaced = placed.copy(
                             isVertical = true,
@@ -218,7 +243,6 @@ object DominoBoardLayout {
                         lX += TILE_SHORT
                     }
                 } else {
-                    // Ficha normal horizontal
                     if (lDir == -1) {
                         updatedPlaced = placed.copy(
                             isVertical = false,
@@ -245,7 +269,7 @@ object DominoBoardLayout {
             leftLaidOut.add(updatedPlaced)
         }
 
-        // 4. Lay out UP branch (if present in 4-branch mode)
+        // 4. Rama ARRIBA (solo en el modo de 4 ramas)
         val upLaidOut = mutableListOf<BoardPlacedTile>()
         if (upBranch.isNotEmpty()) {
             var uY = if (isFirstDouble) -HALF_LONG else -HALF_SHORT
@@ -259,7 +283,7 @@ object DominoBoardLayout {
                     ?: if (placed.tile.high == uCurrentOpenPip) placed.tile.low else placed.tile.high
 
                 val updatedPlaced = if (isDbl) {
-                    // Doble en cruz (horizontal en rama vertical)
+                    // Doble en cruz (horizontal dentro de una rama vertical)
                     placed.copy(
                         isVertical = false,
                         virtX = 0,
@@ -281,7 +305,7 @@ object DominoBoardLayout {
             }
         }
 
-        // 5. Lay out DOWN branch (if present in 4-branch mode)
+        // 5. Rama ABAJO (solo en el modo de 4 ramas)
         val downLaidOut = mutableListOf<BoardPlacedTile>()
         if (downBranch.isNotEmpty()) {
             var dY = if (isFirstDouble) HALF_LONG else HALF_SHORT
@@ -295,7 +319,7 @@ object DominoBoardLayout {
                     ?: if (placed.tile.high == dCurrentOpenPip) placed.tile.low else placed.tile.high
 
                 val updatedPlaced = if (isDbl) {
-                    // Doble en cruz (horizontal en rama vertical)
+                    // Doble en cruz (horizontal dentro de una rama vertical)
                     placed.copy(
                         isVertical = false,
                         virtX = 0,
@@ -333,8 +357,18 @@ object DominoBoardLayout {
         val maxY: Float,
         val totalCols: Float,
         val totalRows: Float
-    )
+    ) {
+        val centerX: Float get() = (minX + maxX) / 2f
+        val centerY: Float get() = (minY + maxY) / 2f
+    }
 
+    /**
+     * Limites de la mesa en unidades virtuales.
+     *
+     * El contenido queda **centrado**: si el tablero real ocupa menos de 8x6 celdas (por
+     * ejemplo la ficha de salida sola) el margen se reparte a partes iguales entre los cuatro
+     * lados, en lugar de crecer solo hacia la derecha y hacia abajo.
+     */
     fun computeBounds(tiles: List<BoardPlacedTile>): BoardBounds {
         if (tiles.isEmpty()) {
             return BoardBounds(minX = -56f, maxX = 56f, minY = -42f, maxY = 42f, totalCols = 8f, totalRows = 6f)
@@ -353,25 +387,34 @@ object DominoBoardLayout {
             maxY = maxOf(maxY, placed.virtY + halfH)
         }
 
-        // Snap to 14-unit cell boundaries with 1-cell safety margin (14 units)
-        val snapMinX = kotlin.math.floor((minX - 14f) / 14f) * 14f
-        val snapMaxX = kotlin.math.ceil((maxX + 14f) / 14f) * 14f
-        val snapMinY = kotlin.math.floor((minY - 14f) / 14f) * 14f
-        val snapMaxY = kotlin.math.ceil((maxY + 14f) / 14f) * 14f
+        // Ajuste a bordes de celda con una celda de seguridad por lado
+        var snapMinX = kotlin.math.floor((minX - 14f) / 14f) * 14f
+        var snapMaxX = kotlin.math.ceil((maxX + 14f) / 14f) * 14f
+        var snapMinY = kotlin.math.floor((minY - 14f) / 14f) * 14f
+        var snapMaxY = kotlin.math.ceil((maxY + 14f) / 14f) * 14f
 
-        val totalCols = maxOf(8f, (snapMaxX - snapMinX) / 14f)
-        val totalRows = maxOf(6f, (snapMaxY - snapMinY) / 14f)
+        val rawCols = (snapMaxX - snapMinX) / 14f
+        val rawRows = (snapMaxY - snapMinY) / 14f
+
+        // Minimo de 8x6 celdas repartido de forma simetrica para no descentrar el tablero
+        val extraCols = ((8f - rawCols).coerceAtLeast(0f) / 2f) * 14f
+        val extraRows = ((6f - rawRows).coerceAtLeast(0f) / 2f) * 14f
+        snapMinX -= extraCols
+        snapMaxX += extraCols
+        snapMinY -= extraRows
+        snapMaxY += extraRows
 
         return BoardBounds(
             minX = snapMinX,
             maxX = snapMaxX,
             minY = snapMinY,
             maxY = snapMaxY,
-            totalCols = totalCols,
-            totalRows = totalRows
+            totalCols = maxOf(8f, rawCols),
+            totalRows = maxOf(6f, rawRows)
         )
     }
 
+    /** Hueco (posicion y orientacion) donde caeria [candidateTile] si se jugara en [side]. */
     fun getNextSlotPlacement(
         firstTile: BoardPlacedTile?,
         leftBranch: List<BoardPlacedTile>,
@@ -379,10 +422,16 @@ object DominoBoardLayout {
         upBranch: List<BoardPlacedTile> = emptyList(),
         downBranch: List<BoardPlacedTile> = emptyList(),
         side: BoardSide,
-        candidateTile: DominoTile?
+        candidateTile: DominoTile?,
+        crossMode: Boolean = false
     ): NextSlotPlacement {
         if (firstTile == null) {
-            return NextSlotPlacement(virtX = 0, virtY = 0, isVertical = candidateTile?.isDouble == true, isForward = true)
+            return NextSlotPlacement(
+                virtX = 0,
+                virtY = 0,
+                isVertical = candidateTile?.isDouble == true,
+                isForward = true
+            )
         }
         val dummyTile = candidateTile ?: DominoTile(6, 0)
         val dummyPlaced = BoardPlacedTile(
@@ -393,17 +442,20 @@ object DominoBoardLayout {
             branchSide = side
         )
         val simulated = when (side) {
-            BoardSide.LEFT -> layoutBoardTiles(firstTile, leftBranch + dummyPlaced, rightBranch, upBranch, downBranch)
-            BoardSide.RIGHT -> layoutBoardTiles(firstTile, leftBranch, rightBranch + dummyPlaced, upBranch, downBranch)
-            BoardSide.UP -> layoutBoardTiles(firstTile, leftBranch, rightBranch, upBranch + dummyPlaced, downBranch)
-            BoardSide.DOWN -> layoutBoardTiles(firstTile, leftBranch, rightBranch, upBranch, downBranch + dummyPlaced)
+            BoardSide.LEFT -> layoutBoardTiles(firstTile, leftBranch + dummyPlaced, rightBranch, upBranch, downBranch, crossMode)
+            BoardSide.RIGHT -> layoutBoardTiles(firstTile, leftBranch, rightBranch + dummyPlaced, upBranch, downBranch, crossMode)
+            BoardSide.UP -> layoutBoardTiles(firstTile, leftBranch, rightBranch, upBranch + dummyPlaced, downBranch, crossMode)
+            BoardSide.DOWN -> layoutBoardTiles(firstTile, leftBranch, rightBranch, upBranch, downBranch + dummyPlaced, crossMode)
         }
+        // La ficha simulada queda al final de su rama en la lista resultante... salvo en la
+        // rama izquierda, que se invierte: alli la mas lejana es la primera.
         val target = when (side) {
-            BoardSide.LEFT -> simulated.firstOrNull { it.branchSide == BoardSide.LEFT } ?: simulated.first()
-            BoardSide.RIGHT -> simulated.lastOrNull { it.branchSide == BoardSide.RIGHT } ?: simulated.last()
-            BoardSide.UP -> simulated.lastOrNull { it.branchSide == BoardSide.UP } ?: simulated.last()
-            BoardSide.DOWN -> simulated.lastOrNull { it.branchSide == BoardSide.DOWN } ?: simulated.last()
-        }
+            BoardSide.LEFT -> simulated.firstOrNull { it.branchSide == BoardSide.LEFT }
+            BoardSide.RIGHT -> simulated.lastOrNull { it.branchSide == BoardSide.RIGHT }
+            BoardSide.UP -> simulated.lastOrNull { it.branchSide == BoardSide.UP }
+            BoardSide.DOWN -> simulated.lastOrNull { it.branchSide == BoardSide.DOWN }
+        } ?: simulated.last()
+
         return NextSlotPlacement(
             virtX = target.virtX,
             virtY = target.virtY,

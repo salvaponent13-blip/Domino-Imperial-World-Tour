@@ -2,9 +2,11 @@ package com.example.dominograndprix.ui.dialogs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -12,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -21,37 +22,42 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.dominograndprix.engine.DominoEngine
+import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.DominoBonusType
-import com.example.dominograndprix.model.Player
 import com.example.dominograndprix.ui.components.DominoTileView
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
 
 /**
- * Diálogo detallado de tanteo y resumen de ronda / partida copiado fielmente de tour-domino-main.
+ * Resumen de ronda / partida con el tanteo **real** del motor.
  *
- * Muestra:
- * 1. Encabezado con ícono y título de victoria/derrota.
- * 2. Motivo del cierre (¡Dominó! o Tranca con menor conteo).
- * 3. Fichas que le quedaron a cada jugador en mano con representación gráfica y puntos.
- * 4. Desglose exacto de puntos sumados (suma de rivales, bonificaciones, total).
- * 5. Marcador acumulado hacia la meta.
- * 6. Botones de acción.
+ * Lo que se muestra sale de lo que el motor ya calculo, no de una reconstruccion paralela:
+ * - [DominoEngine.lastRoundPointsAwarded] es lo que el cierre sumo al ganador.
+ * - [DominoEngine.roundPointsByPlayer] son los puntos de mesa de los modos que puntuan extremos.
+ * - Las bonificaciones (capicua/doble) se anuncian como etiqueta, sin inventar multiplicadores:
+ *   el motor no aplica ninguno.
  */
 @Composable
 fun DominoRoundSummaryDialog(
     engine: DominoEngine,
-    targetScore: Int,
     humanWon: Boolean,
+    isFreePlay: Boolean = false,
     onNextRound: () -> Unit,
     onExitMatch: () -> Unit
 ) {
+    val target = engine.targetScore
     val winnerPlayer = engine.winnerPlayerId?.let { engine.players.getOrNull(it) }
         ?: engine.players.firstOrNull { it.team == engine.winningTeam }
-    val winnerName = winnerPlayer?.name ?: (if (humanWon) "Tú" else "Rival")
+    val winnerName = winnerPlayer?.name ?: (if (humanWon) DominoStrings.hudYou() else DominoStrings.hudRival())
     val bonus = engine.lastRoundBonusType
     val isMatchOver = engine.isMatchOver
     val isBlocked = engine.lastRoundWasBlocked
+    // Cerrar por dominó = no fue tranca y la mano del ganador quedo vacia. Si alcanzo la meta
+    // jugando, su mano conserva fichas y no debe narrarse como dominó.
+    val closedByDomino = !isBlocked && (winnerPlayer?.hand?.isEmpty() == true)
+    val reachedTarget = !isBlocked && !closedByDomino
+    val roundPoints = engine.lastRoundPointsAwarded
+    val pointMode = engine.gameMode.isPointGame
 
     Dialog(
         onDismissRequest = {},
@@ -72,7 +78,7 @@ fun DominoRoundSummaryDialog(
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // 1. ENCABEZADO CON ÍCONO Y TÍTULO
+                // 1. Encabezado
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -86,7 +92,12 @@ fun DominoRoundSummaryDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (isMatchOver) "🏆" else if (isBlocked) "🛡️" else "✨",
+                            text = when {
+                                isMatchOver && humanWon -> "🏆"
+                                isMatchOver -> "💀"
+                                isBlocked -> "🛡️"
+                                else -> "✨"
+                            },
                             fontSize = 22.sp
                         )
                     }
@@ -95,22 +106,23 @@ fun DominoRoundSummaryDialog(
 
                     Text(
                         text = if (isMatchOver) {
-                            if (humanWon) "¡VICTORIA EN EL RETO!" else "DERROTA EN EL RETO"
+                            if (humanWon) DominoStrings.summaryChallengeWon() else DominoStrings.summaryChallengeLost()
                         } else {
-                            if (humanWon) "¡MANO GANADA!" else "MANO PERDIDA"
+                            if (humanWon) DominoStrings.summaryHandWon() else DominoStrings.summaryHandLost()
                         },
                         color = if (humanWon) GoldAccent else Color(0xFFFF6B6B),
                         fontSize = 17.sp,
-                        fontWeight = FontWeight.Black
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = if (!isBlocked) {
-                            "$winnerName cerró la mano haciendo ¡Dominó!"
-                        } else {
-                            "Mesa cerrada por Tranca · Gana $winnerName por menor conteo"
+                        text = when {
+                            isBlocked -> DominoStrings.summaryBlocked(winnerName)
+                            reachedTarget -> DominoStrings.summaryReachedTarget(winnerName, target)
+                            else -> DominoStrings.summaryClosedDomino(winnerName)
                         },
                         color = Color.LightGray,
                         fontSize = 11.sp,
@@ -126,9 +138,9 @@ fun DominoRoundSummaryDialog(
                         ) {
                             Text(
                                 text = when (bonus) {
-                                    DominoBonusType.DOUBLE_CAPICUA -> "🌟 ¡¡DOBLE CAPICÚA!! (×3) 🌟"
-                                    DominoBonusType.CAPICUA -> "✨ ¡¡CAPICÚA!! (×2) ✨"
-                                    DominoBonusType.DOUBLE -> "🎯 ¡DOMINÓ CON DOBLE! 🎯"
+                                    DominoBonusType.DOUBLE_CAPICUA -> DominoStrings.bonusDoubleCapicua()
+                                    DominoBonusType.CAPICUA -> DominoStrings.bonusCapicua()
+                                    DominoBonusType.DOUBLE -> DominoStrings.bonusDominoWithDouble()
                                     DominoBonusType.NONE -> ""
                                 },
                                 color = GoldAccent,
@@ -142,17 +154,16 @@ fun DominoRoundSummaryDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 2. CONTENIDO DESPLAZABLE: FICHAS EN MANO + DESGLOSE + MARCADOR ACUMULADO
+                // 2. Contenido desplazable
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // SECCIÓN A: Fichas en Mano de cada jugador
                     item {
                         Text(
-                            text = "FICHAS EN MANO AL CERRARSE LA RONDA",
+                            text = DominoStrings.summaryHandsTitle(),
                             color = GoldAccent,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -160,11 +171,12 @@ fun DominoRoundSummaryDialog(
                         )
                     }
 
-                    items(engine.players) { player ->
+                    items(engine.players, key = { it.id }) { player ->
                         val isPlayerWinner = (player.id == engine.winnerPlayerId) ||
                             (engine.isTeamGame && player.team == engine.winningTeam && player.hand.isEmpty())
                         val pipsSum = player.hand.sumOf { it.totalPips }
-                        val countsTowardWinner = !isPlayerWinner && (if (engine.isTeamGame) player.team != engine.winningTeam else true)
+                        val countsTowardWinner = !isPlayerWinner &&
+                            (if (engine.isTeamGame) player.team != engine.winningTeam else true)
 
                         Surface(
                             shape = RoundedCornerShape(10.dp),
@@ -190,7 +202,7 @@ fun DominoRoundSummaryDialog(
                                         )
                                         if (engine.isTeamGame) {
                                             Text(
-                                                text = if (player.team == 0) "(Eq. Tú)" else "(Eq. Rival)",
+                                                text = "(${if (player.team == 0) DominoStrings.hudYou() else DominoStrings.hudRival()})",
                                                 color = Color.LightGray,
                                                 fontSize = 9.sp
                                             )
@@ -198,12 +210,16 @@ fun DominoRoundSummaryDialog(
                                     }
 
                                     Text(
-                                        text = if (player.hand.isEmpty()) "¡Sin fichas! (0 pts)"
-                                        else if (countsTowardWinner) "Suma al ganador: +$pipsSum pts"
-                                        else "$pipsSum pts",
-                                        color = if (player.hand.isEmpty()) Color(0xFF34D399)
-                                        else if (countsTowardWinner) GoldAccent
-                                        else Color.LightGray,
+                                        text = when {
+                                            player.hand.isEmpty() -> DominoStrings.summaryEmptyHand()
+                                            countsTowardWinner -> DominoStrings.summaryCountsForWinner(pipsSum)
+                                            else -> "$pipsSum pts"
+                                        },
+                                        color = when {
+                                            player.hand.isEmpty() -> Color(0xFF34D399)
+                                            countsTowardWinner -> GoldAccent
+                                            else -> Color.LightGray
+                                        },
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp
                                     )
@@ -211,8 +227,12 @@ fun DominoRoundSummaryDialog(
 
                                 if (player.hand.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(6.dp))
+                                    // Scroll horizontal: con robo se pueden acumular 13 fichas y
+                                    // antes se salian del dialogo.
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         player.hand.forEach { tile ->
@@ -229,7 +249,7 @@ fun DominoRoundSummaryDialog(
                         }
                     }
 
-                    // SECCIÓN B: Desglose de Puntos
+                    // Seccion B: desglose real
                     item {
                         Surface(
                             shape = RoundedCornerShape(10.dp),
@@ -239,7 +259,7 @@ fun DominoRoundSummaryDialog(
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Text(
-                                    text = "DESGLOSE DE PUNTOS SUMADOS",
+                                    text = DominoStrings.summaryBreakdownTitle(),
                                     color = GoldAccent,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
@@ -247,30 +267,38 @@ fun DominoRoundSummaryDialog(
 
                                 Spacer(modifier = Modifier.height(4.dp))
 
-                                val opponentPips = engine.players
-                                    .filter { it.team != engine.winningTeam }
-                                    .sumOf { it.hand.sumOf { t -> t.totalPips } }
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Suma de fichas rivales:", color = Color.LightGray, fontSize = 11.sp)
-                                    Text("$opponentPips pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                }
-
-                                if (bonus != DominoBonusType.NONE) {
-                                    val multiplier = when (bonus) {
-                                        DominoBonusType.DOUBLE_CAPICUA -> 3
-                                        DominoBonusType.CAPICUA -> 2
-                                        else -> 1
-                                    }
+                                if (pointMode) {
+                                    // En los modos de puntos lo que suma son las jugadas de mesa,
+                                    // no los pips que quedan en las manos.
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Bonificación $bonus:", color = GoldAccent, fontSize = 11.sp)
-                                        Text("×$multiplier", color = GoldAccent, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                        Text(DominoStrings.summaryTablePoints(), color = Color.LightGray, fontSize = 11.sp)
+                                        Text("$roundPoints pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    }
+                                    engine.roundPointsByPlayer
+                                        .filterValues { it > 0 }
+                                        .forEach { (seat, points) ->
+                                            val name = engine.players.getOrNull(seat)?.name ?: "—"
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("· $name", color = Color.LightGray, fontSize = 10.sp)
+                                                Text("+$points", color = GoldAccent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                } else {
+                                    val opponentPips = engine.players
+                                        .filter { it.team != engine.winningTeam }
+                                        .sumOf { it.hand.sumOf { t -> t.totalPips } }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(DominoStrings.summaryRivalPips(), color = Color.LightGray, fontSize = 11.sp)
+                                        Text("$opponentPips pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                 }
 
@@ -279,19 +307,23 @@ fun DominoRoundSummaryDialog(
                                     modifier = Modifier.padding(vertical = 4.dp)
                                 )
 
-                                val totalAwarded = engine.lastPointsEarned.coerceAtLeast(opponentPips)
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("Total sumado a $winnerName:", color = Color(0xFF34D399), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    Text("+$totalAwarded pts", color = GoldAccent, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                    Text(
+                                        DominoStrings.summaryTotalTo(winnerName),
+                                        color = Color(0xFF34D399),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                    Text("+$roundPoints pts", color = GoldAccent, fontWeight = FontWeight.Black, fontSize = 13.sp)
                                 }
                             }
                         }
                     }
 
-                    // SECCIÓN C: Marcador Acumulado
+                    // Seccion C: marcador acumulado
                     item {
                         Surface(
                             shape = RoundedCornerShape(10.dp),
@@ -301,7 +333,7 @@ fun DominoRoundSummaryDialog(
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Text(
-                                    text = "MARCADOR ACUMULADO (OBJETIVO: $targetScore PTS)",
+                                    text = DominoStrings.summaryStandings(target),
                                     color = Color.LightGray,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
@@ -310,17 +342,17 @@ fun DominoRoundSummaryDialog(
                                 Spacer(modifier = Modifier.height(4.dp))
 
                                 if (engine.isTeamGame) {
-                                    val scoreTeam0 = engine.players.filter { it.team == 0 }.sumOf { it.score }
-                                    val scoreTeam1 = engine.players.filter { it.team == 1 }.sumOf { it.score }
+                                    val scoreTeam0 = engine.teamScore(0)
+                                    val scoreTeam1 = engine.teamScore(1)
 
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("Equipo Tú:", color = Color(0xFFA7F3D0), fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        Text("$scoreTeam0 / $targetScore pts", color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        Text(DominoStrings.summaryTeamYou(), color = Color(0xFFA7F3D0), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        Text("$scoreTeam0 / $target pts", color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("Equipo Rival:", color = Color(0xFFFECACA), fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        Text("$scoreTeam1 / $targetScore pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        Text(DominoStrings.summaryTeamRival(), color = Color(0xFFFECACA), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        Text("$scoreTeam1 / $target pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                 } else {
                                     engine.players.forEach { p ->
@@ -332,7 +364,7 @@ fun DominoRoundSummaryDialog(
                                                 fontSize = 11.sp
                                             )
                                             Text(
-                                                text = "${p.score} / $targetScore pts",
+                                                text = "${p.score} / $target pts",
                                                 color = if (p.id == 0) GoldAccent else Color.LightGray,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.sp
@@ -348,7 +380,7 @@ fun DominoRoundSummaryDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // 3. BOTONES DE ACCIÓN
+                // 3. Botones
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -362,10 +394,11 @@ fun DominoRoundSummaryDialog(
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
-                            text = if (isMatchOver) {
-                                if (humanWon) "SIGUIENTE RETO ➔" else "REINTENTAR RETO"
-                            } else {
-                                "SIGUIENTE RONDA ➔"
+                            text = when {
+                                isMatchOver && !humanWon -> DominoStrings.summaryRetry()
+                                isMatchOver && isFreePlay -> DominoStrings.summaryBackToMenu()
+                                isMatchOver -> DominoStrings.summaryNextChallenge()
+                                else -> DominoStrings.summaryNextRound()
                             },
                             fontWeight = FontWeight.Black,
                             fontSize = 12.sp
@@ -379,7 +412,7 @@ fun DominoRoundSummaryDialog(
                             .height(34.dp)
                     ) {
                         Text(
-                            text = "SALIR AL MENÚ",
+                            text = DominoStrings.summaryExit(),
                             color = Color.LightGray,
                             fontSize = 11.sp
                         )

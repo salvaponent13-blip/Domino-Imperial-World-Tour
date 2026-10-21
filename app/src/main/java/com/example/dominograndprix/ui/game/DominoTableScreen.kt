@@ -18,16 +18,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -47,20 +42,16 @@ import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.BoardPlacedTile
 import com.example.dominograndprix.model.BoardSide
 import com.example.dominograndprix.model.Difficulty
-import com.example.dominograndprix.model.DominoBonusType
 import com.example.dominograndprix.model.DominoTile
 import com.example.dominograndprix.model.GameMode
 import com.example.dominograndprix.model.Player
 import com.example.dominograndprix.ui.components.AnimatedPlacedTile
 import com.example.dominograndprix.ui.components.DominoBackTileView
 import com.example.dominograndprix.ui.components.DominoTileView
-import com.example.dominograndprix.ui.components.tileHeight
-import com.example.dominograndprix.ui.components.tileWidth
 import com.example.dominograndprix.ui.dialogs.DominoPipCounterDialog
 import com.example.dominograndprix.ui.dialogs.DominoRoundSummaryDialog
 import kotlinx.coroutines.delay
 
-val TableFeltGreen = Color(0xFF0F4727)
 val TableWoodFrame = Color(0xFF4A2511)
 val GoldAccent = Color(0xFFFFD700)
 val DarkNavy = Color(0xFF131924)
@@ -247,13 +238,17 @@ fun DominoTableScreen(
             }
             // Cerrar la ronda merece una respuesta mas rotunda que colocar una ficha.
             DominoHaptics.dominoCalled(hapticView)
+            // El contador de fichas no debe quedar encima del resumen tapando sus botones.
+            showTileCounter = false
             showRoundDialog = true
         }
     }
 
     // Guardado de la partida al cerrar cada ronda (enfoque 80/20 del plan).
+    // Las partidas libres (venueId == null) no tocan el guardado: el almacen es de una sola
+    // ranura y escribir ahi destruia el progreso de un reto de carrera a medias.
     LaunchedEffect(engine.value.isRoundOver, engine.value.isMatchOver) {
-        if (dailySeed != null) return@LaunchedEffect
+        if (dailySeed != null || venueId == null) return@LaunchedEffect
         val current = engine.value
         if (current.isRoundOver && !current.isMatchOver) {
             MatchSnapshotStore.save(
@@ -300,11 +295,11 @@ fun DominoTableScreen(
                     if (newHandSize == 0) {
                         activeReactionSeat = aiSeat
                         activeReactionText = "¡Dominó! 🎉"
-                        turnAnnouncement = "¡${updatedAI.name} cerró la ronda! (Dominó)"
+                        turnAnnouncement = DominoStrings.dominoAnnouncement(updatedAI.name)
                     } else if (newScore > prevScore) {
                         activeReactionSeat = aiSeat
                         activeReactionText = "+${newScore - prevScore} pts ⭐"
-                        turnAnnouncement = "+${newScore - prevScore} pts (${updatedAI.name})"
+                        turnAnnouncement = DominoStrings.pointsAnnouncement(newScore - prevScore, updatedAI.name)
                     }
                 } else {
                     DominoSoundManager.playPassKnock()
@@ -315,7 +310,7 @@ fun DominoTableScreen(
                         activeReactionText = "¡Paso! ❌"
                         val passedPips = listOfNotNull(engine.value.leftOpenPip, engine.value.rightOpenPip).distinct().joinToString(" y ")
                         if (passedPips.isNotEmpty()) {
-                            turnAnnouncement = "${updatedAI.name} pasó al $passedPips"
+                            turnAnnouncement = DominoStrings.passedTo(passedPips)
                         }
                     }
                 }
@@ -360,6 +355,19 @@ fun DominoTableScreen(
     )
     val viewer = engine.value.players[viewingSeat]
     val viewerHuman = viewingSeat in engine.value.humanPlayerIndices
+
+    // Marcador del HUD. En parejas es el total del equipo; en individual, con 3-4 asientos, se
+    // muestra la mejor marca rival (antes solo se sumaba el asiento 1 y los demas no se veian).
+    val myDisplayScore = if (isTeamGame) {
+        engine.value.teamScore(0)
+    } else {
+        engine.value.players.firstOrNull { it.id == 0 }?.score ?: 0
+    }
+    val rivalDisplayScore = if (isTeamGame) {
+        engine.value.teamScore(1)
+    } else {
+        engine.value.players.filter { it.id != 0 }.maxOfOrNull { it.score } ?: 0
+    }
     val playableTiles = remember(
         engine.value.boardChain.size,
         viewer.hand.size,
@@ -395,28 +403,31 @@ fun DominoTableScreen(
         DominoHaptics.tilePlaced(hapticView)
         engine.value.playTile(actingSeat, tileToPlay, sideToPlay)
         if (engine.value.lastPointsEarned > 0) {
-            turnAnnouncement = "+${engine.value.lastPointsEarned} ¡Puntos! (Tú)"
+            turnAnnouncement = DominoStrings.pointsAnnouncement(engine.value.lastPointsEarned, DominoStrings.hudYou())
         }
         selectedTile = null
         logMessage = engine.value.roundLog
         gameStateVersion++
     }
 
-    // Lista de fichas en tablero + ranuras de colocación (fórmula exacta de tour-domino-main)
+    // Lista de fichas en tablero + ranuras de colocación
     val boardChain = engine.value.boardChain
     val allTilesWithGhosts = remember(boardChain.size, selectedTile, selectedTileSides.size, gameStateVersion) {
         val list = boardChain.toMutableList()
-        if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
+        val ghost = selectedTile
+        if (isMyTurn && ghost != null && selectedTileSides.size > 1) {
             selectedTileSides.forEach { side ->
-                val slot = engine.value.getNextSlotForSide(side)
+                // Se pasa la ficha candidata: un doble ocupa otro hueco y va en cruz.
+                val slot = engine.value.getNextSlotForSide(side, ghost)
                 list.add(
                     BoardPlacedTile(
-                        tile = selectedTile!!,
+                        tile = ghost,
                         virtX = slot.virtX,
                         virtY = slot.virtY,
+                        isDouble = ghost.isDouble,
                         isVertical = slot.isVertical,
-                        pipLeft = 0,
-                        pipRight = 0,
+                        pipLeft = ghost.high,
+                        pipRight = ghost.low,
                         branchSide = side
                     )
                 )
@@ -437,7 +448,7 @@ fun DominoTableScreen(
         ) {
             val passedPips = listOfNotNull(engine.value.leftOpenPip, engine.value.rightOpenPip).distinct().joinToString(" y ")
             if (passedPips.isNotEmpty()) {
-                turnAnnouncement = "Pasaste al $passedPips"
+                turnAnnouncement = DominoStrings.youPassedTo(passedPips)
             }
             logMessage = DominoStrings.autoPassMsg()
             delay(950)
@@ -459,8 +470,8 @@ fun DominoTableScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // 1. COMPACT TOP HUD + SCOREBOARD + AUDIO TOGGLE
-            val teamScore = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
-            val rivalScore = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
+            val teamScore = myDisplayScore
+            val rivalScore = rivalDisplayScore
 
             Surface(
                 shape = RoundedCornerShape(10.dp),
@@ -522,7 +533,8 @@ fun DominoTableScreen(
                                     }
                                 }
                                 Text(
-                                    text = "Meta: $targetScore pts" + (if (betAmount > 0) " | \$$betAmount" else ""),
+                                    text = "${DominoStrings.targetLabel()}: $targetScore pts" +
+                                        (if (betAmount > 0) " | \$$betAmount" else ""),
                                     color = Color.LightGray,
                                     fontSize = 9.sp
                                 )
@@ -546,7 +558,7 @@ fun DominoTableScreen(
                                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                                 ) {
                                     Text(
-                                        text = if (isTeamGame) "TÚ:" else "TÚ:",
+                                        text = "${DominoStrings.hudYou()}:",
                                         color = Color(0xFFA7F3D0),
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
@@ -572,7 +584,7 @@ fun DominoTableScreen(
                                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                                 ) {
                                     Text(
-                                        text = if (isTeamGame) "RIV:" else "RIV:",
+                                        text = "${DominoStrings.hudRival()}:",
                                         color = Color(0xFFFECACA),
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
@@ -594,10 +606,14 @@ fun DominoTableScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Rivals & Partner compact strip con mini-atriles y fallas
+                        // Rivals & Partner compact strip con mini-atriles y fallas.
+                        // Se desplaza en horizontal: con 3 rivales y 5 controles al lado, en
+                        // pantallas estrechas los badges se recortaban.
                         if (engine.value.players.size > 1) {
                             Row(
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -610,8 +626,7 @@ fun DominoTableScreen(
                                         isCurrentTurn = engine.value.currentPlayerIndex == seat,
                                         isPartner = isPartner,
                                         passedPips = passed,
-                                        reactionText = reaction,
-                                        modifier = Modifier.weight(1f)
+                                        reactionText = reaction
                                     )
                                 }
                             }
@@ -665,7 +680,7 @@ fun DominoTableScreen(
                                 ) {
                                     Text("#", color = Color(0xFFA7F3D0), fontSize = 9.sp, fontWeight = FontWeight.Black)
                                     Text(
-                                        text = "Contar",
+                                        text = DominoStrings.countTilesLabel(),
                                         color = if (showTileCounter) Color(0xFFA7F3D0) else Color.White,
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
@@ -769,9 +784,12 @@ fun DominoTableScreen(
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
-                            val scale = 2.0f
-                            cameraDragVirtX = (cameraDragVirtX + dragAmount.x / scale).coerceIn(-120f, 120f)
-                            cameraDragVirtY = (cameraDragVirtY + dragAmount.y / scale).coerceIn(-120f, 120f)
+                            // dragAmount llega en PIXELES y el desplazamiento se aplica en dp:
+                            // sin dividir por la densidad el tablero se movia de mas.
+                            val dx = dragAmount.x / density
+                            val dy = dragAmount.y / density
+                            cameraDragVirtX = (cameraDragVirtX + dx).coerceIn(-120f, 120f)
+                            cameraDragVirtY = (cameraDragVirtY + dy).coerceIn(-120f, 120f)
                         }
                     }
             ) {
@@ -932,9 +950,11 @@ fun DominoTableScreen(
                         }
 
                         // Si el jugador seleccionó una ficha jugable por múltiples extremos, mostrar ranuras brillantes
-                        if (isMyTurn && selectedTile != null && selectedTileSides.size > 1) {
+                        val ghostTile = selectedTile
+                        if (isMyTurn && ghostTile != null && selectedTileSides.size > 1) {
                             selectedTileSides.forEach { side ->
-                                val slot = engine.value.getNextSlotForSide(side)
+                                // Con la ficha candidata el hueco dibujado es el real (dobles incluidos).
+                                val slot = engine.value.getNextSlotForSide(side, ghostTile)
                                 val isVisualVert = slot.isVertical
                                 val halfW = if (isVisualVert) 14 else 28
                                 val halfH = if (isVisualVert) 28 else 14
@@ -963,7 +983,7 @@ fun DominoTableScreen(
                                         .background(GoldAccent.copy(alpha = 0.55f))
                                         .border(2.dp, GoldAccent, RoundedCornerShape(4.dp))
                                         .clickable {
-                                            playMove(selectedTile!!, side)
+                                            playMove(ghostTile, side)
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -1226,8 +1246,8 @@ fun DominoTableScreen(
                             )
                         }
 
-                        val teamScore = engine.value.players.filter { it.team == 0 }.sumOf { it.score }
-                        val rivalScore = engine.value.players.filter { it.team == 1 }.sumOf { it.score }
+                        val teamScore = myDisplayScore
+                        val rivalScore = rivalDisplayScore
                         ScoreBoard(teamScore = teamScore, rivalScore = rivalScore)
                     }
 
@@ -1290,8 +1310,12 @@ fun DominoTableScreen(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
+                                val choiceTile = selectedTile
                                 Text(
-                                    text = "¿En qué extremo deseas colocar [${selectedTile!!.high}|${selectedTile!!.low}]?",
+                                    text = DominoStrings.chooseEndTitle(
+                                        choiceTile?.high ?: 0,
+                                        choiceTile?.low ?: 0
+                                    ),
                                     color = GoldAccent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp
@@ -1308,14 +1332,9 @@ fun DominoTableScreen(
                                             BoardSide.UP -> engine.value.upOpenPip ?: engine.value.spinnerTile?.high
                                             BoardSide.DOWN -> engine.value.downOpenPip ?: engine.value.spinnerTile?.high
                                         }
-                                        val label = when (side) {
-                                            BoardSide.LEFT -> "⬅ Izquierda ($pip)"
-                                            BoardSide.RIGHT -> "Derecha ($pip) ➡"
-                                            BoardSide.UP -> "⬆ Arriba ($pip)"
-                                            BoardSide.DOWN -> "⬇ Abajo ($pip)"
-                                        }
+                                        val label = DominoStrings.endChoiceBtn(side, pip)
                                         Button(
-                                            onClick = { playMove(selectedTile!!, side) },
+                                            onClick = { choiceTile?.let { playMove(it, side) } },
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = GoldAccent,
                                                 contentColor = DarkNavy
@@ -1409,8 +1428,8 @@ fun DominoTableScreen(
             }
             DominoRoundSummaryDialog(
                 engine = engine.value,
-                targetScore = targetScore,
                 humanWon = didPlayerWin,
+                isFreePlay = venueId == null,
                 onNextRound = {
                     showRoundDialog = false
                     if (engine.value.isMatchOver) {
@@ -1427,16 +1446,22 @@ fun DominoTableScreen(
                 },
                 onExitMatch = {
                     showRoundDialog = false
-                    onBack()
+                    // Si la partida ya habia terminado, salir tambien debe cerrarla: si no, se
+                    // perdian la recompensa y el avance del reto de una partida ya ganada.
+                    if (engine.value.isMatchOver) {
+                        onMatchFinished(didPlayerWin, betAmount * 2, engine.value)
+                    } else {
+                        onBack()
+                    }
                 }
             )
         }
 
-        // 6. PIP COUNTER MODAL (fiel a tour-domino-main)
+        // 6. PIP COUNTER MODAL
         if (showTileCounter) {
             DominoPipCounterDialog(
                 engine = engine.value,
-                humanSeat = 0,
+                humanSeat = viewingSeat,
                 onDismiss = { showTileCounter = false }
             )
         }
@@ -1589,7 +1614,7 @@ fun PlayerBadge(
                     modifier = Modifier.padding(start = 1.dp)
                 ) {
                     Text(
-                        text = "Pasó:",
+                        text = DominoStrings.passedChip(),
                         color = Color(0xFFFECACA),
                         fontSize = 7.5.sp,
                         fontWeight = FontWeight.Bold
