@@ -320,7 +320,7 @@ fun VenueStageScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Rival y recompensa económica
+                    // Rival y dificultad del reto
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -333,12 +333,16 @@ fun VenueStageScreen(
                             fontWeight = FontWeight.SemiBold
                         )
 
-                        Text(
-                            text = "Trofeo: ${challenge.trophyTitle}",
-                            color = GoldAccent,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                        // El trofeo solo lo da el ultimo reto de cada sede: en los demas no se
+                        // muestra nada (antes aparecia "Trofeo: null").
+                        challenge.trophyTitle?.let { trophy ->
+                            Text(
+                                text = "Trofeo: $trophy",
+                                color = GoldAccent,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

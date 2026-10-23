@@ -433,7 +433,7 @@ fun MainTitleScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.4f)),
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp)
+                        .heightIn(min = 46.dp)
                         .clickable(onClick = onShowRules)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(6.dp)) {
@@ -453,7 +453,7 @@ fun MainTitleScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.4f)),
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp)
+                        .heightIn(min = 46.dp)
                         .clickable(onClick = onShowTrophies)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(6.dp)) {
@@ -474,7 +474,7 @@ fun MainTitleScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.4f)),
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp)
+                        .heightIn(min = 46.dp)
                         .clickable(onClick = onShowAchievements)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(6.dp)) {
@@ -586,4 +586,5 @@ fun MainTitleScreen(
         }
     }
 }
+
 

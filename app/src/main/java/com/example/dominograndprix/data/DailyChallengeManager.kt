@@ -27,7 +27,7 @@ data class DailyChallenge(
     val dayNumber: Int get() = date.dayNumber
 
     /** Etiqueta corta para la interfaz: "Reto #20461". */
-    val label: String get() = "Reto #$dayNumber"
+    val label: String get() = "Reto ${date.day}/${date.month}"
 }
 
 /**
@@ -130,3 +130,4 @@ object DailyChallengeManager {
         return if (isYesterday) last.streak + 1 else 1
     }
 }
+
