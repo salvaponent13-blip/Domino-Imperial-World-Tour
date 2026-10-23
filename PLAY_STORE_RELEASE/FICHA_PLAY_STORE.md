@@ -178,19 +178,23 @@ Built by a domino player for everyone who misses the real table. Take a seat.
 
 ## 5. Guion de Capturas (8)
 
-Requisitos de Play: JPG o PNG de 24 bits, lado mínimo 320 px, **proporción máxima 2:1**. Las
-capturas del emulador salen a 1080x2400 (9:20 ≈ 2,22:1) y **hay que recortarlas a 1080x2160**.
+Requisitos de Play: JPG o PNG de 24 bits, lado mínimo 320 px, **proporción máxima 2:1**. Todas las capturas para v2.5.0 ya han sido generadas y organizadas en `PLAY_STORE_RELEASE/screenshots_v2.5/`:
+
+- `telefono_1080x2160/`: 8 capturas directas ajustadas a **proporción 2:1** exacta (`1080x2160`).
+- `telefono_con_fondo_1080x1920/`: 8 capturas promocionales verticales 9:16 (`1080x1920`) con fondo artístico de sede, marco de smartphone y textos destacados.
+- `tablet_7_pulgadas_1920x1080/`: 8 capturas apaisadas 16:9 (`1920x1080`) con fondo de arte, branding, viñetas y marco de dispositivo.
+- `tablet_10_pulgadas_2560x1440/`: 8 capturas apaisadas 16:9 2K (`2560x1440`) para tablets de 10 pulgadas.
 
 | # | Pantalla | Qué debe verse |
 |---|---|---|
 | 1 | Título | Logo, "Iniciar Torneo Mundial", Partida Rápida y la tarjeta del **Desafío Diario con la racha** |
-| 2 | Mesa 3D | Fichas en perspectiva, HUD con marcador y mano completa |
-| 3 | Mesa 2D + All Fives | Tablero con **spinner de 4 ramas** y el contador de puntos de la jugada |
-| 4 | Resumen de ronda | Desglose real de puntos, fichas que quedaban y marcador acumulado |
+| 2 | Mesa en juego | Fichas en serpentina, HUD con marcador, rivales con IA y mano completa |
+| 3 | Contador de fichas | Modal táctico `# CONTAR` con seguimiento de fichas restantes por palo |
+| 4 | 8 Modalidades | Guía completa de modalidades y reglamento oficial internacional |
 | 5 | Sede (México) | Pantalla de sede **sin caja ni apuestas**: reto, modalidad, meta y rival |
-| 6 | Partida Rápida | Diálogo con "2 humanos (pasa el móvil)" visible |
-| 7 | Logros | Lista con progreso y logros desbloqueados |
-| 8 | Vitrina | Trofeos como **colección** (sin botones de vender) |
+| 6 | Partida Rápida | Diálogo de configuración con las 8 modalidades, puntos y selector de jugadores |
+| 7 | Logros | Lista con progreso y logros desbloqueados del circuito |
+| 8 | Vitrina | Trofeos de la gira como **colección** (sin botones de vender) |
 
 Orden recomendado en Play: 1, 2, 3, 4, 5, 6, 7, 8 (las tres primeras son las que deciden la
 instalación).
