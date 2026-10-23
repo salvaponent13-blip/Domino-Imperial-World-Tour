@@ -20,15 +20,13 @@ import org.junit.Test
  */
 class AchievementsTest {
 
-    private val json = Json { encodeDefaults = true }
+    private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
 
     private fun progress(
-        cash: Int = 2500,
         stats: CareerStats = CareerStats(),
         achievements: Set<String> = emptySet(),
         completed: Set<String> = emptySet()
     ) = JourneyProgress(
-        cash = cash,
         stats = stats,
         unlockedAchievements = achievements,
         completedVenueIds = completed
@@ -37,7 +35,6 @@ class AchievementsTest {
     private fun report(
         won: Boolean = true,
         venueId: String? = "cuba",
-        cashDelta: Int = 100,
         difficulty: Difficulty = Difficulty.STANDARD,
         roundsWon: Int = 1,
         dominos: Int = 0,
@@ -49,8 +46,6 @@ class AchievementsTest {
     ) = MatchReport(
         venueId = venueId,
         won = won,
-        cashDelta = cashDelta,
-        wrpDelta = if (won) 1500 else 0,
         difficulty = difficulty,
         roundsPlayed = roundsWon + (if (won) 0 else 1),
         roundsWon = roundsWon,
@@ -75,10 +70,7 @@ class AchievementsTest {
 
         val loaded = json.decodeFromString(JourneyProgress.serializer(), oldSave)
 
-        assertEquals("La caja no puede perderse", 7777, loaded.cash)
-        assertEquals("Los WRP tampoco", 3300, loaded.wrp)
         assertEquals(setOf("cuba", "mexico"), loaded.completedVenueIds)
-        assertEquals(setOf("cigars"), loaded.soldTrophyIds)
         assertTrue("Sin logros previos", loaded.unlockedAchievements.isEmpty())
         assertEquals("Las estadisticas arrancan a cero", 0, loaded.stats.matchesPlayed)
     }
@@ -86,7 +78,6 @@ class AchievementsTest {
     @Test
     fun theExtendedProgressSurvivesTheJsonRoundTrip() {
         val original = progress(
-            cash = 9000,
             stats = CareerStats(
                 matchesPlayed = 12,
                 matchesWon = 7,
@@ -107,10 +98,10 @@ class AchievementsTest {
     // --- Estadisticas ---
 
     @Test
-    fun aWonMatchAccumulatesStatsAndCash() {
+    fun aWonMatchAccumulatesStats() {
         val (updated, _) = AchievementCatalog.applyReport(
             progress(),
-            report(won = true, cashDelta = 500, dominos = 1, roundsWon = 2, pointsScored = 15)
+            report(won = true, dominos = 1, roundsWon = 2, pointsScored = 15)
         )
 
         assertEquals(1, updated.stats.matchesPlayed)
@@ -118,7 +109,6 @@ class AchievementsTest {
         assertEquals(2, updated.stats.roundsWon)
         assertEquals(1, updated.stats.dominos)
         assertEquals(15, updated.stats.pointsScored)
-        assertEquals(3000, updated.cash)
         assertEquals(1, updated.stats.winsByDifficulty[Difficulty.STANDARD.name])
     }
 
@@ -126,12 +116,11 @@ class AchievementsTest {
     fun aLostMatchCountsButDoesNotAddWins() {
         val (updated, _) = AchievementCatalog.applyReport(
             progress(),
-            report(won = false, cashDelta = -200, dominos = 0)
+            report(won = false, dominos = 0)
         )
 
         assertEquals(1, updated.stats.matchesPlayed)
         assertEquals(0, updated.stats.matchesWon)
-        assertEquals(2300, updated.cash)
         assertTrue("Sin victorias no hay entradas por dificultad", updated.stats.winsByDifficulty.isEmpty())
     }
 
@@ -274,7 +263,6 @@ class AchievementsTest {
             winsByDifficulty = mapOf(Difficulty.TOUGH.name to 10)
         )
         val richCareer = progress(
-            cash = 100000,
             completed = setOf("cuba", "mexico", "puerto_rico", "new_orleans", "tokyo", "monte_carlo", "las_vegas"),
             stats = veteranStats
         )

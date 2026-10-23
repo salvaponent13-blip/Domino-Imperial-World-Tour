@@ -9,19 +9,17 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
- * Estado persistente de la carrera World Tour: caja, puntos WRP, progreso de las
- * ciudades (desbloqueadas / completadas) e items de lujo ya vendidos.
+ * Estado persistente de la carrera World Tour: progreso de las sedes (desbloqueadas y
+ * completadas), logros y estadisticas acumuladas.
  *
- * Cada campo tiene valor por defecto, así que un guardado antiguo o incompleto
- * se carga sin fallos y las claves que falten simplemente arrancan en su valor inicial.
+ * El juego no tiene moneda: el objetivo es completar la gira, y los trofeos son recuerdos,
+ * no dinero. Cada campo tiene valor por defecto, asi que un guardado antiguo o incompleto se
+ * carga sin fallos y las claves que falten arrancan en su valor inicial.
  */
 @Serializable
 data class JourneyProgress(
-    val cash: Int = DEFAULT_CASH,
-    val wrp: Int = DEFAULT_WRP,
     val completedVenueIds: Set<String> = emptySet(),
     val unlockedVenueIds: Set<String> = emptySet(),
-    val soldTrophyIds: Set<String> = emptySet(),
     /**
      * Logros conseguidos, por identificador del catalogo.
      *
@@ -32,21 +30,8 @@ data class JourneyProgress(
     /** Estadisticas acumuladas de la carrera. */
     val stats: CareerStats = CareerStats(),
     val currentVenueIndex: Int = 0,
-    val currentChallengeIndex: Int = 0,
-    /**
-     * Si el club ya concedio el prestamo de honor por bancarrota.
-     *
-     * Existe para que el rescate sea UNICO: sin esta marca, un jugador con menos de la entrada
-     * de La Habana recibiria el prestamo en cada derrota y el dinero volveria a ser infinito,
-     * que es justo lo que la economia con consecuencias quiere evitar.
-     */
-    val bankruptcyRescueClaimed: Boolean = false
-) {
-    companion object {
-        const val DEFAULT_CASH = 2500
-        const val DEFAULT_WRP = 1500
-    }
-}
+    val currentChallengeIndex: Int = 0
+)
 
 /**
  * Guarda y recupera el progreso de la carrera en SharedPreferences como una única
@@ -106,18 +91,16 @@ object CareerProgressStore {
     /**
      * Captura el estado actual de la carrera en un [JourneyProgress] listo para guardar.
      *
-     * [progress] aporta lo que NO vive en las listas del catalogo: caja, WRP, estadisticas y
-     * logros. Las ciudades y los trofeos se derivan de las listas, que son la fuente de verdad
-     * de su estado.
+     * Se usa UNION con lo que ya hay en [progress]: las listas del catalogo no se actualizan al
+     * jugar, asi que reemplazar por lo que dicen esas listas borraba las sedes completadas y
+     * desbloqueadas durante la sesion. La union nunca puede quitar progreso, solo anadir.
      */
     fun snapshot(
         progress: JourneyProgress,
-        venues: List<CityVenue>,
-        trophies: List<LuxuryItem>
+        venues: List<CityVenue>
     ): JourneyProgress = progress.copy(
-        completedVenueIds = venues.filter { it.isCompleted }.map { it.id }.toSet(),
-        unlockedVenueIds = venues.filter { it.isUnlocked }.map { it.id }.toSet(),
-        soldTrophyIds = trophies.filter { it.isSold }.map { it.id }.toSet()
+        completedVenueIds = progress.completedVenueIds + venues.filter { it.isCompleted }.map { it.id },
+        unlockedVenueIds = progress.unlockedVenueIds + venues.filter { it.isUnlocked }.map { it.id }
     )
 
     /**
@@ -136,16 +119,6 @@ object CareerProgressStore {
                 venue
             } else {
                 venue.copy(isUnlocked = unlocked, isCompleted = completed)
-            }
-        }
-
-    /** Marca como vendidos los items de lujo que ya se vendieron en partidas anteriores. */
-    fun applyToTrophies(trophies: List<LuxuryItem>, progress: JourneyProgress): List<LuxuryItem> =
-        trophies.map { item ->
-            if (progress.soldTrophyIds.contains(item.id) && !item.isSold) {
-                item.copy(isSold = true)
-            } else {
-                item
             }
         }
 }

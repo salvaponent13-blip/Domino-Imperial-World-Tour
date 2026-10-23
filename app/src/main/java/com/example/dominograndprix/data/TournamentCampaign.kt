@@ -21,9 +21,6 @@ data class VenueChallenge(
     val targetScore: Int,
     val playerCount: Int, // 2 o 4
     val isTeamGame: Boolean, // false = individual, true = parejas
-    val entryBet: Int,
-    val rewardCash: Int,
-    val rewardWrp: Int,
     val rivalName: String,
     val description: String,
     /**
@@ -31,8 +28,8 @@ data class VenueChallenge(
      * asi que las 7 sedes se sentian iguales; ahora escala con la sede (ver [difficultyForVenue]).
      */
     val difficulty: Difficulty = Difficulty.STANDARD,
-    val trophyTitle: String? = null,
-    val trophyValue: Int = 0
+    /** Recuerdo que se gana al completar el reto. No se vende: es una coleccion. */
+    val trophyTitle: String? = null
 )
 
 /** Dificultad por sede: el torneo empieza suave y acaba en el nivel mas duro. */
@@ -76,9 +73,6 @@ object TournamentCampaign {
                     targetScore = 20,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 0,
-                    rewardCash = 150,
-                    rewardWrp = 1500,
                     rivalName = "Carlos 'El Rayo'",
                     description = "Sin pozo. Cada jugador recibe 7 fichas. Si te bloqueas, pasas. Gana quien llegue primero a 20 puntos."
                 ),
@@ -95,9 +89,6 @@ object TournamentCampaign {
                     targetScore = 20,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 50,
-                    rewardCash = 200,
-                    rewardWrp = 1500,
                     rivalName = "Mateo Silva",
                     description = "Partida tradicional con pozo. Si no puedes jugar, roba hasta conseguir ficha o agotar la reserva."
                 ),
@@ -114,9 +105,6 @@ object TournamentCampaign {
                     targetScore = 50,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 80,
-                    rewardCash = 250,
-                    rewardWrp = 1500,
                     rivalName = "Ignacio Vega",
                     description = "Suma puntos en cada turno si los extremos abiertos suman un múltiplo de 3. Los dobles en extremos cuentan doble."
                 ),
@@ -133,9 +121,6 @@ object TournamentCampaign {
                     targetScore = 20,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 100,
-                    rewardCash = 300,
-                    rewardWrp = 1500,
                     rivalName = "Valentina Ortiz",
                     description = "Mano a mano directo contra un único oponente. 7 fichas cada uno y 14 en el pozo. Velocidad y reflejos."
                 ),
@@ -152,13 +137,9 @@ object TournamentCampaign {
                     targetScore = 50,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 150,
-                    rewardCash = 500,
-                    rewardWrp = 1500,
                     rivalName = "Carlos 'El Rayo'",
                     description = "La especialidad azteca: suma múltiplos de 5 en cada jugada con spinner en cruz. ¡Supera a Carlos para viajar a La Habana!",
                     trophyTitle = "Medalla Azteca de Plata",
-                    trophyValue = 900
                 )
             )
             1 -> listOf(
@@ -175,9 +156,6 @@ object TournamentCampaign {
                     targetScore = 100,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 200,
-                    rewardCash = 600,
-                    rewardWrp = 1500,
                     rivalName = "Compay Cheo",
                     description = "Partida a 100 puntos en 4 direcciones. Apunta a combinaciones de 10, 15 y 20 puntos con los dobles abiertos."
                 ),
@@ -194,9 +172,6 @@ object TournamentCampaign {
                     targetScore = 100,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 250,
-                    rewardCash = 700,
-                    rewardWrp = 1500,
                     rivalName = "Yordanis 'El Fino'",
                     description = "Duelo cerrado a múltiplos de 3. Cada turno cuenta para alcanzar los 100 puntos antes que el rival."
                 ),
@@ -213,9 +188,6 @@ object TournamentCampaign {
                     targetScore = 60,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 300,
-                    rewardCash = 800,
-                    rewardWrp = 1500,
                     rivalName = "Maykel Barreto",
                     description = "Encadena múltiples fichas seguidas en el mismo turno si puedes colocarlas por los extremos. ¡Vacía tu mano de un tirón!"
                 ),
@@ -232,9 +204,6 @@ object TournamentCampaign {
                     targetScore = 30,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 350,
-                    rewardCash = 900,
-                    rewardWrp = 1500,
                     rivalName = "Lázaro Fonseca",
                     description = "Duelo a 30 puntos con tablero abierto. Estrategia rápida de cierre y bloqueo."
                 ),
@@ -251,13 +220,9 @@ object TournamentCampaign {
                     targetScore = 30,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 400,
-                    rewardCash = 1200,
-                    rewardWrp = 1500,
                     rivalName = "Compay Cheo",
                     description = "Tranca clásica en La Habana. Gana el torneo caribeño para desbloquear San Juan de Puerto Rico.",
                     trophyTitle = "Estuche Imperial de Habanos",
-                    trophyValue = 1200
                 )
             )
             2 -> listOf(
@@ -274,9 +239,6 @@ object TournamentCampaign {
                     targetScore = 80,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 450,
-                    rewardCash = 1300,
-                    rewardWrp = 1500,
                     rivalName = "Rafael 'El Muro'",
                     description = "Juega en tu propia rama. Si un jugador no puede tirar y pasa, su rama queda abierta para invasión."
                 ),
@@ -293,9 +255,6 @@ object TournamentCampaign {
                     targetScore = 150,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 500,
-                    rewardCash = 1400,
-                    rewardWrp = 1500,
                     rivalName = "Héctor Cotto",
                     description = "Duelo a 150 puntos en All Fives. Máxima concentración en múltiplos de 5."
                 ),
@@ -312,9 +271,6 @@ object TournamentCampaign {
                     targetScore = 100,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 550,
-                    rewardCash = 1500,
-                    rewardWrp = 1500,
                     rivalName = "Tito 'El Bravo'",
                     description = "Puntúa tanto si la suma es múltiplo de 5 como de 3. Si es múltiplo de 15, ¡recibes doble bonificación!"
                 ),
@@ -331,9 +287,6 @@ object TournamentCampaign {
                     targetScore = 150,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 600,
-                    rewardCash = 1600,
-                    rewardWrp = 1500,
                     rivalName = "Ángel Morales",
                     description = "Partida individual a 150 puntos en múltiplos de 3."
                 ),
@@ -350,13 +303,9 @@ object TournamentCampaign {
                     targetScore = 80,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 700,
-                    rewardCash = 2000,
-                    rewardWrp = 1500,
                     rivalName = "Rafael 'El Muro'",
                     description = "Duelo decisivo en el Fuerte de San Juan para viajar a Nueva Orleans.",
                     trophyTitle = "Anillo Real del Caribe",
-                    trophyValue = 2000
                 )
             )
             3 -> listOf(
@@ -373,9 +322,6 @@ object TournamentCampaign {
                     targetScore = 100,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 750,
-                    rewardCash = 2200,
-                    rewardWrp = 1800,
                     rivalName = "Felix 'Golden Boy'",
                     description = "Partida a 100 puntos encadenando fichas sin descanso en Bourbon Street."
                 ),
@@ -392,9 +338,6 @@ object TournamentCampaign {
                     targetScore = 200,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 800,
-                    rewardCash = 2400,
-                    rewardWrp = 1800,
                     rivalName = "Clarence 'Sax'",
                     description = "El compás del jazz a 200 puntos combinando múltiplos de 5 y 3."
                 ),
@@ -411,9 +354,6 @@ object TournamentCampaign {
                     targetScore = 100,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 900,
-                    rewardCash = 2600,
-                    rewardWrp = 1800,
                     rivalName = "Big Mike",
                     description = "Duelo mano a mano protegiendo tu rama exclusiva a 100 puntos."
                 ),
@@ -430,9 +370,6 @@ object TournamentCampaign {
                     targetScore = 100,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 1000,
-                    rewardCash = 2800,
-                    rewardWrp = 1800,
                     rivalName = "Louis 'The Duke'",
                     description = "Conecta únicamente si la suma da 7. Las fichas [6|1], [5|2], [4|3] y [0|0] son comodines."
                 ),
@@ -449,13 +386,9 @@ object TournamentCampaign {
                     targetScore = 50,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 1200,
-                    rewardCash = 3500,
-                    rewardWrp = 1800,
                     rivalName = "Felix 'Golden Boy'",
                     description = "Supera a Felix en el duelo a tranca para obtener el pase a Miami.",
                     trophyTitle = "Saxofón de Oro Bourbon St.",
-                    trophyValue = 2800
                 )
             )
             4 -> listOf(
@@ -472,9 +405,6 @@ object TournamentCampaign {
                     targetScore = 80,
                     playerCount = 4,
                     isTeamGame = true, // << PAREJAS!
-                    entryBet = 1300,
-                    rewardCash = 3800,
-                    rewardWrp = 2000,
                     rivalName = "Tony 'Vice'",
                     description = "¡Bienvenido a Miami! Primera partida oficial en parejas (2 contra 2). El trabajo en equipo es vital."
                 ),
@@ -491,9 +421,6 @@ object TournamentCampaign {
                     targetScore = 80,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 1400,
-                    rewardCash = 4000,
-                    rewardWrp = 2000,
                     rivalName = "Scarlett Perez",
                     description = "Batalla individual con pozo a 80 puntos."
                 ),
@@ -510,9 +437,6 @@ object TournamentCampaign {
                     targetScore = 300,
                     playerCount = 4,
                     isTeamGame = true, // << PAREJAS!
-                    entryBet = 1500,
-                    rewardCash = 4500,
-                    rewardWrp = 2000,
                     rivalName = "Rico 'Speed'",
                     description = "Gran reto de All Fives por equipos a 300 puntos. Los puntos de tu compañero suman a tu equipo."
                 ),
@@ -529,9 +453,6 @@ object TournamentCampaign {
                     targetScore = 300,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 1700,
-                    rewardCash = 5000,
-                    rewardWrp = 2000,
                     rivalName = "Victor Cruz",
                     description = "Individual a 300 puntos exprimiendo cada múltiplo de 5 y 3."
                 ),
@@ -548,13 +469,9 @@ object TournamentCampaign {
                     targetScore = 120,
                     playerCount = 4,
                     isTeamGame = true, // << PAREJAS!
-                    entryBet = 2000,
-                    rewardCash = 6000,
-                    rewardWrp = 2000,
                     rivalName = "Tony 'Vice'",
                     description = "Suma 7 en equipo contra los reyes de South Beach para viajar a Las Vegas.",
                     trophyTitle = "Lancha Deportiva Offshore",
-                    trophyValue = 5500
                 )
             )
             5 -> listOf(
@@ -571,9 +488,6 @@ object TournamentCampaign {
                     targetScore = 170,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 2500,
-                    rewardCash = 7000,
-                    rewardWrp = 2500,
                     rivalName = "Jack 'Ace'",
                     description = "Partida de alta tensión a 170 puntos encadenando tiradas."
                 ),
@@ -590,9 +504,6 @@ object TournamentCampaign {
                     targetScore = 400,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 3000,
-                    rewardCash = 8000,
-                    rewardWrp = 2500,
                     rivalName = "Sammy 'Diamond'",
                     description = "Duelo maratoniano a 400 puntos en la capital del juego."
                 ),
@@ -609,9 +520,6 @@ object TournamentCampaign {
                     targetScore = 300,
                     playerCount = 4,
                     isTeamGame = true, // << PAREJAS!
-                    entryBet = 3500,
-                    rewardCash = 9000,
-                    rewardWrp = 2500,
                     rivalName = "Casino Twins",
                     description = "Equipos a 300 puntos en All Threes sobre la mesa de terciopelo."
                 ),
@@ -628,9 +536,6 @@ object TournamentCampaign {
                     targetScore = 150,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 4000,
-                    rewardCash = 10000,
-                    rewardWrp = 2500,
                     rivalName = "Lucky Luciano",
                     description = "4 jugadores individuales dominando el 7 y los comodines."
                 ),
@@ -647,13 +552,9 @@ object TournamentCampaign {
                     targetScore = 150,
                     playerCount = 4,
                     isTeamGame = true, // << PAREJAS!
-                    entryBet = 5000,
-                    rewardCash = 15000,
-                    rewardWrp = 2500,
                     rivalName = "Jack 'Ace'",
                     description = "Defiende las ramas del casino para conseguir el pase al Torneo Mundial.",
                     trophyTitle = "Trofeo Diamante de Las Vegas",
-                    trophyValue = 9000
                 )
             )
             else -> listOf(
@@ -670,9 +571,6 @@ object TournamentCampaign {
                     targetScore = 150,
                     playerCount = 4,
                     isTeamGame = true,
-                    entryBet = 6000,
-                    rewardCash = 20000,
-                    rewardWrp = 3000,
                     rivalName = "Kenji 'Iron Hand'",
                     description = "Primera ronda del Campeonato Mundial de Maestros."
                 ),
@@ -689,9 +587,6 @@ object TournamentCampaign {
                     targetScore = 200,
                     playerCount = 4,
                     isTeamGame = true,
-                    entryBet = 8000,
-                    rewardCash = 25000,
-                    rewardWrp = 3000,
                     rivalName = "Maestros de Kioto",
                     description = "Semifinales de Húngaro a 200 puntos."
                 ),
@@ -708,9 +603,6 @@ object TournamentCampaign {
                     targetScore = 200,
                     playerCount = 4,
                     isTeamGame = false,
-                    entryBet = 10000,
-                    rewardCash = 30000,
-                    rewardWrp = 3000,
                     rivalName = "Akira Sato",
                     description = "Cuartos de final en Draw Special individual a 200 puntos."
                 ),
@@ -727,9 +619,6 @@ object TournamentCampaign {
                     targetScore = 500,
                     playerCount = 4,
                     isTeamGame = true,
-                    entryBet = 15000,
-                    rewardCash = 40000,
-                    rewardWrp = 3000,
                     rivalName = "Dragones de Tokio",
                     description = "Maratón por el pase a la Gran Final mundial a 500 puntos."
                 ),
@@ -746,13 +635,9 @@ object TournamentCampaign {
                     targetScore = 200,
                     playerCount = 2,
                     isTeamGame = false,
-                    entryBet = 25000,
-                    rewardCash = 100000,
-                    rewardWrp = 10000,
                     rivalName = "Kenji 'Iron Hand'",
                     description = "El duelo cumbre: mano a mano contra el Campeón Mundial por la Copa de Oro.",
                     trophyTitle = "Copa Mundial de Dominó Imperial",
-                    trophyValue = 50000
                 )
             )
         }

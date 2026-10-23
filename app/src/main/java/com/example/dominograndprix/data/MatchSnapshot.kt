@@ -32,7 +32,6 @@ data class MatchSnapshot(
     val patternIndex: Int,
     val cityName: String,
     val venueId: String?,
-    val betAmount: Int,
 
     // --- Progreso del match ---
     /** Marcadores acumulados por asiento, en orden de asiento. */

@@ -189,7 +189,7 @@ class HumanSeatsTest {
             if (engine.isCurrentPlayerHuman) playHumanTurn(engine) else engine.executeAIMove()
             steps++
         }
-        val snapshot = engine.toSnapshot("La Habana", "cuba", 100)
+        val snapshot = engine.toSnapshot("La Habana", "cuba")
         assertEquals(setOf(0, 2), snapshot.humanPlayerIndices)
 
         val resumed = DominoEngine.resume(snapshot)
@@ -214,7 +214,7 @@ class HumanSeatsTest {
         val json = kotlinx.serialization.json.Json { encodeDefaults = true }
         val encoded = json.encodeToString(
             com.example.dominograndprix.data.MatchSnapshot.serializer(),
-            engine.toSnapshot("La Habana", "cuba", 100)
+            engine.toSnapshot("La Habana", "cuba")
         )
         // Se elimina el campo como si viniera de una version anterior.
         val withoutField = encoded.replace(Regex(",\"humanPlayerIndices\":\\[[^]]*]"), "")
@@ -229,3 +229,4 @@ class HumanSeatsTest {
         )
     }
 }
+

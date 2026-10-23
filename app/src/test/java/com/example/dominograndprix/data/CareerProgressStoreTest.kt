@@ -2,7 +2,6 @@ package com.example.dominograndprix.data
 
 import com.example.dominograndprix.model.CityVenue
 import com.example.dominograndprix.model.GameMode
-import com.example.dominograndprix.model.LuxuryItem
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -10,13 +9,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Tests de la lógica pura de persistencia de la carrera (sin Android): serialización
- * del progreso, captura del estado actual y aplicación del progreso guardado sobre
- * el catálogo de ciudades y trofeos.
+ * Persistencia de la carrera (sin Android).
+ *
+ * El juego no tiene moneda: lo que se guarda es el progreso de las sedes, los logros y las
+ * estadisticas. Dos cosas son criticas y estan cubiertas aqui:
+ * 1. Un guardado de una version anterior (con `cash`/`wrp`/`soldTrophyIds`) debe seguir
+ *    cargando sin perder el progreso.
+ * 2. Guardar NUNCA puede quitar sedes completadas o desbloqueadas.
  */
 class CareerProgressStoreTest {
 
-    private val json = Json { encodeDefaults = true }
+    private val json = Json {
+        encodeDefaults = true
+        ignoreUnknownKeys = true
+    }
 
     private fun venue(
         id: String,
@@ -26,15 +32,12 @@ class CareerProgressStoreTest {
         id = id,
         name = id,
         region = "region",
-        entryBet = 100,
         targetScore = 100,
         defaultMode = GameMode.DRAW,
-        wrpReward = 1500,
-        trophyTitle = "trophy",
-        trophyValue = 600,
+        trophyTitle = "trofeo",
         rivalName = "rival",
         rivalIntro = "intro",
-        rivalDefeatLine = "defeat",
+        rivalDefeatLine = "derrota",
         isUnlocked = unlocked,
         isCompleted = completed
     )
@@ -44,11 +47,11 @@ class CareerProgressStoreTest {
     @Test
     fun progress_survivesAJsonRoundTrip() {
         val original = JourneyProgress(
-            cash = 7300,
-            wrp = 4200,
             completedVenueIds = setOf("cuba", "mexico"),
             unlockedVenueIds = setOf("cuba", "mexico", "puerto_rico"),
-            soldTrophyIds = setOf("cigars")
+            unlockedAchievements = setOf("first_win"),
+            currentVenueIndex = 1,
+            currentChallengeIndex = 3
         )
 
         val restored = json.decodeFromString(
@@ -60,49 +63,86 @@ class CareerProgressStoreTest {
     }
 
     @Test
-    fun emptyProgress_usesStartingCareerValues() {
+    fun emptyProgress_hasNoProgressAndStartsAtTheFirstChallenge() {
         val fresh = JourneyProgress()
-        assertEquals(2500, fresh.cash)
-        assertEquals(1500, fresh.wrp)
+        assertEquals(0, fresh.currentVenueIndex)
+        assertEquals(0, fresh.currentChallengeIndex)
         assertTrue(fresh.completedVenueIds.isEmpty())
         assertTrue(fresh.unlockedVenueIds.isEmpty())
-        assertTrue(fresh.soldTrophyIds.isEmpty())
+        assertTrue(fresh.unlockedAchievements.isEmpty())
+        assertEquals(0, fresh.stats.matchesPlayed)
+    }
+
+    @Test
+    fun anOldSaveWithCashAndWrpStillLoadsWithoutLosingProgress() {
+        // Guardado real de la v2.4.0: incluye claves que ya no existen en el modelo. Con
+        // `ignoreUnknownKeys` se ignoran y el progreso se conserva; sin el, este test fallaba
+        // y el jugador perdia la carrera entera.
+        val oldSave = """
+            {"cash":7777,"wrp":3300,
+             "completedVenueIds":["cuba","mexico"],
+             "unlockedVenueIds":["cuba","mexico","puerto_rico"],
+             "soldTrophyIds":["cigars"],
+             "unlockedAchievements":["first_win"],
+             "currentVenueIndex":2,"currentChallengeIndex":1,
+             "bankruptcyRescueClaimed":false}
+        """.trimIndent()
+
+        val loaded = json.decodeFromString(JourneyProgress.serializer(), oldSave)
+
+        assertEquals(setOf("cuba", "mexico"), loaded.completedVenueIds)
+        assertEquals(setOf("cuba", "mexico", "puerto_rico"), loaded.unlockedVenueIds)
+        assertEquals(setOf("first_win"), loaded.unlockedAchievements)
+        assertEquals(2, loaded.currentVenueIndex)
+        assertEquals(1, loaded.currentChallengeIndex)
     }
 
     @Test
     fun partialJson_fillsMissingFieldsWithDefaults() {
-        // Un guardado antiguo sin las claves de trofeos debe cargar sin fallar.
         val partial = json.decodeFromString(
             JourneyProgress.serializer(),
             """{"cash":999,"wrp":50}"""
         )
-        assertEquals(999, partial.cash)
-        assertEquals(50, partial.wrp)
-        assertTrue(partial.soldTrophyIds.isEmpty())
+        assertTrue(partial.completedVenueIds.isEmpty())
+        assertTrue(partial.unlockedAchievements.isEmpty())
+        assertEquals(0, partial.currentVenueIndex)
     }
 
     // --- Captura del estado actual ---
 
     @Test
-    fun snapshot_onlyCapturesCompletedUnlockedAndSoldIds() {
-        val progress = CareerProgressStore.snapshot(
-            progress = JourneyProgress(cash = 1200, wrp = 3000),
+    fun snapshot_capturesCompletedAndUnlockedVenues() {
+        val saved = CareerProgressStore.snapshot(
+            progress = JourneyProgress(),
             venues = listOf(
                 venue("cuba", unlocked = true, completed = true),
                 venue("mexico", unlocked = true),
                 venue("puerto_rico")
-            ),
-            trophies = listOf(
-                LuxuryItem("cigars", "Habanos", 600, "La Habana", isSold = true),
-                LuxuryItem("medal", "Medalla", 900, "México", isSold = false)
             )
         )
 
-        assertEquals(1200, progress.cash)
-        assertEquals(3000, progress.wrp)
-        assertEquals(setOf("cuba"), progress.completedVenueIds)
-        assertEquals(setOf("cuba", "mexico"), progress.unlockedVenueIds)
-        assertEquals(setOf("cigars"), progress.soldTrophyIds)
+        assertEquals(setOf("cuba"), saved.completedVenueIds)
+        assertEquals(setOf("cuba", "mexico"), saved.unlockedVenueIds)
+    }
+
+    @Test
+    fun snapshot_neverLosesProgressThatTheCatalogDoesNotKnow() {
+        // El caso real: el catalogo en memoria viene de antes de jugar, asi que no refleja la
+        // sede recien completada. Guardar reemplazando la borraba; guardar con union no.
+        val progress = JourneyProgress(
+            completedVenueIds = setOf("cuba", "las_vegas"),
+            unlockedVenueIds = setOf("cuba", "las_vegas", "tokyo"),
+            unlockedAchievements = setOf("first_win")
+        )
+
+        val saved = CareerProgressStore.snapshot(
+            progress = progress,
+            venues = listOf(venue("cuba", unlocked = true))
+        )
+
+        assertEquals(setOf("cuba", "las_vegas"), saved.completedVenueIds)
+        assertEquals(setOf("cuba", "las_vegas", "tokyo"), saved.unlockedVenueIds)
+        assertEquals(setOf("first_win"), saved.unlockedAchievements)
     }
 
     // --- Aplicación sobre el catálogo ---
@@ -121,13 +161,11 @@ class CareerProgressStoreTest {
         assertTrue(restored[0].isCompleted)
         assertTrue(restored[1].isUnlocked)
         assertFalse(restored[2].isUnlocked)
-        // El orden del catálogo se conserva intacto.
         assertEquals(listOf("cuba", "mexico", "puerto_rico"), restored.map { it.id })
     }
 
     @Test
     fun applyToVenues_neverLocksBackAVenue() {
-        // Cuba ya viene desbloqueada por defecto: un guardado sin datos no debe bloquearla.
         val catalog = listOf(venue("cuba", unlocked = true))
         val restored = CareerProgressStore.applyToVenues(catalog, JourneyProgress())
         assertTrue(restored[0].isUnlocked)
@@ -135,7 +173,6 @@ class CareerProgressStoreTest {
 
     @Test
     fun applyToVenues_keepsCatalogDefaultsForUnknownSavedIds() {
-        // Un id que ya no existe en el catálogo se ignora en silencio.
         val catalog = listOf(venue("cuba", unlocked = true), venue("mexico"))
         val restored = CareerProgressStore.applyToVenues(
             catalog,
@@ -145,56 +182,31 @@ class CareerProgressStoreTest {
         assertFalse(restored[1].isUnlocked)
     }
 
-    @Test
-    fun applyToTrophies_marksOnlyPreviouslySoldItems() {
-        val catalog = listOf(
-            LuxuryItem("cigars", "Habanos", 600, "La Habana"),
-            LuxuryItem("medal", "Medalla", 900, "México")
-        )
-
-        val restored = CareerProgressStore.applyToTrophies(
-            catalog,
-            JourneyProgress(soldTrophyIds = setOf("medal"))
-        )
-
-        assertFalse(restored[0].isSold)
-        assertTrue(restored[1].isSold)
-    }
-
     // --- Ida y vuelta completa ---
 
     @Test
     fun snapshotThenApply_reproducesTheSameCareerState() {
         val catalog = listOf(venue("cuba", unlocked = true), venue("mexico"), venue("puerto_rico"))
-        val trophies = listOf(
-            LuxuryItem("cigars", "Habanos", 600, "La Habana", isSold = true),
-            LuxuryItem("medal", "Medalla", 900, "México")
-        )
 
         val saved = CareerProgressStore.snapshot(
-            progress = JourneyProgress(cash = 4400, wrp = 7500),
+            progress = JourneyProgress(currentVenueIndex = 1, currentChallengeIndex = 2),
             venues = listOf(
                 venue("cuba", unlocked = true, completed = true),
                 venue("mexico", unlocked = true),
                 venue("puerto_rico")
-            ),
-            trophies = trophies
+            )
         )
-        // Simula cerrar la app: pasa por disco (JSON) antes de volver a aplicarse.
         val reloaded = json.decodeFromString(
             JourneyProgress.serializer(),
             json.encodeToString(JourneyProgress.serializer(), saved)
         )
 
         val venues = CareerProgressStore.applyToVenues(catalog, reloaded)
-        val items = CareerProgressStore.applyToTrophies(trophies, reloaded)
 
-        assertEquals(4400, reloaded.cash)
-        assertEquals(7500, reloaded.wrp)
+        assertEquals(1, reloaded.currentVenueIndex)
+        assertEquals(2, reloaded.currentChallengeIndex)
         assertTrue(venues[0].isCompleted)
         assertTrue(venues[1].isUnlocked)
         assertFalse(venues[2].isUnlocked)
-        assertTrue(items[0].isSold)
-        assertFalse(items[1].isSold)
     }
 }

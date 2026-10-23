@@ -148,8 +148,6 @@ class MatchAccumulatorsTest {
             engine = engine,
             venueId = "cuba",
             won = true,
-            reward = 200,
-            bet = 100,
             difficulty = Difficulty.STANDARD,
             isDailyChallenge = false
         )
@@ -231,14 +229,10 @@ class MatchAccumulatorsTest {
             engine = engine,
             venueId = "cuba",
             won = false,
-            reward = 0,
-            bet = 100,
             difficulty = Difficulty.TOUGH,
             isDailyChallenge = false
         )
 
-        assertEquals("Sin victoria no hay monedas de premio", -100, report.cashDelta)
-        assertEquals("Sin victoria no hay WRP", 0, report.wrpDelta)
         assertEquals(1, report.roundsPlayed)
     }
 }

@@ -21,7 +21,7 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 16
-        versionName = "2.4.0"
+        versionName = "2.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -131,3 +131,4 @@ dependencies {
   // La versión la gestiona el BOM de kotlinx.serialization que ya arrastra androidx.lifecycle.
   implementation(libs.kotlinx.serialization.json)
 }
+

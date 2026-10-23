@@ -44,8 +44,6 @@ fun VenueStageScreen(
     challenge: VenueChallenge,
     venueIndex: Int,
     challengeIndex: Int,
-    playerCash: Int,
-    playerWrp: Int,
     onStartChallenge: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -114,31 +112,11 @@ fun VenueStageScreen(
                     }
                 }
 
-                // Indicadores de Dinero y WRP
+                // Controles de sonido y ajustes
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = DarkNavy.copy(alpha = 0.88f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(text = "💵", fontSize = 11.sp)
-                            Text(
-                                text = "$$playerCash",
-                                color = GoldAccent,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-
                     // Botón silenciar música
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -331,7 +309,7 @@ fun VenueStageScreen(
                                         fontSize = 11.sp
                                     )
                                     Text(
-                                        text = "Valor de colección: $${challenge.trophyValue} • Desbloquea la siguiente ciudad",
+                                        text = "Trofeo de la sede • Desbloquea la siguiente ciudad",
                                         color = Color.LightGray,
                                         fontSize = 10.sp
                                     )
@@ -356,7 +334,7 @@ fun VenueStageScreen(
                         )
 
                         Text(
-                            text = "Premio: $${challenge.rewardCash}",
+                            text = "Trofeo: ${challenge.trophyTitle}",
                             color = GoldAccent,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.ExtraBold
@@ -392,3 +370,4 @@ fun VenueStageScreen(
         }
     }
 }
+

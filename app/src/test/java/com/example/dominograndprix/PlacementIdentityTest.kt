@@ -111,7 +111,7 @@ class PlacementIdentityTest {
             turns++
         }
 
-        val snapshot = engine.toSnapshot("La Habana", "cuba", 100)
+        val snapshot = engine.toSnapshot("La Habana", "cuba")
         val maxRestored = snapshot.boardChain.maxOf { it.placementId }
 
         val resumed = DominoEngine.resume(snapshot)
@@ -137,7 +137,7 @@ class PlacementIdentityTest {
         // el valor por defecto 0 significa "no animar".
         val engine = engine(seed = 9L)
         engine.executeAIMove()
-        val snapshot = engine.toSnapshot("La Habana", "cuba", 100)
+        val snapshot = engine.toSnapshot("La Habana", "cuba")
         val legacy = snapshot.copy(
             boardChain = snapshot.boardChain.map { it.copy(placementId = 0) }
         )
@@ -150,3 +150,4 @@ class PlacementIdentityTest {
         assertNotEquals("El estado restaurado no puede quedar vacio", 0, resumed.boardChain.size)
     }
 }
+

@@ -29,13 +29,12 @@ object AchievementCatalog {
     const val DAILY_FIRST = "daily_first"
     const val DAILY_STREAK_7 = "daily_streak_7"
     const val PERFECT_TOUR = "perfect_tour"
-    const val HIGH_ROLLER = "high_roller"
 
     /** Todos los identificadores conocidos. Util para validar y para la interfaz. */
     val ALL: List<String> = listOf(
         FIRST_BLOOD, DOMINO_MASTER, TRANCA_KING, HAT_TRICK, VETERAN, SHARPSHOOTER,
         LAST_TILE, TOUGH_CROWN, VEGAS_CHAMPION, HAVANA_DOMINO, TOKYO_TRANCA,
-        DAILY_FIRST, DAILY_STREAK_7, PERFECT_TOUR, HIGH_ROLLER
+        DAILY_FIRST, DAILY_STREAK_7, PERFECT_TOUR
     )
 
     /**
@@ -73,9 +72,6 @@ object AchievementCatalog {
         // Gira completa: las siete sedes cerradas.
         if (progress.completedVenueIds.size >= 7) unlocked += PERFECT_TOUR
 
-        // Caja alta: da algo que perseguir a quien ya ha terminado la gira.
-        if (progress.cash >= 20000) unlocked += HIGH_ROLLER
-
         return unlocked - progress.unlockedAchievements
     }
 
@@ -112,8 +108,6 @@ object AchievementCatalog {
         )
 
         val updatedProgress = progress.copy(
-            cash = progress.cash + report.cashDelta,
-            wrp = progress.wrp + report.wrpDelta,
             // Ganar una sede la marca como completada aqui mismo. Si no, la condicion de "gira
             // completa" quedaria siempre una victoria por detras: el jugador tendria que volver
             // a ganar en la ultima ciudad para que el logro se diese cuenta.

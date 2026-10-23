@@ -52,10 +52,10 @@ data class CareerStats(
 data class MatchReport(
     val venueId: String?,
     val won: Boolean,
-    /** Monedas ganadas (o perdidas, si la apuesta se pierde). */
-    val cashDelta: Int,
-    /** WRP sumados. */
-    val wrpDelta: Int,
+
+
+
+
     val difficulty: Difficulty,
     /** Rondas jugadas en esta partida. */
     val roundsPlayed: Int,

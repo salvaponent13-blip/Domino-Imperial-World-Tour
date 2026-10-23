@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.AchievementCatalog
-import com.example.dominograndprix.data.CareerEconomy
 import com.example.dominograndprix.data.CareerProgressStore
 import com.example.dominograndprix.data.CareerReporter
 import com.example.dominograndprix.data.DailyChallenge
@@ -57,13 +56,9 @@ fun MainNavigation() {
     val context = LocalContext.current
     var careerProgress by remember { mutableStateOf(CareerProgressStore.load(context)) }
 
-    fun playerCash(): Int = careerProgress.cash
-    fun playerWrp(): Int = careerProgress.wrp
-
     var pendingAchievement by remember { mutableStateOf<String?>(null) }
     var pendingMission by remember { mutableStateOf<String?>(null) }
     val hapticAnchor = LocalView.current
-    var showBankruptcyNotice by remember { mutableStateOf(false) }
 
     var venues by remember {
         mutableStateOf(
@@ -73,22 +68,15 @@ fun MainNavigation() {
             )
         )
     }
-    var trophies by remember {
-        mutableStateOf(
-            CareerProgressStore.applyToTrophies(
-                WorldTourRepository.getLuxuryPrizes(),
-                careerProgress
-            )
-        )
-    }
+    // Los trofeos son una coleccion de recuerdos: no se venden ni generan dinero.
+    val trophies = remember { WorldTourRepository.getLuxuryPrizes() }
 
-    LaunchedEffect(careerProgress, venues, trophies) {
+    LaunchedEffect(careerProgress, venues) {
         CareerProgressStore.save(
             context,
             CareerProgressStore.snapshot(
                 progress = careerProgress,
-                venues = venues,
-                trophies = trophies
+                venues = venues
             )
         )
     }
@@ -101,7 +89,6 @@ fun MainNavigation() {
     // Parámetros de la partida activa
     var activeMode by remember { mutableStateOf(GameMode.BLOCK) }
     var activeCityName by remember { mutableStateOf("Ciudad de México") }
-    var activeBet by remember { mutableStateOf(0) }
     var activeTargetScore by remember { mutableStateOf(20) }
     var activeVenueId by remember { mutableStateOf<String?>("mexico") }
     var activePlayerCount by remember { mutableIntStateOf(4) }
@@ -166,7 +153,6 @@ fun MainNavigation() {
                             DominoSoundManager.playTileClack(isDouble = true)
                             activeMode = config.gameMode
                             activeCityName = DominoStrings.modeName(config.gameMode)
-                            activeBet = 0
                             activeTargetScore = config.targetScore
                             activeVenueId = null
                             activeDaily = null
@@ -192,7 +178,6 @@ fun MainNavigation() {
                             activeDaily = dailyChallenge
                             activeMode = dailyChallenge.mode
                             activeCityName = DominoStrings.modeName(dailyChallenge.mode)
-                            activeBet = 0
                             activeTargetScore = dailyChallenge.targetScore
                             activeVenueId = null
                             activePlayerCount = 2
@@ -211,6 +196,10 @@ fun MainNavigation() {
                         onShowTrophies = {
                             DominoSoundManager.playTileTap()
                             currentScreen = AppScreen.TROPHIES
+                        },
+                        onShowAchievements = {
+                            DominoSoundManager.playTileTap()
+                            currentScreen = AppScreen.ACHIEVEMENTS
                         }
                     )
                 }
@@ -223,17 +212,10 @@ fun MainNavigation() {
                         challenge = currentChallenge,
                         venueIndex = careerProgress.currentVenueIndex,
                         challengeIndex = careerProgress.currentChallengeIndex,
-                        playerCash = playerCash(),
-                        playerWrp = playerWrp(),
                         onStartChallenge = {
                             DominoSoundManager.playTileClack(isDouble = true)
-                            // Deduce apuesta de entrada si aplica
-                            if (currentChallenge.entryBet > 0 && careerProgress.cash >= currentChallenge.entryBet) {
-                                careerProgress = careerProgress.copy(cash = careerProgress.cash - currentChallenge.entryBet)
-                            }
                             activeMode = currentChallenge.gameMode
                             activeCityName = currentChallenge.venueName
-                            activeBet = currentChallenge.entryBet
                             activeTargetScore = currentChallenge.targetScore
                             activeVenueId = currentChallenge.venueId
                             activePlayerCount = currentChallenge.playerCount
@@ -281,7 +263,6 @@ fun MainNavigation() {
                         gameMode = activeMode,
                         cityName = activeCityName,
                         venueId = activeVenueId,
-                        betAmount = activeBet,
                         targetScore = activeTargetScore,
                         playerCount = activePlayerCount,
                         isTeamGame = activeIsTeamGame,
@@ -313,8 +294,6 @@ fun MainNavigation() {
                                     engine = finishedEngine,
                                     venueId = null,
                                     won = won,
-                                    reward = 0,
-                                    bet = 0,
                                     difficulty = activeDifficulty,
                                     isDailyChallenge = true
                                 )
@@ -338,8 +317,6 @@ fun MainNavigation() {
                                     engine = finishedEngine,
                                     venueId = null,
                                     won = won,
-                                    reward = 0,
-                                    bet = 0,
                                     difficulty = activeDifficulty,
                                     isDailyChallenge = false
                                 )
@@ -360,8 +337,6 @@ fun MainNavigation() {
                                 engine = finishedEngine,
                                 venueId = activeVenueId,
                                 won = won,
-                                reward = if (won) currentChallenge.rewardCash else 0,
-                                bet = activeBet,
                                 difficulty = activeDifficulty,
                                 isDailyChallenge = false
                             )
@@ -403,8 +378,6 @@ fun MainNavigation() {
                                 }
 
                                 careerProgress = careerProgress.copy(
-                                    cash = careerProgress.cash + currentChallenge.rewardCash,
-                                    wrp = careerProgress.wrp + currentChallenge.rewardWrp,
                                     currentVenueIndex = nextVenue,
                                     currentChallengeIndex = nextChallenge,
                                     completedVenueIds = completedVenues,
@@ -414,12 +387,7 @@ fun MainNavigation() {
                                 // Regresa directamente a la pantalla de sede con el siguiente reto ya listo
                                 currentScreen = AppScreen.VENUE_STAGE
                             } else {
-                                if (careerProgress.cash < CareerEconomy.MINIMUM_ENTRY_BET) {
-                                    CareerEconomy.grantBankruptcyRescue(careerProgress)?.let { rescued ->
-                                        careerProgress = rescued
-                                        showBankruptcyNotice = true
-                                    }
-                                }
+                                // Sin economia no hay bancarrota: si pierdes, repites el reto.
                                 currentScreen = AppScreen.VENUE_STAGE
                             }
                         },
@@ -443,7 +411,6 @@ fun MainNavigation() {
                             DominoSoundManager.playTileTap()
                             activeMode = mode
                             activeCityName = DominoStrings.modeName(mode)
-                            activeBet = 0
                             activeTargetScore = 50
                             activeVenueId = null
                             activePlayerCount = 4
@@ -463,17 +430,6 @@ fun MainNavigation() {
                 AppScreen.TROPHIES -> {
                     TrophyRoomScreen(
                         items = trophies,
-                        playerCash = playerCash(),
-                        onSellItem = { item ->
-                            DominoSoundManager.playTileClack()
-                            val index = trophies.indexOf(item)
-                            if (index != -1 && !item.isSold) {
-                                val updated = trophies.toMutableList()
-                                updated[index] = item.copy(isSold = true)
-                                trophies = updated
-                                careerProgress = careerProgress.copy(cash = playerCash() + item.value)
-                            }
-                        },
                         onBack = {
                             DominoSoundManager.playTileTap()
                             currentScreen = AppScreen.TITLE
@@ -495,37 +451,6 @@ fun MainNavigation() {
             // Ajustes (sonido, vibracion, idioma): persistentes entre sesiones
             if (showSettings) {
                 SettingsDialog(onDismiss = { showSettings = false })
-            }
-
-            // Aviso de prestamo de honor
-            if (showBankruptcyNotice) {
-                AlertDialog(
-                    onDismissRequest = {},
-                    title = {
-                        Text(
-                            text = DominoStrings.bankruptcyTitle(),
-                            color = GoldAccent,
-                            fontWeight = FontWeight.Black
-                        )
-                    },
-                    text = {
-                        Text(DominoStrings.bankruptcyBody(CareerEconomy.BANKRUPTCY_RESCUE_AMOUNT))
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                DominoSoundManager.playTileTap()
-                                showBankruptcyNotice = false
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = GoldAccent,
-                                contentColor = DarkNavy
-                            )
-                        ) {
-                            Text("OK", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                )
             }
 
             // Banner flotante de logros

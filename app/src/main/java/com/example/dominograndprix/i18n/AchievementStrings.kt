@@ -72,10 +72,6 @@ object AchievementStrings {
             "Vuelta perfecta", "Perfect tour", "Tournée parfaite", "Tour perfetto",
             "Volta perfeita", "Perfekte Tour"
         ),
-        AchievementCatalog.HIGH_ROLLER to listOf(
-            "Grande en la mesa", "High roller", "Gros joueur", "Alto puntatore",
-            "Grande apostador", "High Roller"
-        )
     )
 
     private val descriptions: Map<String, List<String>> = mapOf(
@@ -142,10 +138,6 @@ object AchievementStrings {
             "Terminez les 7 villes du World Tour.", "Completa le 7 sedi del World Tour.",
             "Complete as 7 cidades do World Tour.", "Schließe alle 7 Städte der World Tour ab."
         ),
-        AchievementCatalog.HIGH_ROLLER to listOf(
-            "Acumula 20.000 en caja.", "Bank 20,000 in cash.", "Accumulez 20 000 en caisse.",
-            "Accumula 20.000 in cassa.", "Acumule 20.000 em caixa.", "Sammle 20.000 in der Kasse."
-        )
     )
 
     private val missionTitles: Map<String, List<String>> = mapOf(

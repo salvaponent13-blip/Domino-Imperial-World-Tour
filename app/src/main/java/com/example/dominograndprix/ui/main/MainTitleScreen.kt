@@ -51,6 +51,7 @@ fun MainTitleScreen(
     onOpenQuickPlay: (QuickPlayConfig) -> Unit = {},
     onShowRules: () -> Unit = {},
     onShowTrophies: () -> Unit = {},
+    onShowAchievements: () -> Unit = {},
     dailyChallenge: DailyChallenge? = null,
     dailyStreak: Int = 0,
     dailyAlreadyPlayed: Boolean = false,
@@ -465,6 +466,27 @@ fun MainTitleScreen(
                         )
                     }
                 }
+
+                // Logros: hasta ahora eran visibles solo cuando saltaba el banner.
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF1E2836).copy(alpha = 0.90f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.4f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .clickable(onClick = onShowAchievements)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(6.dp)) {
+                        Text(
+                            DominoStrings.achievementsBtn(),
+                            color = Color(0xFFA7F3D0),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -564,3 +586,4 @@ fun MainTitleScreen(
         }
     }
 }
+

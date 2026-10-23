@@ -159,14 +159,11 @@ data class CityVenue(
     val id: String,
     val name: String,
     val region: String,
-    val entryBet: Int,
     val targetScore: Int,
     val defaultMode: GameMode,
     /** Nivel del rival de esta sede. Escala a lo largo de la gira. */
     val difficulty: Difficulty = Difficulty.STANDARD,
-    val wrpReward: Int,
     val trophyTitle: String,
-    val trophyValue: Int,
     val rivalName: String,
     val rivalIntro: String,
     val rivalDefeatLine: String,
@@ -178,14 +175,15 @@ data class CityVenue(
 )
 
 /**
- * Trophy/Luxury Item earned in tournaments.
+ * Trofeo/recuerdo que se gana al completar una sede.
+ *
+ * No se vende ni se convierte en dinero: el objetivo del juego es completar la gira y el
+ * trofeo es la constancia de haberlo hecho.
  */
 data class LuxuryItem(
     val id: String,
     val title: String,
-    val value: Int,
-    val cityName: String,
-    var isSold: Boolean = false
+    val cityName: String
 )
 
 /**

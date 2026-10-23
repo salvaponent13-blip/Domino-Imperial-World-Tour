@@ -17,8 +17,6 @@ class TournamentCampaignTest {
             challenges.forEachIndexed { cIndex, challenge ->
                 assertEquals(cIndex + 1, challenge.challengeNumber)
                 assertTrue(challenge.targetScore > 0)
-                assertTrue(challenge.rewardCash > challenge.entryBet)
-                assertTrue(challenge.rewardWrp > 0)
                 assertNotNull(challenge.rivalName)
                 assertNotNull(challenge.description)
             }
@@ -49,7 +47,6 @@ class TournamentCampaignTest {
             val finalChallenge = TournamentCampaign.getChallenge(venueIdx, 4)
             assertEquals(5, finalChallenge.challengeNumber)
             assertNotNull(finalChallenge.trophyTitle)
-            assertTrue(finalChallenge.trophyValue > 0)
         }
     }
 

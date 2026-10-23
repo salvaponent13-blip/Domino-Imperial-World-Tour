@@ -1463,7 +1463,7 @@ class DominoEngine(
      * acordo guardar, porque a mitad de jugada hay estados en vuelo (encadenamiento hungaro,
      * ventana de invasion) que complican la restauracion sin aportar valor al jugador.
      */
-    fun toSnapshot(cityName: String, venueId: String?, betAmount: Int): MatchSnapshot =
+    fun toSnapshot(cityName: String, venueId: String?): MatchSnapshot =
         MatchSnapshot(
             gameMode = gameMode,
             difficulty = difficulty,
@@ -1471,7 +1471,6 @@ class DominoEngine(
             patternIndex = patternIndex,
             cityName = cityName,
             venueId = venueId,
-            betAmount = betAmount,
             scores = players.map { it.score },
             isMatchOver = isMatchOver,
             winningTeam = winningTeam,

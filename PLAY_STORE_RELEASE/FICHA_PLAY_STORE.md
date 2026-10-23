@@ -6,7 +6,7 @@
 - **Package Name (`applicationId`):**
   `com.horts.dominoimperial`
 - **Versión:**
-  `versionCode = 2` | `versionName = "2.0.0"`
+  `versionCode = 16` | `versionName = "2.5.0"`
 - **Categoría en Google Play:**
   `Juegos` → `Mesa` (Board Games)
 - **Etiquetas recomendadas:**
@@ -99,5 +99,6 @@ Domina todas las variantes internacionales del dominó en un solo juego:
 ## 5. Respuestas para Seguridad de Datos y Clasificación (Play Console)
 - **¿Recopila o comparte datos del usuario?** `No` (0 permisos de red ni rastreadores).
 - **¿Contiene anuncios?** `No`.
-- **¿Compras integradas reales?** `No` (las monedas y trofeos del modo carrera son 100% ficticios y gratuitos dentro del juego).
+- **¿Compras integradas reales?** `No` (el juego no tiene monedas ni tienda: los trofeos son recuerdos de las sedes completadas).
 - **Clasificación de contenido (IARC):** `PEGI 3` / `ESRB Everyone` (Juego de mesa tradicional de dominó sin violencia ni apuestas con dinero real).
+

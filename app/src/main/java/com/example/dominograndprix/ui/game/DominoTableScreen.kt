@@ -101,7 +101,6 @@ fun DominoTableScreen(
     gameMode: GameMode = GameMode.DRAW,
     cityName: String = "La Habana",
     venueId: String? = "cuba",
-    betAmount: Int = 500,
     targetScore: Int = 100,
     playerCount: Int = 4,
     isTeamGame: Boolean = true,
@@ -267,7 +266,7 @@ fun DominoTableScreen(
         if (current.isRoundOver && !current.isMatchOver) {
             MatchSnapshotStore.save(
                 context,
-                current.toSnapshot(cityName = cityName, venueId = venueId, betAmount = betAmount)
+                current.toSnapshot(cityName = cityName, venueId = venueId)
             )
         } else if (current.isMatchOver) {
             // La partida ha terminado: no debe quedar un guardado que la resucite.
@@ -549,8 +548,7 @@ fun DominoTableScreen(
                                     }
                                 }
                                 Text(
-                                    text = "${DominoStrings.targetLabel()}: $targetScore pts" +
-                                        (if (betAmount > 0) " | \$$betAmount" else ""),
+                                    text = "${DominoStrings.targetLabel()}: $targetScore pts",
                                     color = Color.LightGray,
                                     fontSize = 9.sp
                                 )
@@ -1511,7 +1509,7 @@ fun DominoTableScreen(
                 onNextRound = {
                     showRoundDialog = false
                     if (engine.value.isMatchOver) {
-                        onMatchFinished(didPlayerWin, betAmount * 2, engine.value)
+                        onMatchFinished(didPlayerWin, 0, engine.value)
                     } else {
                         DominoSoundManager.playVenueMusic(venueId)
                         engine.value.startNewRound(
@@ -1527,7 +1525,7 @@ fun DominoTableScreen(
                     // Si la partida ya habia terminado, salir tambien debe cerrarla: si no, se
                     // perdian la recompensa y el avance del reto de una partida ya ganada.
                     if (engine.value.isMatchOver) {
-                        onMatchFinished(didPlayerWin, betAmount * 2, engine.value)
+                        onMatchFinished(didPlayerWin, 0, engine.value)
                     } else {
                         onBack()
                     }
@@ -1733,3 +1731,4 @@ fun PlayerBadge(
         }
     }
 }
+

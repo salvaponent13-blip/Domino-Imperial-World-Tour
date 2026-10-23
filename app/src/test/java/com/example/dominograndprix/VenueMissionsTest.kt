@@ -31,8 +31,6 @@ class VenueMissionsTest {
     ) = MatchReport(
         venueId = "cuba",
         won = won,
-        cashDelta = 0,
-        wrpDelta = 0,
         difficulty = Difficulty.STANDARD,
         roundsPlayed = roundsWon,
         roundsWon = roundsWon,

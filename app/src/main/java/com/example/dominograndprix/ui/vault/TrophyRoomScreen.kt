@@ -20,11 +20,15 @@ import com.example.dominograndprix.model.LuxuryItem
 import com.example.dominograndprix.ui.game.DarkNavy
 import com.example.dominograndprix.ui.game.GoldAccent
 
+/**
+ * Vitrina de trofeos.
+ *
+ * Es una coleccion, no una tienda: el juego no tiene moneda, asi que un trofeo es la constancia
+ * de haber completado una sede y no se puede vender.
+ */
 @Composable
 fun TrophyRoomScreen(
     items: List<LuxuryItem>,
-    playerCash: Int = 1500,
-    onSellItem: (LuxuryItem) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     Box(
@@ -47,13 +51,7 @@ fun TrophyRoomScreen(
                     Text(DominoStrings.trophyRoomBtn(), color = GoldAccent, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
                     Text(DominoStrings.trophyRoomSub(), color = Color.LightGray, fontSize = 11.sp)
                 }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(DominoStrings.cashLabel(playerCash), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    LanguageSelectorButton()
-                }
+                LanguageSelectorButton()
             }
 
             LazyColumn(
@@ -61,7 +59,7 @@ fun TrophyRoomScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(items) { item ->
-                    TrophyCard(item = item, onSell = { onSellItem(item) })
+                    TrophyCard(item = item)
                 }
             }
 
@@ -79,10 +77,7 @@ fun TrophyRoomScreen(
 }
 
 @Composable
-fun TrophyCard(
-    item: LuxuryItem,
-    onSell: () -> Unit
-) {
+fun TrophyCard(item: LuxuryItem) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFF1E2A38),
@@ -97,21 +92,8 @@ fun TrophyCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = item.title, color = GoldAccent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Text(text = DominoStrings.obtainedIn(item.cityName), color = Color.LightGray, fontSize = 11.sp)
-                Text(text = DominoStrings.marketValue(item.value), color = Color.White, fontSize = 12.sp)
             }
-
-            if (!item.isSold) {
-                Button(
-                    onClick = onSell,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828)),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text(DominoStrings.sellForBtn(item.value), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-            } else {
-                Text(DominoStrings.soldLabel(), color = Color.Gray, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            }
+            Text(text = "🏆", fontSize = 20.sp)
         }
     }
 }

@@ -55,7 +55,7 @@ class MatchSnapshotTest {
         val engine = engine()
         playUntilRoundClosed(engine)
 
-        val original = engine.toSnapshot(cityName = "La Habana", venueId = "cuba", betAmount = 250)
+        val original = engine.toSnapshot(cityName = "La Habana", venueId = "cuba")
         val restored = json.decodeFromString(
             MatchSnapshot.serializer(),
             json.encodeToString(MatchSnapshot.serializer(), original)
@@ -71,13 +71,12 @@ class MatchSnapshotTest {
         val engine = engine(mode = GameMode.ALL_FIVES, seed = 99L, difficulty = Difficulty.TOUGH)
         playUntilRoundClosed(engine)
 
-        val snapshot = engine.toSnapshot(cityName = "Tokio", venueId = "tokyo", betAmount = 800)
+        val snapshot = engine.toSnapshot(cityName = "Tokio", venueId = "tokyo")
 
         assertEquals(GameMode.ALL_FIVES, snapshot.gameMode)
         assertEquals(Difficulty.TOUGH, snapshot.difficulty)
         assertEquals("Tokio", snapshot.cityName)
         assertEquals("tokyo", snapshot.venueId)
-        assertEquals(800, snapshot.betAmount)
         assertEquals(300, snapshot.targetScore)
         assertEquals(99L, snapshot.randomSeed)
         assertEquals(engine.players.map { it.score }, snapshot.scores)
@@ -95,7 +94,7 @@ class MatchSnapshotTest {
         val engine = engine(seed = 31L)
         playUntilRoundClosed(engine)
 
-        val snapshot = engine.toSnapshot(cityName = "La Habana", venueId = "cuba", betAmount = 100)
+        val snapshot = engine.toSnapshot(cityName = "La Habana", venueId = "cuba")
         val expectedScores = engine.players.map { it.score }
         val expectedBoard = engine.boardChain.map { it.tile }
         val expectedHands = engine.players.map { it.hand }
@@ -121,7 +120,7 @@ class MatchSnapshotTest {
         // Lo importante no es que restaure bien, sino que DESPUES se pueda seguir jugando.
         val engine = engine(seed = 7L)
         playUntilRoundClosed(engine)
-        val snapshot = engine.toSnapshot(cityName = "La Habana", venueId = "cuba", betAmount = 100)
+        val snapshot = engine.toSnapshot(cityName = "La Habana", venueId = "cuba")
         val scoresBefore = snapshot.scores
 
         val resumed = DominoEngine.resume(snapshot)
@@ -149,7 +148,7 @@ class MatchSnapshotTest {
     fun incompatibleSchemaIsRejectedInsteadOfInterpreted() {
         val engine = engine()
         playUntilRoundClosed(engine)
-        val future = engine.toSnapshot("La Habana", "cuba", 100)
+        val future = engine.toSnapshot("La Habana", "cuba")
             .copy(schemaVersion = MatchSnapshot.CURRENT_SCHEMA_VERSION + 99)
 
         assertFalse("Un formato del futuro no debe darse por bueno", future.isCompatible)
@@ -163,7 +162,7 @@ class MatchSnapshotTest {
         playUntilRoundClosed(engine)
         val encoded = json.encodeToString(
             MatchSnapshot.serializer(),
-            engine.toSnapshot("La Habana", "cuba", 100)
+            engine.toSnapshot("La Habana", "cuba")
         )
         val withExtra = encoded.dropLast(1) + ""","campoDelFuturo":123}"""
 
@@ -180,7 +179,7 @@ class MatchSnapshotTest {
         // verifica la parte que si vive aqui: que el JSON del almacen no pierde nada.
         val engine = engine(mode = GameMode.DRAW_SPECIAL, seed = 55L)
         playUntilRoundClosed(engine)
-        val original = engine.toSnapshot("Tokio", "tokyo", 800)
+        val original = engine.toSnapshot("Tokio", "tokyo")
 
         val stored = Json { encodeDefaults = true; ignoreUnknownKeys = true }
         val reloaded = stored.decodeFromString(
@@ -260,3 +259,6 @@ class MatchSnapshotTest {
         )
     }
 }
+
+
+
