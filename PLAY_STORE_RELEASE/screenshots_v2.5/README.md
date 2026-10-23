@@ -1,55 +1,36 @@
-# Capturas Oficiales Google Play Store — Domino Imperial: Grand Prix v2.5.0
+# Capturas v2.5.0 — set corregido
 
-Generadas con el APK de lanzamiento release v2.5.0 (build 16). Cumplen estrictamente con todos los requisitos de Google Play Console (resoluciones mínimas, proporciones de aspecto, ausencia de elementos obsoletos y textos promocionales en español).
+Cinco capturas reales, **a sangre** (sin barras ni marcos) y a **1080x1920 (16:9 nativo)**, sacadas
+del APK release en un emulador configurado a esa resolución. Cumplen el límite de Play (máximo
+2:1) sin recortes.
 
----
-
-## 📁 Estructura de Carpetas
-
-### 1. `telefono_1080x2160/` (8 capturas directas a resolución 1080x2160)
-* **Proporción**: 2:1 exacta (18:9), cumpliendo el límite estricto de Google Play (máximo 2:1).
-* **Contenido**: Pantalla completa del juego (título, mesa en serpentina, contador de fichas, 8 modalidades, sede de México, configurar partida rápida, logros y vitrina de trofeos) con márgenes laterales de lujo en azul noche y oro sin cortar el HUD ni la mano del jugador.
-* **Uso**: Subir en la sección **"Teléfono"** de Google Play Console si prefieres capturas directas sin encabezados.
-
-### 2. `telefono_con_fondo_1080x1920/` (8 capturas promocionales a resolución 1080x1920)
-* **Proporción**: 9:16 vertical (1080x1920 px).
-* **Contenido**: Fondo temático del juego con desenfoque suave, marco de smartphone con bisel dorado y sombra ambiental, píldora dorada de categoría, título de marketing de alto impacto y subtítulo explicativo.
-* **Uso**: Subir en la sección **"Teléfono"** de Google Play Console para una presentación de tienda de máxima conversión (estilo editorial).
-
-### 3. `tablet_7_pulgadas_1920x1080/` (8 capturas horizontales 16:9 para tablets de 7")
-* **Proporción**: 16:9 apaisado (1920x1080 px).
-* **Contenido**:
-  * **Fondo**: Arte temático de la sede correspondiente (`bg_cover`, `bg_table`, `venue_mexico`, `venue_havana`, `venue_sanjuan`, `venue_new_orleans`, `venue_las_vegas`, `venue_tokyo`) con gradiente oscuro y marcos dorados dobles.
-  * **Columna Izquierda**: Logo oficial (`app_logo_icon.png`), distintivo `"DOMINO IMPERIAL • GRAND PRIX"`, insignia de categoría, título destacado, subtítulo, 3 viñetas explicativas y cinta de garantía (`"100% OFFLINE • SIN ANUNCIOS • 8 MODALIDADES"`).
-  * **Columna Derecha**: Pantalla real del juego enmarcada en dispositivo con bisel de titanio, filo dorado y sombra realista.
-* **Uso**: Subir en la sección **"Tablet de 7 pulgadas"** de Google Play Console.
-
-### 4. `tablet_10_pulgadas_2560x1440/` (8 capturas horizontales 16:9 para tablets de 10")
-* **Proporción**: 16:9 apaisado (2560x1440 px 2K Ultra HD).
-* **Contenido**: Mismo diseño editorial que el set de 7", renderizado a máxima resolución nativa (2560x1440 px) para pantallas de alta densidad.
-* **Uso**: Subir en la sección **"Tablet de 10 pulgadas"** de Google Play Console.
-
----
-
-## 📋 Guion de las 8 Capturas
-
-| Nº | Archivo Base | Título / Tema | Fondo de Arte |
+| # | Archivo | Qué se ve | Por qué está |
 |---|---|---|---|
-| 1 | `01_titulo` | **Torneo Mundial de Dominó** (Gira, Partida Rápida, Desafío Diario) | `bg_cover.jpg` |
-| 2 | `02_mesa_juego` | **Mesa de Juego y Control Táctil** (Serpentina, Rivales IA, Cámara 2D/3D) | `bg_table.jpg` |
-| 3 | `03_contador_fichas` | **Contador de Fichas y Táctica** (Fichas por palo, seguimiento en vivo) | `venue_mexico.jpg` |
-| 4 | `04_reglas_modalidades` | **8 Modalidades Oficiales** (Draw, Block, All Fives, Matador, etc.) | `venue_havana.jpg` |
-| 5 | `05_sede_mexico` | **Gira en 7 Sedes Legendarias** (35 Retos, Música Tradicional) | `venue_sanjuan.jpg` |
-| 6 | `06_partida_rapida` | **Partida Rápida Personalizada** (Reglas, puntos, 2-4 jugadores, 2v2) | `venue_new_orleans.jpg` |
-| 7 | `07_logros` | **Desafíos y Logros del Circuito** (Metas, estadísticas de carrera) | `venue_las_vegas.jpg` |
-| 8 | `08_vitrina_trofeos` | **Vitrina de Trofeos de la Gira** (Copas y trofeos de honor permanentes) | `venue_tokyo.jpg` |
+| 1 | `01_mesa_con_pista.png` | Mesa en juego, cadena en serpentina, HUD con dos rivales, botones flotantes de deshacer y pista, y la pista activa: "Prueba [3\|3] a la izquierda" | Es la que vende: se entiende en dos segundos y enseña una función que el jugador usará |
+| 2 | `02_titulo.png` | Portada con el logo limpio, torneo, partida rápida y el desafío diario con la racha | Ancla la marca y avisa de que hay contenido diario |
+| 3 | `03_sede_mexico.png` | Sede de Ciudad de México: reto, modalidad, meta y rival | Explica la estructura de la gira sin monedas ni apuestas |
+| 4 | `04_partida_rapida.png` | Configurador con modalidad, objetivo, jugadores, formato, dificultad y **"2 humanos (pasa el móvil)"** | Enseña la profundidad y el pass-and-play |
+| 5 | `05_ocho_modalidades.png` | Guía de las 8 modalidades con la estrategia de cada una | El argumento contra los clones de un solo modo |
 
----
+## Lo que se descartó y por qué
 
-## ✅ Cumplimiento con las Políticas de Google Play
+- **Capturas con barras laterales** y resoluciones 2:1 recortadas: el contenido no llegaba al
+  borde y se leía como un fallo de exportación.
+- **Tablets**: la app es retrato; meter un móvil en un marco dentro de un lienzo 16:9 no
+  representa la experiencia de tablet. Play permite no subir capturas de tablet.
+- **Logros y vitrina**: salen vacíos en una instalación nueva ("0/14 desbloqueados", vitrina sin
+  trofeos) y no venden nada. Mejor cuando el jugador tenga progreso real.
 
-1. **Aspect Ratio**: 
-   - Móvil: 2:1 (`1080x2160`) y 16:9 (`1080x1920`). Ninguna excede el límite de 2:1.
-   - Tablet: 16:9 (`1920x1080` y `2560x1440`).
-2. **Economía Real v2.5.0**: Cero menciones a caja, saldos virtuales, venta de trofeos o apuestas. Todo refleja el modelo 100% premium offline de la versión 2.5.0.
-3. **Calidad de Imagen**: Renderizado en PNG sin compresión con antialiasing Lanczos de alta fidelidad.
+## Qué falta (y por qué no lo hice aquí)
+
+- **All Fives con spinner de 4 ramas** y **resumen de ronda con desglose**: requieren jugar una
+  partida de puntos hasta el final. En el emulador se puede, pero es lento y ciego; en tu móvil
+  lo sacas en dos minutos y con la partida ya jugada de verdad.
+- **Racha de varios días** en el desafío diario: necesita días reales de juego.
+
+Cuando las tengas, ponlas en la posición 1 y 3: son las dos que más pesan.
+
+## `_anteriores_compuestas/`
+
+El set anterior (8 móvil + 8 con fondo + 16 de tablet) se guardó aquí como referencia. Tiene
+barras laterales y las pantallas de móvil dentro de marcos de tablet, así que no lo subiría.

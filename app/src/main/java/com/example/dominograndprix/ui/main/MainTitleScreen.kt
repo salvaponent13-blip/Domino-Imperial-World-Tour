@@ -92,11 +92,17 @@ fun MainTitleScreen(
                 )
         )
 
-        // Cabecera superior: Logo, Título, Idioma y Sonido
+        // Cabecera superior: Logo, Idioma y Sonido. Lleva un velo oscuro para que los botones
+        // se lean sobre el arte del logo, que ocupa toda la parte de arriba.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Black.copy(alpha = 0.72f), Color.Transparent)
+                    )
+                )
                 .padding(horizontal = 16.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -106,6 +112,8 @@ fun MainTitleScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.weight(1f)
             ) {
+                // Solo el icono: el logo del fondo ya dice "DOMINO GRAND PRIX WORLD TOUR", y
+                // repetir el nombre encima partia las letras del logo y ensuciaba la portada.
                 Image(
                     painter = painterResource(id = R.drawable.app_logo_icon),
                     contentDescription = DominoStrings.appIconLabel(),
@@ -114,22 +122,6 @@ fun MainTitleScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .border(1.5.dp, GoldAccent, RoundedCornerShape(12.dp))
                 )
-                Column {
-                    Text(
-                        text = "DOMINO IMPERIAL",
-                        color = GoldAccent,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 18.sp,
-                        letterSpacing = 0.5.sp
-                    )
-                    Text(
-                        text = "GRAND PRIX MUNDIAL",
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 10.sp,
-                        letterSpacing = 1.sp
-                    )
-                }
             }
 
             Row(
