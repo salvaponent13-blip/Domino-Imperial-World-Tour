@@ -652,64 +652,6 @@ fun DominoTableScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Deshacer: vuelve al momento anterior a tu ultima jugada (incluida la
-                            // respuesta de la IA). Solo en partidas de un humano.
-                            if (isMyTurn && engine.value.canUndo && engine.value.humanPlayerIndices.size == 1) {
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color.Black.copy(alpha = 0.5f),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
-                                    modifier = Modifier
-                                        .semantics { contentDescription = DominoStrings.undoLabel() }
-                                        .clickable {
-                                            DominoSoundManager.playTileTap()
-                                            if (engine.value.undo()) {
-                                                selectedTile = null
-                                                logMessage = engine.value.roundLog
-                                                gameStateVersion++
-                                            }
-                                        }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                    ) {
-                                        Text("↩", fontSize = 8.sp, color = Color.White)
-                                    }
-                                }
-                            }
-
-                            // Pista: la misma evaluacion que usa la IA media, con el extremo elegido
-                            if (isMyTurn) {
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Color.Black.copy(alpha = 0.5f),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f)),
-                                    modifier = Modifier
-                                        .semantics { contentDescription = DominoStrings.hintLabel() }
-                                        .clickable {
-                                        DominoSoundManager.playTileTap()
-                                        val suggestion = engine.value.suggestedMove(viewingSeat) as? AiMove.Play
-                                        turnAnnouncement = if (suggestion != null) {
-                                            DominoStrings.hintPlaySuggestion(
-                                                "[${suggestion.tile.high}|${suggestion.tile.low}]",
-                                                DominoStrings.sideName(suggestion.side)
-                                            )
-                                        } else {
-                                            DominoStrings.hintNoMoves()
-                                        }
-                                    }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.5.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                    ) {
-                                        Text("💡", fontSize = 8.sp)
-                                    }
-                                }
-                            }
 
                             // Selector de Velocidad IA (1x / 2x)
                             Surface(
@@ -1065,6 +1007,40 @@ fun DominoTableScreen(
                                 ) {
                                     Text("${targetPip ?: ""}", color = DarkNavy, fontWeight = FontWeight.Black, fontSize = 11.sp)
                                 }
+                            }
+                        }
+                    }
+                }
+
+                // Ayudas de mesa: pista y deshacer, flotando sobre el fieltro. Van aqui y no en
+                // el HUD porque con 4 jugadores la fila de rivales se quedaba sin sitio.
+                if (isMyTurn) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (engine.value.canUndo && engine.value.humanPlayerIndices.size == 1) {
+                            MesaActionButton(symbol = "↩", description = DominoStrings.undoLabel()) {
+                                DominoSoundManager.playTileTap()
+                                if (engine.value.undo()) {
+                                    selectedTile = null
+                                    logMessage = engine.value.roundLog
+                                    gameStateVersion++
+                                }
+                            }
+                        }
+                        MesaActionButton(symbol = "💡", description = DominoStrings.hintLabel()) {
+                            DominoSoundManager.playTileTap()
+                            val suggestion = engine.value.suggestedMove(viewingSeat) as? AiMove.Play
+                            turnAnnouncement = if (suggestion != null) {
+                                DominoStrings.hintPlaySuggestion(
+                                    "[${suggestion.tile.high}|${suggestion.tile.low}]",
+                                    DominoStrings.sideName(suggestion.side)
+                                )
+                            } else {
+                                DominoStrings.hintNoMoves()
                             }
                         }
                     }
@@ -1728,6 +1704,24 @@ fun PlayerBadge(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Boton redondo flotante sobre el fieltro (pista y deshacer). */
+@Composable
+private fun MesaActionButton(symbol: String, description: String, onClick: () -> Unit) {
+    Surface(
+        shape = CircleShape,
+        color = Color.Black.copy(alpha = 0.62f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, GoldAccent.copy(alpha = 0.6f)),
+        modifier = Modifier
+            .size(42.dp)
+            .semantics { contentDescription = description }
+            .clickable(onClick = onClick)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(symbol, fontSize = 18.sp, color = Color.White)
         }
     }
 }
