@@ -151,8 +151,8 @@ object AchievementStrings {
         "no_tranca" to listOf("Victoria cerrada", "Locked win", "Victoire verrouillée", "Vittoria chiusa", "Vitória fechada", "Eingesperrt"),
         "tokyo_flawless" to listOf("Tres seguidas", "Three in a row", "Trois d'affilée", "Tre di fila", "Três seguidas", "Drei in Folge"),
         "tokyo_master" to listOf("Dominio doble", "Double domino", "Double domino", "Doppio domino", "Dominó duplo", "Doppel-Domino"),
-        "mc_big_round" to listOf("Ronda de 40", "40-point round", "Manche de 40", "Mano da 40", "Rodada de 40", "40-Punkte-Runde"),
-        "mc_domino" to listOf("Dos dominós", "Two dominos", "Deux dominos", "Due domino", "Dois dominós", "Zwei Dominos"),
+        "mia_big_round" to listOf("Ronda de 40", "40-point round", "Manche de 40", "Mano da 40", "Rodada de 40", "40-Punkte-Runde"),
+        "mia_domino" to listOf("Dos dominós", "Two dominos", "Deux dominos", "Due domino", "Dois dominós", "Zwei Dominos"),
         "vegas_shutout" to listOf("Dominio total", "Total dominance", "Domination totale", "Dominio totale", "Domínio total", "Totale Dominanz"),
         "vegas_double_domino" to listOf("Doble dominó", "Double domino", "Double domino", "Doppio domino", "Dominó duplo", "Doppel-Domino")
     )
@@ -168,8 +168,8 @@ object AchievementStrings {
         "no_tranca" to listOf("Gana una ronda por tranca.", "Win a round by blocking.", "Gagnez une manche par blocage.", "Vinci una mano per chiusa.", "Ganhe uma rodada por tranca.", "Gewinne eine Runde durch Sperre."),
         "tokyo_flawless" to listOf("Gana tres rondas seguidas en la partida.", "Win three rounds in the match.", "Gagnez trois manches.", "Vinci tre mani.", "Ganhe três rodadas.", "Gewinne drei Runden."),
         "tokyo_master" to listOf("Cierra dos rondas con dominó.", "Close two rounds with a domino.", "Closez deux manches avec un domino.", "Chiudi due mani con un domino.", "Feche duas rodadas com dominó.", "Schließe zwei Runden mit einem Domino."),
-        "mc_big_round" to listOf("Anota 40 puntos en una sola ronda.", "Score 40 points in a single round.", "Marquez 40 points en une seule manche.", "Segna 40 punti in una sola mano.", "Marque 40 pontos numa só rodada.", "Erziele 40 Punkte in einer Runde."),
-        "mc_domino" to listOf("Cierra dos rondas con dominó.", "Close two rounds with a domino.", "Closez deux manches avec un domino.", "Chiudi due mani con un domino.", "Feche duas rodadas com dominó.", "Schließe zwei Runden mit einem Domino."),
+        "mia_big_round" to listOf("Anota 40 puntos en una sola ronda.", "Score 40 points in a single round.", "Marquez 40 points en une seule manche.", "Segna 40 punti in una sola mano.", "Marque 40 pontos numa só rodada.", "Erziele 40 Punkte in einer Runde."),
+        "mia_domino" to listOf("Cierra dos rondas con dominó.", "Close two rounds with a domino.", "Closez deux manches avec un domino.", "Chiudi due mani con un domino.", "Feche duas rodadas com dominó.", "Schließe zwei Runden mit einem Domino."),
         "vegas_shutout" to listOf("Suma tres rondas ganadas entre dominós y trancas.", "Win three rounds between dominos and blocks.", "Gagnez trois manches entre dominos et blocages.", "Vinci tre mani tra domino e chiuse.", "Ganhe três rodadas entre dominós e trancas.", "Gewinne drei Runden aus Dominos und Sperren."),
         "vegas_double_domino" to listOf("Cierra dos rondas con dominó.", "Close two rounds with a domino.", "Closez deux manches avec un domino.", "Chiudi due mani con un domino.", "Feche duas rodadas com dominó.", "Schließe zwei Runden mit einem Domino.")
     )
@@ -209,3 +209,4 @@ object AchievementStrings {
     /** Todas las misiones del catalogo, para la interfaz. */
     fun allMissions(): List<VenueMission> = VenueMissionCatalog.allMissions()
 }
+

@@ -17,17 +17,17 @@
 ## 2. Definición Corta (Descripción Breve — máx. 80 caracteres)
 
 - **🇪🇸 Español (`es-ES` / `es-419`):**
-  `Dominó 3D con fichas bicapa reales, 8 modos clásicos y gira mundial con música.`
+  `Dominó 3D offline: 8 modos, 7 ciudades y música original.`
 - **🇬🇧 English (`en-US`):**
-  `3D Dominoes with realistic bi-layer tiles, 8 classic rules & World Tour music.`
+  `3D offline dominoes: 8 game modes, 7 cities and original music.`
 - **🇫🇷 Français (`fr-FR`):**
-  `Dominos 3D bicouches réalistes, 8 modes classiques et World Tour en musique.`
+  `Dominos 3D hors ligne : 8 modes, 7 villes et musique originale.`
 - **🇮🇹 Italiano (`it-IT`):**
-  `Domino 3D con tessere realistiche, 8 modalità classiche e World Tour musicale.`
+  `Domino 3D offline: 8 modalità, 7 città e musica originale.`
 - **🇵🇹 Português (`pt-BR` / `pt-PT`):**
-  `Dominó 3D com peças reais dupla camada, 8 modos clássicos e música pelo mundo.`
+  `Dominó 3D offline: 8 modos, 7 cidades e música original.`
 - **🇩🇪 Deutsch (`de-DE`):**
-  `3D-Domino mit realistischen Steinen, 8 Spielmodi & Welttournee mit Musik.`
+  `3D-Domino offline: 8 Spielmodi, 7 Städte und eigene Musik.`
 
 ---
 
@@ -46,7 +46,7 @@ Viaja de club en club desbloqueando postales ilustradas de bienvenida, rivales c
 • San Juan (Puerto Rico): Partidas de tranca pura frente a la bahía y El Morro con tambores de bomba.
 • Nueva Orleans (EE. UU.): Estrategia nocturna en el French Quarter con swing, walking bass y séptimas.
 • Tokio (Japón): Precisión maestra entre los farolillos rojos de Asakusa con koto pentatónico.
-• Montecarlo (Mónaco): El exclusivo salón imperial de la Riviera con vals de cuerdas y clavecín.
+• Miami (EE. UU.): El club de South Beach con swing latino, metales y brisa atlántica.
 • Las Vegas (EE. UU.): La Gran Final Mundial bajo las luces y fuentes doradas del Strip con fanfarria de show.
 
 🎲 FICHAS ACRÍLICAS 3D DE ALTA PRECISIÓN Y SONIDO FÍSICO REAL
@@ -101,4 +101,6 @@ Domina todas las variantes internacionales del dominó en un solo juego:
 - **¿Contiene anuncios?** `No`.
 - **¿Compras integradas reales?** `No` (el juego no tiene monedas ni tienda: los trofeos son recuerdos de las sedes completadas).
 - **Clasificación de contenido (IARC):** `PEGI 3` / `ESRB Everyone` (Juego de mesa tradicional de dominó sin violencia ni apuestas con dinero real).
+
+
 

@@ -1647,7 +1647,7 @@ object DominoStrings {
                 )
                 else -> venue
             }
-            "monte_carlo" -> when (currentLanguage) {
+            "miami" -> when (currentLanguage) {
                 AppLanguage.EN -> venue.copy(
                     name = "Monte Carlo",
                     region = "Monaco • Riviera Salle Impériale",
@@ -1880,3 +1880,4 @@ fun LanguageSelectorButton(modifier: Modifier = Modifier) {
         }
     }
 }
+

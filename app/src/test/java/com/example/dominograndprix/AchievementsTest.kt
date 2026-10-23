@@ -235,7 +235,7 @@ class AchievementsTest {
     @Test
     fun completingTheWholeTourUnlocksTheFinalAchievement() {
         val (updated, _) = AchievementCatalog.applyReport(
-            progress(completed = setOf("cuba", "mexico", "puerto_rico", "new_orleans", "tokyo", "monte_carlo")),
+            progress(completed = setOf("cuba", "mexico", "puerto_rico", "new_orleans", "tokyo", "miami")),
             report(won = true, venueId = "las_vegas")
         )
         assertTrue(
@@ -263,7 +263,7 @@ class AchievementsTest {
             winsByDifficulty = mapOf(Difficulty.TOUGH.name to 10)
         )
         val richCareer = progress(
-            completed = setOf("cuba", "mexico", "puerto_rico", "new_orleans", "tokyo", "monte_carlo", "las_vegas"),
+            completed = setOf("cuba", "mexico", "puerto_rico", "new_orleans", "tokyo", "miami", "las_vegas"),
             stats = veteranStats
         )
 
@@ -304,3 +304,4 @@ class AchievementsTest {
         )
     }
 }
+

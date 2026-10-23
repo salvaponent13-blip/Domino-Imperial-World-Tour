@@ -90,18 +90,18 @@ object WorldTourRepository {
             isUnlocked = true
         ),
         CityVenue(
-            id = "monte_carlo",
-            name = "Montecarlo",
+            id = "miami",
+            name = "Miami",
             region = "Mónaco • Salle Impériale de la Riviera",
             targetScore = 180,
             defaultMode = GameMode.BLOCK_HUNGARIAN,
             difficulty = Difficulty.TOUGH,
             trophyTitle = "Deportivo Riviera GT",
             rivalName = "Valérie 'La Reine'",
-            rivalIntro = "En Montecarlo jugamos Dominó Húngaro: encadena todas las fichas consecutivas que puedas en un solo turno.",
+            rivalIntro = "En Miami jugamos Dominó Húngaro: encadena todas las fichas consecutivas que puedas en un solo turno.",
             rivalDefeatLine = "Esa cadena consecutiva fue sencillamente imparable...",
             postcardResId = R.drawable.venue_monte_carlo,
-            musicTitle = "Vals de la Riviera (Montecarlo)",
+            musicTitle = "Noche de South Beach (Miami)",
             cityLore = "Frente al puerto de superyates iluminado bajo la luna mediterránea, el salón privado del Gran Casino reúne a la élite europea.",
             isUnlocked = true
         ),
@@ -129,7 +129,9 @@ object WorldTourRepository {
         LuxuryItem("ring", "Anillo Real del Caribe", "San Juan"),
         LuxuryItem("sax", "Saxofón de Oro Bourbon St.", "Nueva Orleans"),
         LuxuryItem("watch", "Cronógrafo Imperial de Platino", "Tokio"),
-        LuxuryItem("car", "Deportivo Riviera GT", "Montecarlo"),
+        LuxuryItem("car", "Deportivo Riviera GT", "Miami"),
         LuxuryItem("trophy", "Copa Mundial Domino Imperial", "Las Vegas")
     )
 }
+
+

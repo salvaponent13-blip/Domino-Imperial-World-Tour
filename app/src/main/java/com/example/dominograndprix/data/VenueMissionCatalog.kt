@@ -61,9 +61,9 @@ object VenueMissionCatalog {
             VenueMission("tokyo_master", "tokyo") { it.won && it.dominos >= 2 }
         ),
         // Montecarlo: alto riesgo, rondas gordas.
-        "monte_carlo" to listOf(
-            VenueMission("mc_big_round", "monte_carlo") { it.won && it.bestRoundPoints >= 40 },
-            VenueMission("mc_domino", "monte_carlo") { it.won && it.dominos >= 2 }
+        "miami" to listOf(
+            VenueMission("mia_big_round", "miami") { it.won && it.bestRoundPoints >= 40 },
+            VenueMission("mia_domino", "miami") { it.won && it.dominos >= 2 }
         ),
         // Las Vegas: la sede final. Dominio sostenido.
         "las_vegas" to listOf(
@@ -98,3 +98,4 @@ object VenueMissionCatalog {
     fun completedCountFor(venueId: String, completed: Set<String>): Int =
         missionsFor(venueId).count { it.id in completed }
 }
+

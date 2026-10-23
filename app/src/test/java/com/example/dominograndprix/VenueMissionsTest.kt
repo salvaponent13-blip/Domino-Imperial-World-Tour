@@ -109,7 +109,7 @@ class VenueMissionsTest {
         //
         // Aqui se comprueba que toda mision de esas sedes sigue cumpliendose aunque el jugador
         // hubiera robado, lo que demuestra que no depende de esa condicion imposible.
-        for (venueId in listOf("puerto_rico", "monte_carlo", "las_vegas")) {
+        for (venueId in listOf("puerto_rico", "miami", "las_vegas")) {
             val drewAnyway = report(drewFromBoneyard = true, dominos = 2, trancasWon = 2, roundsWon = 3, bestRoundPoints = 45)
             val mustStillBeReachable = VenueMissionCatalog.missionsFor(venueId).all { it.isFulfilled(drewAnyway) }
             assertTrue(
@@ -203,3 +203,4 @@ class VenueMissionsTest {
         assertEquals(2, VenueMissionCatalog.countFor("cuba"))
     }
 }
+
