@@ -5,22 +5,20 @@
 
 ## Para pegar en Play Console (≤ 500 caracteres por idioma)
 
-```
-<es-ES>
+```n<es-ES>
+• La app pasa a llamarse Dominó Grand Prix: mismo icono, mismo juego.
 • El reto es la gira: completa las 7 sedes y sus 35 retos.
-• Fuera monedas y apuestas: ya no hay economía que gestionar ni nada que comprar.
+• Fuera monedas y apuestas: no hay economía que gestionar ni nada que comprar.
 • Los trofeos son el recuerdo de cada sede completada, no dinero.
-• La lista de logros ya se puede abrir desde el título.
-• Mesa más limpia: sin caja, sin apuestas y sin vitrina de compraventa.
+• Pista y deshacer ahora flotan sobre la mesa, y los logros se abren desde el título.
 </es-ES>
 <en-US>
+• The app is now called Domino Grand Prix: same icon, same game.
 • The challenge is the tour: complete all 7 cities and their 35 challenges.
 • No more coins or bets: no economy to manage and nothing to buy.
 • Trophies are the memory of each completed city, not money.
-• The achievements list can now be opened from the title screen.
-• Cleaner table: no cash, no bets and no pawn-shop screen.
-</en-US>
-```
+• Hint and undo now float over the table, and achievements open from the title.
+</en-US>```
 
 ---
 
@@ -49,5 +47,6 @@
   el progreso de sedes se perdía en cada guardado y el logro `perfect_tour` era imposible.
 - Test nuevo con un JSON real de la v2.4.0 (con `cash`/`wrp`) que verifica que el progreso se
   conserva al cargar.
+
 
 
