@@ -188,14 +188,6 @@ object DominoStrings {
         AppLanguage.DE -> "WÄHLE STADT & MUSIK"
     }
 
-    fun cashLabel(amount: Int): String = when (currentLanguage) {
-        AppLanguage.ES -> "CAJA: $$amount"
-        AppLanguage.EN -> "CASH: $$amount"
-        AppLanguage.FR -> "CAISSE: $$amount"
-        AppLanguage.IT -> "CASSA: $$amount"
-        AppLanguage.PT -> "CAIXA: $$amount"
-        AppLanguage.DE -> "KASSE: $$amount"
-    }
 
     fun wonBadge(): String = when (currentLanguage) {
         AppLanguage.ES -> "✓ GANADO"
@@ -1027,50 +1019,8 @@ object DominoStrings {
 
     // --- ECONOMÍA Y QUIEBRA ---
     /** Aviso en el boton de viajar cuando no se puede pagar la entrada. */
-    fun insufficientFunds(required: Int): String = when (currentLanguage) {
-        AppLanguage.ES -> "Fondos insuficientes (requiere \$$required)"
-        AppLanguage.EN -> "Not enough funds (requires \$$required)"
-        AppLanguage.FR -> "Fonds insuffisants (requiert \$$required)"
-        AppLanguage.IT -> "Fondi insufficienti (richiede \$$required)"
-        AppLanguage.PT -> "Fundos insuficientes (requer \$$required)"
-        AppLanguage.DE -> "Nicht genug Guthaben (erfordert \$$required)"
-    }
 
-    fun bankruptcyTitle(): String = when (currentLanguage) {
-        AppLanguage.ES -> "PRÉSTAMO DE HONOR"
-        AppLanguage.EN -> "LOAN OF HONOUR"
-        AppLanguage.FR -> "PRÊT D'HONNEUR"
-        AppLanguage.IT -> "PRESTITO D'ONORE"
-        AppLanguage.PT -> "EMPRÉSTIMO DE HONRA"
-        AppLanguage.DE -> "EHRENDARLEHEN"
-    }
 
-    fun bankruptcyBody(amount: Int): String = when (currentLanguage) {
-        AppLanguage.ES ->
-            "El Club te concede un préstamo de honor de \$$amount para volver al ruedo. " +
-                "Es la única vez que puede ayudarte: a partir de ahora tendrás que recuperarte " +
-                "en las sedes más baratas."
-        AppLanguage.EN ->
-            "The Club grants you a \$$amount loan of honour to get back in the game. " +
-                "This is the only time it can help you: from now on you will have to recover " +
-                "in the cheaper venues."
-        AppLanguage.FR ->
-            "Le Club vous accorde un prêt d'honneur de \$$amount pour revenir dans la partie. " +
-                "C'est la seule fois qu'il peut vous aider : désormais vous devrez vous refaire " +
-                "dans les villes moins chères."
-        AppLanguage.IT ->
-            "Il Club ti concede un prestito d'onore di \$$amount per tornare in gioco. " +
-                "È l'unica volta che può aiutarti: d'ora in poi dovrai rifarti nelle sedi più " +
-                "economiche."
-        AppLanguage.PT ->
-            "O Clube concede-te um empréstimo de honra de \$$amount para voltares ao jogo. " +
-                "É a única vez que te pode ajudar: a partir de agora terás de recuperar-te nas " +
-                "cidades mais baratas."
-        AppLanguage.DE ->
-            "Der Club gewährt dir ein Ehrendarlehen von \$$amount, um wieder ins Spiel zu " +
-                "kommen. Das ist das einzige Mal, dass er dir helfen kann: ab jetzt musst du " +
-                "dich in den günstigeren Städten erholen."
-    }
 
     // --- VITRINA DE LOGROS ---
     fun achievementsTitle(): String = when (currentLanguage) {
@@ -1384,12 +1334,12 @@ object DominoStrings {
 
     // --- TROPHY ROOM SCREEN ---
     fun trophyRoomSub(): String = when (currentLanguage) {
-        AppLanguage.ES -> "PREMIOS Y OBJETOS DE LUJO"
-        AppLanguage.EN -> "LUXURY PRIZES & TROPHIES"
-        AppLanguage.FR -> "PRIX ET OBJETS DE LUXE"
-        AppLanguage.IT -> "PREMI E OGGETTI DI LUSSO"
-        AppLanguage.PT -> "PRÊMIOS E ITENS DE LUXO"
-        AppLanguage.DE -> "LUXUSPREISE & TROPHÄEN"
+        AppLanguage.ES -> "TROFEOS DE LA GIRA"
+        AppLanguage.EN -> "TOUR TROPHIES"
+        AppLanguage.FR -> "TROPHÉES DE LA TOURNÉE"
+        AppLanguage.IT -> "TROFEI DEL TOUR"
+        AppLanguage.PT -> "TROFÉUS DA VOLTA"
+        AppLanguage.DE -> "TROPHÄEN DER TOUR"
     }
 
     fun obtainedIn(city: String): String = when (currentLanguage) {
@@ -1401,32 +1351,8 @@ object DominoStrings {
         AppLanguage.DE -> "Gewonnen in: $city"
     }
 
-    fun marketValue(v: Int): String = when (currentLanguage) {
-        AppLanguage.ES -> "Valor de mercado: $$v"
-        AppLanguage.EN -> "Market value: $$v"
-        AppLanguage.FR -> "Valeur : $$v"
-        AppLanguage.IT -> "Valore di mercato: $$v"
-        AppLanguage.PT -> "Valor de mercado: $$v"
-        AppLanguage.DE -> "Marktwert: $$v"
-    }
 
-    fun sellForBtn(v: Int): String = when (currentLanguage) {
-        AppLanguage.ES -> "VENDER (+$$v)"
-        AppLanguage.EN -> "SELL (+$$v)"
-        AppLanguage.FR -> "VENDRE (+$$v)"
-        AppLanguage.IT -> "VENDI (+$$v)"
-        AppLanguage.PT -> "VENDER (+$$v)"
-        AppLanguage.DE -> "VERKAUFEN (+$$v)"
-    }
 
-    fun soldLabel(): String = when (currentLanguage) {
-        AppLanguage.ES -> "VENDIDO"
-        AppLanguage.EN -> "SOLD"
-        AppLanguage.FR -> "VENDU"
-        AppLanguage.IT -> "VENDUTO"
-        AppLanguage.PT -> "VENDIDO"
-        AppLanguage.DE -> "VERKAUFT"
-    }
 
     // --- LOCALIZED CITY VENUES ---
     fun localizeVenue(venue: CityVenue): CityVenue {
@@ -1880,4 +1806,5 @@ fun LanguageSelectorButton(modifier: Modifier = Modifier) {
         }
     }
 }
+
 

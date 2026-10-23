@@ -1,5 +1,10 @@
 # Plan de mejoras — Domino Imperial: World Tour
 
+> **Documento histórico (23/10/2026).** Este plan se escribió antes de la v2.0 y describe el
+> estado de entonces: habla de economía, de apuestas y de una IA sin heurística. Parte de eso ya
+> no existe (el juego no tiene monedas desde la v2.5.0) y parte ya está hecho (dificultad por
+> sede, desafío diario, pass-and-play, pista/deshacer, ajustes persistentes).
+> Lo que sigue vigente —decisiones del juego y lo que falta de verdad— está en `DECISIONES.md`.
 Documento de trabajo. Cada punto incluye **qué falta**, **por dónde se toca** (con archivos y
 líneas reales del repositorio), **cuánto cuesta**, **qué riesgo tiene** y **cómo se comprueba
 que está bien hecho**. Lo que no se puede medir, no entra.
@@ -357,3 +362,5 @@ Sin métricas, esto es una lista de deseos.
 - Regenerar música con `tools/make_music.py --out <dir>` si el juego usa pistas de terceros.
 - Comentarios y mensajes de commit en español, nombres de código en inglés.
 - No commitear binarios (`*.apk`, `*.aab` ya están en `.gitignore`).
+
+

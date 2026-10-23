@@ -1,6 +1,6 @@
 # Política de Privacidad — Domino Imperial: World Tour
 
-**Última actualización:** 12 de octubre de 2026  
+**Última actualización:** 23 de octubre de 2026  
 **Aplicación:** Domino Imperial: World Tour (`com.horts.dominoimperial`)  
 **Desarrollador:** Horts Studio
 
@@ -20,7 +20,7 @@ La aplicación no solicita permisos sensibles del sistema (no accede a cámara, 
 
 ## 4. Publicidad, Compras Integradas y Terceros
 - **Sin publicidad de terceros:** La aplicación no integra SDKs de redes publicitarias ni rastreadores analíticos.
-- **Sin apuestas con dinero real:** Las puntuaciones, monedas virtuales (`$`) y trofeos del modo carrera *World Tour* son elementos puramente recreativos y ficticios propios de la progresión del juego; no tienen valor monetario real ni pueden comprarse ni canjearse por dinero real.
+- **Sin monedas, sin compras y sin apuestas:** el juego no tiene moneda virtual ni tienda. Los trofeos del modo carrera *World Tour* son el recuerdo de cada sede completada: no tienen valor monetario, no se venden y no pueden canjearse por dinero real.
 
 ## 5. Privacidad de los Menores (COPPA / RGPD)
 Al tratarse de un juego de mesa clásico apto para todos los públicos que no recopila ningún dato personal, es completamente seguro para jugadores de todas las edades.
@@ -30,3 +30,4 @@ Cualquier actualización futura de esta Política de Privacidad se publicará en
 
 ## 7. Contacto
 Si tienes cualquier consulta sobre esta Política de Privacidad o sobre la aplicación **Domino Imperial: World Tour**, puedes contactar con el desarrollador a través de la ficha oficial de soporte en Google Play Store.
+

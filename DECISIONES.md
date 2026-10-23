@@ -1,51 +1,93 @@
-# Decisiones de diseño pendientes de cerrar
+# Decisiones de diseño
 
-Documento corto para que las tres reglas "raras" no se queden en el limbo: hoy el código hace
-una cosa y la interfaz insinúa otra. Ninguna es un fallo de implementación, son decisiones de
-producto que conviene tomar con criterio y dejarlas escritas.
+Documento vivo: aquí quedan escritas las decisiones que no son obvias leyendo el código, para que
+nadie (ni yo dentro de un mes) las deshaga sin saber por qué estaban.
 
-## 1. La capicúa se anuncia pero no puntúa
+**Última revisión:** 23 de octubre de 2026 (v2.5.0, versionCode 16).
 
-**Qué pasa.** `DominoEngine.finishRound` suma los pips de los rivales sin aplicar ningún
-multiplicador; `lastRoundBonusType` (CAPICUA / DOBLE_CAPICUA / DOUBLE) solo se usa como etiqueta
-en el log y en el resumen de ronda. La v2.3.1 quitó el "×2 / ×3" inventado del resumen, así que
-hoy la bonificación es decorativa.
+---
 
-**Opciones.**
-- A. **Dejarla decorativa** (estado actual). Coste 0. Riesgo: el jugador lee "¡CAPICÚA!" y no ve
-  puntos; conviene un texto que lo deje claro ("¡Capicúa! — sin bonificación en este modo").
-- B. **Implementar bonus real**: `totalOpponentPips * 2` (capicúa) / `* 3` (doble capicúa) en
-  `finishRound`, con test de reglas y aviso en el resumen. Coste ~2 h + decisión de balance.
+## 1. El juego no tiene moneda (v2.5.0)
 
-Recomendación: B solo si se quiere profundidad competitiva; si no, A y quitar la palabra
-"bonificación" de cualquier texto.
+**Decisión:** se elimina toda la economía (monedas, WRP, apuestas de entrada, rescate por
+bancarrota y venta de trofeos). **El objetivo es completar la gira**: 7 sedes y 35 retos.
 
-## 2. La partida puede cerrarse a mitad de ronda en los modos de puntos
+**Por qué:**
+- Las monedas no tenían sumidero (no había tienda), así que no eran una decisión: eran un número.
+- La apuesta de entrada no se cobraba si no había caja, así que tampoco era una consecuencia.
+- La vitrina permitía vender los 7 trofeos recién instalado (76.200 $) y dejaba la progresión sin
+  sentido. Quitar el dinero elimina el agujero por diseño, no con un parche.
 
-**Qué pasa.** En All Fives / All Threes / Fives & Threes, `evaluatePointScoring` cierra la
-partida en cuanto un equipo alcanza el objetivo, aunque la mano siga abierta
-(`finishMatchByPoints`). El resumen ya no lo narra como "dominó" (v2.3.1), pero el jugador puede
-ver cómo se le corta una mano que iba ganando.
+**Qué queda:** los trofeos son recuerdos de las sedes completadas (colección, sin valor). Si algún
+día se quiere tensión, la vía limpia son **estrellas por reto** (1-3 según margen o sin fallos), no
+volver a introducir una moneda.
 
-**Opciones.**
-- A. **Mantener** (es la regla de los modos de tanteo en muchos clubs: se juega a puntos, no a
-  manos).
-- B. **Terminar la mano** y cerrar al final de la ronda.
+**Compatibilidad:** los guardados de la v2.4.0 (con `cash`/`wrp`) siguen cargando porque el JSON
+usa `ignoreUnknownKeys`; hay un test con un guardado real que lo verifica.
 
-Recomendación: A, documentado en la pantalla de reglas del modo.
+---
 
-## 3. `matchPointsScored` ya cuenta la ronda, pero las estadísticas antiguas no
+## 2. La capicúa se anuncia, pero no multiplica
 
-**Qué pasa.** Hasta la v2.3.1 las estadísticas de carrera sumaban `lastPointsEarned`, que son
-los puntos de **una jugada**, no de la ronda; en los modos de tanteo eso dejaba el contador casi
-a cero. Desde la v2.4.0 se suman los puntos reales de la ronda (`roundPointsForTeam`).
+`DominoEngine.finishRound` suma los pips de los rivales sin factor. `lastRoundBonusType` es una
+etiqueta (dominó con doble / capicúa / doble capicúa) que el resumen muestra sin prometer
+multiplicadores.
 
-**Consecuencia.** Los progresos guardados antes de la v2.4.0 tienen ese contador infravalorado.
-No se migra: es una estadística histórica, no una moneda. Los logros que dependen de ella se
-desbloquean jugando partidas nuevas.
+**Decisión:** se queda como adorno hasta que haya una regla decidida. Si algún día se implementa,
+tiene que ir con test de reglas y con el aviso en el resumen; no se anuncia un ×2/×3 que el motor
+no aplique.
 
-## 4. El "deshacer" revierte también la respuesta de la IA
+---
 
-Es deliberado: el jugador se arrepiente de **su** jugada, no de la del rival, y volver a un
-estado donde la IA ya movió dejaría la mesa sin sentido. Solo se ofrece en partidas de un único
-humano (en pass-and-play sería una trampa contra el otro jugador).
+## 3. La partida puede cerrarse a mitad de ronda en los modos de puntos
+
+En All Fives, All Threes y Fives & Threes, `evaluatePointScoring` cierra la partida en cuanto un
+equipo alcanza el objetivo, aunque queden fichas en la mano.
+
+**Decisión:** se mantiene (es la regla habitual de los modos de tanteo). El resumen de ronda ya no
+lo narra como "dominó": dice que se alcanzó la meta.
+
+---
+
+## 4. Las estadísticas cuentan la ronda, no la última jugada
+
+`matchPointsScored` y `matchBestRoundPoints` suman los puntos reales de la ronda
+(`roundPointsForTeam`), no `lastPointsEarned` (que es solo de la última jugada). Los progresos
+guardados antes de la v2.4.0 tienen ese contador infravalorado y no se migran: es histórico, no
+una moneda.
+
+---
+
+## 5. Deshacer revierte también la respuesta de la IA
+
+El jugador se arrepiente de **su** jugada; volver a un estado donde la IA ya movió dejaría la mesa
+sin sentido. Por eso el punto de deshacer se marca justo antes de jugar y el `undo` vuelve a ese
+instante. Solo se ofrece en partidas de un humano: en pass-and-play sería una trampa contra el
+otro jugador.
+
+---
+
+## 6. Sin anuncios (decisión del 23/10/2026)
+
+**Decisión:** no se añaden anuncios. Se mantiene "0 anuncios, 0 permisos, 0 red, 0 datos" como
+argumento de la ficha, que es justo lo que no pueden decir los líderes del nicho.
+
+**Si algún día se cambia:** actualizar en el **mismo envío** la ficha ("contiene anuncios"), el
+cuestionario de clasificación, Data Safety (ID de publicidad) y la política de privacidad; añadir
+consentimiento (UMP) en el build y usar IDs de test en las pistas de prueba. El orden seguro es
+declarar antes y publicar después, nunca al revés.
+
+---
+
+## 7. IA: pendiente, con los defectos conocidos
+
+La auditoría de la v2.4.0 dejó tres cosas sin arreglar, aplazadas a una sesión propia:
+
+1. `MediumStrategy` no mira el palo que deja abierto (solo los pips que suelta).
+2. STANDARD y TOUGH solo escalan constantes; en los 5 modos sin puntos juegan igual salvo cuando
+   la jugada tranca. RELAXED sí se nota (estrategia aleatoria).
+3. `simulate` usa las manos reales: la IA sabe cuándo su jugada tranca la mesa.
+
+**Plan:** quitar/estimar el dato oculto → añadir afinidad de palo → **volver a medir** con
+`MediumStrategyBenchmarkTest` aceptando que el número baje al principio. No se toca sin medir: la
+referencia medida (MEDIUM 55,81 % vs LEGACY) es la fuente de verdad del proyecto.
