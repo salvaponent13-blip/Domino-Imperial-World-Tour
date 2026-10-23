@@ -170,12 +170,12 @@ object DominoStrings {
     }
 
     fun titleFooter(): String = when (currentLanguage) {
-        AppLanguage.ES -> "Domino Imperial: World Tour • Fichas Acrílicas 3D Bicapa"
-        AppLanguage.EN -> "Domino Imperial: World Tour • 3D Bi-Layer Acrylic Tiles"
-        AppLanguage.FR -> "Domino Imperial: World Tour • Dominos Acryliques 3D Bicouches"
-        AppLanguage.IT -> "Domino Imperial: World Tour • Tessere Acriliche 3D Doppio Strato"
-        AppLanguage.PT -> "Domino Imperial: World Tour • Peças Acrílicas 3D Dupla Camada"
-        AppLanguage.DE -> "Domino Imperial: World Tour • Zweischichtige 3D-Acrylsteine"
+        AppLanguage.ES -> "Dominó Grand Prix • Fichas Acrílicas 3D Bicapa"
+        AppLanguage.EN -> "Domino Grand Prix • 3D Bi-Layer Acrylic Tiles"
+        AppLanguage.FR -> "Domino Grand Prix • Dominos Acryliques 3D Bicouches"
+        AppLanguage.IT -> "Domino Grand Prix • Tessere Acriliche 3D Doppio Strato"
+        AppLanguage.PT -> "Domino Grand Prix • Peças Acrílicas 3D Dupla Camada"
+        AppLanguage.DE -> "Domino Grand Prix • Zweischichtige 3D-Acrylsteine"
     }
 
     // --- WORLD TOUR MAP SCREEN ---
@@ -959,7 +959,7 @@ object DominoStrings {
 
     // --- DESAFÍO DIARIO ---
     /** Nombre del juego para el icono de la pantalla de inicio. Es marca: no se traduce. */
-    fun appIconLabel(): String = "Domino Imperial"
+    fun appIconLabel(): String = "Dominó Grand Prix"
     fun dailyChallengeTitle(): String = when (currentLanguage) {
         AppLanguage.ES -> "🎯 DESAFÍO DIARIO"
         AppLanguage.EN -> "🎯 DAILY CHALLENGE"
@@ -1806,5 +1806,6 @@ fun LanguageSelectorButton(modifier: Modifier = Modifier) {
         }
     }
 }
+
 
 

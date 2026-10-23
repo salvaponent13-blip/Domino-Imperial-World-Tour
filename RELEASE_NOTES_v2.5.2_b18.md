@@ -1,7 +1,7 @@
-# Notas de versión — v2.5.1 (versionCode 17)
+# Notas de versión — v2.5.2 (versionCode 18)
 
-> El versionCode 16 ya estaba usado en la pista de prueba cerrada, así que esta subida va como 17.
-> El contenido es el de la v2.5.0 más los arreglos de interfaz posteriores (portada, botones flotantes, textos).
+> Cambio de nombre: la app pasa a llamarse **Dominó Grand Prix** (coincide con el logo del juego). Mismo paquete `com.horts.dominoimperial`, así que la pista de prueba y el enlace de los testers no cambian.
+> Incluye todo lo de la v2.5.0 y la v2.5.1: fuera la economía, portada limpia, pista y deshacer flotantes.
 
 ## Para pegar en Play Console (≤ 500 caracteres por idioma)
 
@@ -49,4 +49,5 @@
   el progreso de sedes se perdía en cada guardado y el logro `perfect_tour` era imposible.
 - Test nuevo con un JSON real de la v2.4.0 (con `cash`/`wrp`) que verifica que el progreso se
   conserva al cargar.
+
 

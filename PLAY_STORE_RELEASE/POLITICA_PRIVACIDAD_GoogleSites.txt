@@ -1,13 +1,13 @@
-Política de Privacidad — Domino Imperial: World Tour
+Política de Privacidad — Dominó Grand Prix
 
 Última actualización: 23 de octubre de 2026
-Aplicación: Domino Imperial: World Tour (com.horts.dominoimperial)
+Aplicación: Dominó Grand Prix (com.horts.dominoimperial)
 Desarrollador: Horts Studio
 
 
 1. RESUMEN
 
-Domino Imperial: World Tour es un juego de dominó que funciona entero en tu teléfono, sin
+Dominó Grand Prix es un juego de dominó que funciona entero en tu teléfono, sin
 conexión. No recoge, no transmite y no comparte ningún dato personal. No hay cuentas, ni
 registro, ni servidores, ni publicidad, ni compras dentro de la aplicación.
 
@@ -97,14 +97,14 @@ También puedes usar la sección de soporte de la ficha oficial en Google Play.
 ENGLISH VERSION
 ----------------------------------------------------------------------------------------------
 
-Privacy Policy — Domino Imperial: World Tour
+Privacy Policy — Domino Grand Prix
 
 Last updated: 23 October 2026
-App: Domino Imperial: World Tour (com.horts.dominoimperial)
+App: Domino Grand Prix (com.horts.dominoimperial)
 Developer: Horts Studio
 
 1. SUMMARY
-Domino Imperial: World Tour is a domino game that runs entirely on your phone, offline. It does
+Domino Grand Prix is a domino game that runs entirely on your phone, offline. It does
 not collect, transmit or share any personal data. There are no accounts, no servers, no ads and
 no in-app purchases.
 
@@ -152,3 +152,4 @@ page will be updated before that version is published, showing the new revision 
 10. CONTACT
 Email: hortsstudio@gmail.com
 You can also use the support section of the official Google Play listing.
+

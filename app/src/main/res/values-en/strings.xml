@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Domino Imperial: World Tour</string>
+    <string name="app_name">Dominó Grand Prix</string>
     <string name="app_description">Imperial domino around the world: win the tour, collect trophies and beat the daily challenge.</string>
 </resources>
+

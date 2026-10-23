@@ -1,11 +1,11 @@
-# Ficha Oficial de Google Play Store — Domino Imperial: World Tour
+# Ficha Oficial de Google Play Store — Dominó Grand Prix
 
-> Actualizada para la v2.5.1 (versionCode 17). El versionCode 16 ya estaba gastado en la pista cerrada. Cambios respecto a la ficha anterior: descripción
+> Actualizada para la v2.5.2 (versionCode 18): la app pasa a llamarse Dominó Grand Prix. Cambios respecto a la ficha anterior: descripción
 > larga reescrita (el juego ya no tiene monedas), notas de versión al día, guion de capturas
 > nuevo y respuestas de Data Safety revisadas.
 
 ## 1. Identidad de la Aplicación
-- **Nombre (máx. 30 caracteres):** `Domino Imperial: World Tour` (27)
+- **Nombre (máx. 30 caracteres):** `Dominó Grand Prix` (17)
 - **Package:** `com.horts.dominoimperial`
 - **Versión:** `versionCode = 17` | `versionName = "2.5.1"`
 - **Categoría:** `Juegos` → `Mesa` (Board Games)
@@ -31,7 +31,7 @@
 ```text
 Dominó de club, sin anuncios y sin conexión. El reto es uno: completar la gira mundial.
 
-Domino Imperial: World Tour es un dominó de salón hecho con cuidado: fichas acrílicas dibujadas
+Dominó Grand Prix es un dominó de salón hecho con cuidado: fichas acrílicas dibujadas
 a mano, reglas internacionales de verdad y una gira de 7 ciudades con su propia música. Sin
 monedas, sin tienda, sin cuentas y sin interrupciones.
 
@@ -94,7 +94,7 @@ Hecho por un jugador de dominó para quien echa de menos la mesa de verdad. Toma
 ```text
 Club dominoes, no ads, no internet. One challenge: complete the world tour.
 
-Domino Imperial: World Tour is a carefully crafted parlour domino game: hand-drawn acrylic tiles,
+Domino Grand Prix is a carefully crafted parlour domino game: hand-drawn acrylic tiles,
 real international rules and a 7-city tour with its own soundtrack. No coins, no shop, no
 accounts and no interruptions.
 
@@ -213,4 +213,6 @@ instalación).
 
 > Nota: si algún día se añaden anuncios o compras, hay que cambiar **en el mismo envío** esta
 > sección, el cuestionario de clasificación y la política, y volver a pasar la revisión.
+
+
 

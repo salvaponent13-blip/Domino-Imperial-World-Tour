@@ -8,8 +8,9 @@
     jugador tiene el telefono en un idioma que no esta entre los seis, vera estos textos.
 -->
 <resources>
-    <string name="app_name">Domino Imperial: World Tour</string>
+    <string name="app_name">Dominó Grand Prix</string>
 
     <!-- Descripción larga: la usan el lanzador y los servicios de accesibilidad. -->
     <string name="app_description">Dominó imperial por el mundo: gana el circuito, colecciona trofeos y supera el reto diario.</string>
 </resources>
+
