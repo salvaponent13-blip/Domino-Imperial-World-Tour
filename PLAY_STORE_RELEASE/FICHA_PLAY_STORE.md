@@ -1,13 +1,13 @@
 # Ficha Oficial de Google Play Store — Domino Imperial: World Tour
 
-> Actualizada para la v2.5.0 (versionCode 16). Cambios respecto a la ficha anterior: descripción
+> Actualizada para la v2.5.1 (versionCode 17). El versionCode 16 ya estaba gastado en la pista cerrada. Cambios respecto a la ficha anterior: descripción
 > larga reescrita (el juego ya no tiene monedas), notas de versión al día, guion de capturas
 > nuevo y respuestas de Data Safety revisadas.
 
 ## 1. Identidad de la Aplicación
 - **Nombre (máx. 30 caracteres):** `Domino Imperial: World Tour` (27)
 - **Package:** `com.horts.dominoimperial`
-- **Versión:** `versionCode = 16` | `versionName = "2.5.0"`
+- **Versión:** `versionCode = 17` | `versionName = "2.5.1"`
 - **Categoría:** `Juegos` → `Mesa` (Board Games)
 - **Etiquetas:** `Dominó`, `Juegos de mesa`, `Estrategia`, `Clásico`, `Sin conexión`
 
@@ -213,3 +213,4 @@ instalación).
 
 > Nota: si algún día se añaden anuncios o compras, hay que cambiar **en el mismo envío** esta
 > sección, el cuestionario de clasificación y la política, y volver a pasar la revisión.
+
