@@ -18,6 +18,7 @@ object SettingsStore {
     private const val KEY_CAMERA = "camera_mode"
     private const val KEY_LIGHT = "ambient_light"
     private const val KEY_SPEED = "game_speed"
+    private const val KEY_PRO = "is_pro_no_ads"
 
     const val DEFAULT_CAMERA = "TOP_2D"
     const val DEFAULT_LIGHT = "WARM_CLUB"
@@ -59,5 +60,12 @@ object SettingsStore {
 
     fun setGameSpeed(context: Context, speed: Int) {
         prefs(context).edit().putInt(KEY_SPEED, speed).apply()
+    }
+
+    /** Estado de la compra integrada para eliminar la publicidad permanentemente. */
+    fun isPro(context: Context): Boolean = prefs(context).getBoolean(KEY_PRO, false)
+
+    fun setPro(context: Context, pro: Boolean) {
+        prefs(context).edit().putBoolean(KEY_PRO, pro).apply()
     }
 }

@@ -1,5 +1,7 @@
 package com.example.dominograndprix
 
+import android.app.Activity
+import com.example.dominograndprix.ads.AdManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -276,6 +278,7 @@ fun MainNavigation() {
                         resumeFrom = savedSnapshot,
                         dailySeed = activeDaily?.seed,
                         onMatchFinished = { won, _, finishedEngine ->
+                            (context as? Activity)?.let { AdManager.show(it) }
                             // 1. Desafío diario: guarda resultado + racha y alimenta los logros
                             // (daily_first / daily_streak_7), que hasta ahora eran inalcanzables.
                             val daily = activeDaily

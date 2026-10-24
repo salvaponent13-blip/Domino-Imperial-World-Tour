@@ -67,15 +67,20 @@ otro jugador.
 
 ---
 
-## 6. Sin anuncios (decisión del 23/10/2026)
+## 6. Publicidad AdMob (decisión del 24/10/2026)
 
-**Decisión:** no se añaden anuncios. Se mantiene "0 anuncios, 0 permisos, 0 red, 0 datos" como
-argumento de la ficha, que es justo lo que no pueden decir los líderes del nicho.
-
-**Si algún día se cambia:** actualizar en el **mismo envío** la ficha ("contiene anuncios"), el
-cuestionario de clasificación, Data Safety (ID de publicidad) y la política de privacidad; añadir
-consentimiento (UMP) en el build y usar IDs de test en las pistas de prueba. El orden seguro es
-declarar antes y publicar después, nunca al revés.
+**Decisión:** se integra Google AdMob (`play-services-ads:23.6.0`) con la misma arquitectura
+desacoplada de *Rumbo* y *Butimania*:
+- **Banner adaptativo** en el pie del menú principal (`MainTitleScreen`), sin invadir nunca la mesa
+  de juego (`DominoTableScreen`).
+- **Intersticial** que se precarga en segundo plano y se muestra únicamente al finalizar una partida
+  completa (`onMatchFinished`), con un *cooldown* mínimo de 60 segundos para no saturar al jugador.
+- **IDs centralizados** en `app/build.gradle.kts` inyectados vía `BuildConfig` y `manifestPlaceholders`.
+- **Filtros y seguridad:** si el anuncio falla o el jugador no tiene red, el juego continúa de
+  inmediato sin pantallas bloqueadas. Preparado con flag `adsDisabled` para futuras compras integradas
+  (quitar publicidad).
+- **Declaraciones:** la ficha de Google Play declara "Contiene anuncios", Seguridad de datos declara
+  el ID de publicidad (`AD_ID`) y la política de privacidad contempla a Google AdMob.
 
 ---
 

@@ -1,5 +1,6 @@
 package com.example.dominograndprix.ui.settings
 
+import android.app.Activity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +21,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.dominograndprix.audio.DominoHaptics
 import com.example.dominograndprix.audio.DominoSoundManager
+import com.example.dominograndprix.billing.BillingManager
+import com.example.dominograndprix.billing.BillingNotice
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
 
@@ -92,6 +95,95 @@ fun SettingsDialog(
                         fontSize = 12.sp
                     )
                     LanguageSelectorButton()
+                }
+
+                // --- SECCIÓN QUITAR PUBLICIDAD (PRO) ---
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.15f))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val isPro by BillingManager.pro.collectAsState()
+                val price by BillingManager.price.collectAsState()
+                val busy by BillingManager.busy.collectAsState()
+                val notice by BillingManager.notice.collectAsState()
+
+                if (isPro) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFF064E3B).copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, Color(0xFF34D399)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "✓ Versión PRO (Sin publicidad)",
+                                color = Color(0xFFA7F3D0),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                } else {
+                    val activity = context as? Activity
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Button(
+                            onClick = { activity?.let { BillingManager.buy(it) } },
+                            enabled = !busy,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(42.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFFFD700),
+                                contentColor = Color(0xFF131924)
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(
+                                text = "Quitar publicidad ($price)",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        TextButton(
+                            onClick = { BillingManager.restore() },
+                            enabled = !busy
+                        ) {
+                            Text(
+                                text = "Restaurar compra",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                notice?.let { n ->
+                    val noticeText = when (n) {
+                        BillingNotice.PURCHASED -> "¡Gracias! Publicidad eliminada."
+                        BillingNotice.RESTORED -> "Compra restaurada con éxito."
+                        BillingNotice.CANCELED -> "Compra cancelada."
+                        BillingNotice.NOT_READY -> "Conectando con Google Play..."
+                        BillingNotice.NOTHING -> "No se encontraron compras anteriores."
+                        BillingNotice.FAILED -> "No se pudo completar la compra."
+                    }
+                    Text(
+                        text = noticeText,
+                        color = if (n == BillingNotice.PURCHASED || n == BillingNotice.RESTORED) Color(0xFFA7F3D0) else Color(0xFFFCA5A5),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

@@ -2,6 +2,7 @@ package com.example.dominograndprix.ui.main
 
 import com.example.dominograndprix.ui.dialogs.QuickPlayDialog
 import com.example.dominograndprix.ui.dialogs.QuickPlayConfig
+import com.example.dominograndprix.ads.AdBanner
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -489,6 +490,10 @@ fun MainTitleScreen(
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center
             )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            AdBanner(modifier = Modifier.fillMaxWidth())
             }
         }
 

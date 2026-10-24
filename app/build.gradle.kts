@@ -20,9 +20,21 @@ android {
         applicationId = "com.horts.dominoimperial"
         minSdk = 24
         targetSdk = 36
-        versionCode = 18
-        versionName = "2.5.2"
+        versionCode = 20
+        versionName = "2.5.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // ------------------------------------------------------------------------------------
+        // AdMob: ÚNICO punto de configuración de los IDs de anuncios.
+        // IDs reales de producción vinculados a la app oficial en AdMob.
+        // ------------------------------------------------------------------------------------
+        val admobAppId = "ca-app-pub-8601373307349680~4429473161"
+        val admobBannerId = "ca-app-pub-8601373307349680/5563425588"
+        val admobInterstitialId = "ca-app-pub-8601373307349680/9311098905"
+        manifestPlaceholders["admobAppId"] = admobAppId
+        buildConfigField("String", "ADMOB_APP_ID", "\"$admobAppId\"")
+        buildConfigField("String", "ADMOB_BANNER_ID", "\"$admobBannerId\"")
+        buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"$admobInterstitialId\"")
     }
 
     signingConfigs {
@@ -38,6 +50,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            // IDs de PRUEBA oficiales de Google en desarrollo: probar con los
+            // reales genera impresiones propias (tráfico inválido).
+            val testAppId = "ca-app-pub-3940256099942544~3347511713"
+            manifestPlaceholders["admobAppId"] = testAppId
+            buildConfigField("String", "ADMOB_APP_ID", "\"$testAppId\"")
+            buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
+            buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"ca-app-pub-3940256099942544/1033173712\"")
+        }
         release {
             // NOTA SOBRE R8 / MINIFICACION (leer antes de activar):
             //
@@ -65,8 +86,8 @@ android {
     }
     buildFeatures {
       compose = true
+      buildConfig = true
       aidl = false
-      buildConfig = false
       shaders = false
     }
 
@@ -94,6 +115,8 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
+    // Google UMP: consentimiento RGPD para anuncios en el EEE/Reino Unido.
+    implementation("com.google.android.ump:user-messaging-platform:3.2.0")
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)
   androidTestImplementation(composeBom)
@@ -130,6 +153,12 @@ dependencies {
   // Persistencia del progreso de la carrera (JSON en SharedPreferences).
   // La versión la gestiona el BOM de kotlinx.serialization que ya arrastra androidx.lifecycle.
   implementation(libs.kotlinx.serialization.json)
+
+  // Publicidad AdMob
+  implementation(libs.play.services.ads)
+
+  // Google Play Billing (IAP quitar publicidad)
+  implementation(libs.google.billing)
 }
 
 

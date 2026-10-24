@@ -1,134 +1,72 @@
 # Política de Privacidad — Dominó Grand Prix
 
-**Última actualización:** 23 de octubre de 2026
-**Aplicación:** Dominó Grand Prix (`com.horts.dominoimperial`)
-**Desarrollador:** Horts Studio
+**Última actualización:** 24 de octubre de 2026  
+**Aplicación:** Dominó Grand Prix (`com.horts.dominoimperial`)  
+**Desarrollador:** Horts Studio  
 
 > Versión para copiar y pegar en Google Sites: `POLITICA_PRIVACIDAD_GoogleSites.txt`.
 
+---
+
 ## 1. Resumen
 
-Dominó Grand Prix es un juego de dominó que funciona entero en tu teléfono, sin
-conexión. **No recoge, no transmite y no comparte ningún dato personal.** No hay cuentas, ni
-registro, ni servidores, ni publicidad, ni compras dentro de la aplicación.
-
-## 2. Qué datos recogemos
-
-**Ninguno.** En concreto:
-
-- No pedimos correo electrónico, teléfono ni ningún dato de identificación.
-- No creamos cuentas ni perfiles de usuario.
-- No usamos herramientas de analítica ni de seguimiento.
-- No accedemos a tu ubicación, contactos, cámara, micrófono ni archivos personales.
-- No enviamos nada a ningún servidor: el juego no tiene servidores.
-
-## 3. Permisos del dispositivo
-
-La aplicación **no solicita ningún permiso del sistema**. No pide acceso a Internet, ni a la
-cámara, ni al micrófono, ni a la ubicación, ni a los contactos, ni al almacenamiento externo. La
-vibración que puedas notar al jugar es la respuesta háptica estándar del sistema, que no requiere
-permisos ni acceso a datos.
-
-## 4. Qué se guarda en tu teléfono
-
-Para que puedas continuar donde lo dejaste, el juego guarda en el almacenamiento privado de la
-aplicación:
-
-- El progreso de la gira (sedes completadas y desbloqueadas).
-- Los logros conseguidos y las estadísticas de tus partidas.
-- Tus ajustes (idioma, sonido, vibración, cámara, velocidad de la IA).
-- La partida en curso, para poder reanudarla.
-
-Estos datos **nunca salen del dispositivo**, nadie más puede leerlos y se borran por completo al
-desinstalar la aplicación.
-
-**Copia de seguridad del sistema:** si tienes activada la copia de seguridad automática de
-Android, el sistema puede incluir estos datos en la copia de tu cuenta de Google. Esa copia la
-gestiona Google según sus propias políticas; nosotros no tenemos acceso a ella y no la
-controlamos.
-
-## 5. Publicidad, compras y terceros
-
-- **Sin publicidad:** no hay anuncios ni SDKs de redes publicitarias.
-- **Sin compras:** no hay compras dentro de la aplicación, ni suscripciones, ni moneda virtual.
-- **Sin terceros:** no integramos servicios de análisis, redes sociales ni rastreadores de ningún
-  tipo que reciban datos tuyos.
-
-## 6. Trofeos y progreso
-
-El juego no tiene moneda virtual ni tienda. Los trofeos que se consiguen al completar las sedes
-del modo gira son el recuerdo de cada ciudad superada: no tienen valor monetario, no se venden y
-no pueden canjearse por dinero real.
-
-## 7. Privacidad de los menores
-
-Es un juego de mesa tradicional apto para todos los públicos. Como no se recoge ningún dato
-personal, es seguro para jugadores de cualquier edad, en línea con el RGPD europeo y con la
-normativa COPPA.
-
-## 8. Tus derechos
-
-Al no tratar datos personales, no hay datos tuyos que consultar, corregir, exportar ni suprimir
-en nuestros sistemas. Puedes eliminar todo lo que el juego guarda desinstalándolo. Si tienes
-cualquier duda sobre este punto, escríbenos al correo de contacto.
-
-## 9. Cambios en esta política
-
-Si en el futuro cambia algo relevante (por ejemplo, si se añadieran anuncios o compras), esta
-página se actualizará **antes** de publicar esa versión, indicando la nueva fecha de revisión.
-
-## 10. Contacto
-
-Correo de contacto: **hortsstudio@gmail.com**
-
-También puedes usar la sección de soporte de la ficha oficial en Google Play.
+Dominó Grand Prix es un juego de salón diseñado para ofrecer una experiencia auténtica de dominó tradicional. El juego almacena tu progreso exclusivamente en tu dispositivo móvil. Para ofrecer el juego de forma gratuita y sin compras integradas, se integran anuncios no invasivos mediante la red publicitaria oficial **Google AdMob**.
 
 ---
 
-## English version
+## 2. Qué datos recogemos nosotros
 
-**Privacy Policy — Domino Grand Prix**
-Last updated: 23 October 2026 · App: `com.horts.dominoimperial` · Developer: Horts Studio
+**Nosotros no recogemos datos personales.** En concreto:
 
-**1. Summary.** Domino Grand Prix is a domino game that runs entirely on your phone,
-offline. It does not collect, transmit or share any personal data. There are no accounts, no
-servers, no ads and no in-app purchases.
+- No solicitamos nombre, correo electrónico, teléfono ni información personal alguna.
+- No creamos cuentas, perfiles de usuario ni registros externos.
+- No tenemos servidores propios ni almacenamos partidas en la nube.
+- No accedemos a tu agenda, cámara, micrófono, archivos personales ni ubicación física.
 
-**2. What data we collect.** None. We do not ask for an email address or any identifier, we do
-not create accounts or profiles, we use no analytics or tracking, we do not access your location,
-contacts, camera, microphone or personal files, and the game sends nothing to any server.
+---
 
-**3. Device permissions.** The app requests no system permissions: no internet access, camera,
-microphone, location, contacts or external storage. The vibration you may feel while playing is
-the standard system haptic feedback, which requires no permission and accesses no data.
+## 3. Servicios de terceros y publicidad (Google AdMob)
 
-**4. What is stored on your phone.** To let you continue where you left off, the game stores in
-the app's private storage: tour progress, achievements and match statistics, your settings
-(language, sound, vibration, camera, AI speed) and the match in progress. This data never leaves
-the device, nobody else can read it and it is completely erased when you uninstall the app.
-*System backup:* if you have Android's automatic backup enabled, the system may include this data
-in your Google account backup. That backup is managed by Google under its own policies; we have
-no access to it.
+Para financiar el desarrollo y mantener el juego totalmente gratuito, Dominó Grand Prix utiliza el servicio de publicidad **Google AdMob** (Google LLC):
 
-**5. Ads, purchases and third parties.** No ads, no advertising SDKs, no in-app purchases, no
-subscriptions, no virtual currency, and no third-party analytics, social or tracking services
-that receive your data.
+- **Identificador de publicidad de Android (AD_ID):** El SDK de Google Mobile Ads puede recopilar de forma automática el ID de publicidad del dispositivo, dirección IP e identificadores técnicos para mostrar anuncios, limitar la frecuencia de repetición y prevenir el tráfico no válido.
+- **Diagnóstico y rendimiento:** Google AdMob recopila datos técnicos sobre interacciones y tiempos de respuesta de los anuncios para asegurar la estabilidad técnica.
+- **Sin compras dentro de la aplicación:** El juego no ofrece micropagos ni venta de monedas virtuales.
+- **Políticas de Google:** Puedes consultar cómo Google gestiona la información en la [Política de Privacidad de Google](https://policies.google.com/privacy) y en [Cómo utiliza Google la información de sitios o aplicaciones asociados](https://policies.google.com/technologies/ads).
 
-**6. Trophies and progress.** The game has no virtual currency and no shop. The trophies earned by
-completing tour venues are a souvenir of each city: they have no monetary value, cannot be sold
-and cannot be exchanged for real money.
+---
 
-**7. Children's privacy.** This is a traditional board game suitable for all audiences. Since no
-personal data is collected, it is safe for players of any age, in line with GDPR and COPPA.
+## 4. Permisos del dispositivo
 
-**8. Your rights.** Because we do not process personal data, there is no data of yours to access,
-correct, export or delete in our systems. You can erase everything the game stores by
-uninstalling it. If you have any doubt, contact us.
+La aplicación únicamente requiere los permisos esenciales para el funcionamiento de los anuncios:
 
-**9. Changes to this policy.** If anything relevant changes in the future (for example, if ads or
-purchases were added), this page will be updated before that version is published, showing the
-new revision date.
+- `android.permission.INTERNET`: Necesario para cargar los anuncios de Google AdMob.
+- `android.permission.ACCESS_NETWORK_STATE`: Permite comprobar si el dispositivo tiene conexión antes de solicitar un anuncio.
+- `com.google.android.gms.permission.AD_ID`: Permiso estándar de Android para que Google Play Services gestione el identificador publicitario.
+- **Respuesta háptica:** La vibración de las fichas utiliza la función háptica estándar del sistema y no recopila ningún tipo de dato.
 
-**10. Contact.** Email: **hortsstudio@gmail.com**. You can also use the support section of the
-official Google Play listing.
+---
 
+## 5. Qué se guarda en tu teléfono
+
+Para que puedas continuar tu partida y conservar tus logros, el juego guarda localmente en el almacenamiento privado de la app:
+
+- El avance de la gira mundial (sedes y retos completados).
+- Los logros desbloqueados y estadísticas de juego.
+- Tus ajustes personalizados (idioma, efectos sonoros, velocidad de la IA).
+- La partida activa, para que puedas reanudarla en cualquier momento.
+
+Estos datos **nunca salen de tu dispositivo** y se eliminan automáticamente si decides desinstalar la aplicación. Si tienes activada la copia de seguridad de tu cuenta de Google en Android, el sistema operativo puede incluir estos datos según las preferencias que tengas configuradas en tu dispositivo.
+
+---
+
+## 6. Control del usuario
+
+Puedes restablecer o inhabilitar la personalización de tu identificador de publicidad en cualquier momento desde tu teléfono en:  
+*Ajustes de Android > Privacidad > Anuncios*.
+
+---
+
+## 7. Contacto
+
+Si tienes cualquier duda sobre esta política de privacidad, puedes contactar con nosotros a través de la ficha de la aplicación en Google Play Store.

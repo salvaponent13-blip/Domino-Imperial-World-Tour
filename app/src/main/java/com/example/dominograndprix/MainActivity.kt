@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.example.dominograndprix.ads.AdManager
+import com.example.dominograndprix.ads.ConsentManager
+import com.example.dominograndprix.billing.BillingManager
 import com.example.dominograndprix.audio.DominoHaptics
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.i18n.DominoStrings
@@ -22,6 +25,10 @@ class MainActivity : ComponentActivity() {
         DominoStrings.init(this)
         DominoSoundManager.init(this)
         DominoHaptics.init(this)
+        // Consentimiento RGPD (UMP) antes de inicializar la publicidad.
+        ConsentManager.ensureConsent(this)
+        AdManager.initialize(this)
+        BillingManager.init(this)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowCompat.getInsetsController(window, window.decorView)

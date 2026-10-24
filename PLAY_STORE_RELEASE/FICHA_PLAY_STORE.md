@@ -29,11 +29,11 @@
 ### Español (`es-ES` / `es-419`)
 
 ```text
-Dominó de club, sin anuncios y sin conexión. El reto es uno: completar la gira mundial.
+Dominó de club con reglas oficiales y gira mundial. El reto es uno: completar las 7 ciudades.
 
 Dominó Grand Prix es un dominó de salón hecho con cuidado: fichas acrílicas dibujadas
 a mano, reglas internacionales de verdad y una gira de 7 ciudades con su propia música. Sin
-monedas, sin tienda, sin cuentas y sin interrupciones.
+monedas, sin tienda y sin cuentas obligatorias.
 
 🎲 FICHAS QUE PARECEN DE VERDAD
 Fichas bicapa dibujadas en alta precisión: marfil pulido sobre base de ébano, clavo central de
@@ -58,7 +58,7 @@ monedas ni premios en metálico que gestionar, solo la siguiente ciudad.
 
 🎯 DESAFÍO DIARIO
 Un reto por día, el mismo para todo el mundo, con la misma mano. Mantén la racha y consigue los
-logros diarios. Es la razón para volver mañana sin que nadie te lo pida con un anuncio.
+logros diarios. La mejor razón para volver cada día y poner a prueba tu estrategia.
 
 👥 DOS JUGADORES EN EL MISMO MÓVIL
 Modo pass-and-play con cortina de privacidad: juega contra otra persona en el mismo teléfono, en
@@ -79,9 +79,10 @@ guardan entre partidas.
 🌐 SEIS IDIOMAS
 Español, inglés, francés, italiano, portugués y alemán.
 
-🔒 TU PRIVACIDAD, SIN LETRA PEQUEÑA
-Cero anuncios, cero compras dentro de la app, cero cuentas y cero permisos. El juego funciona
-entero sin conexión: no hay servidores, ni rastreadores, ni un solo dato que salga del teléfono.
+🔒 PRIVACIDAD Y RESPETO AL JUGADOR
+Sin monedas de pago ni cuentas obligatorias. El juego guarda tu progreso de forma privada
+en tu dispositivo y cuenta con anuncios no invasivos gestionados por Google AdMob para
+mantener el juego gratuito.
 
 ♿ ACCESIBLE
 Las fichas y los botones principales se anuncian con TalkBack: se puede jugar sin ver la mesa.
@@ -92,11 +93,11 @@ Hecho por un jugador de dominó para quien echa de menos la mesa de verdad. Toma
 ### English (`en-US`)
 
 ```text
-Club dominoes, no ads, no internet. One challenge: complete the world tour.
+Club dominoes with authentic international rules. One challenge: complete the world tour.
 
 Domino Grand Prix is a carefully crafted parlour domino game: hand-drawn acrylic tiles,
-real international rules and a 7-city tour with its own soundtrack. No coins, no shop, no
-accounts and no interruptions.
+real international rules and a 7-city tour with its own soundtrack. No coins, no shop, and
+no mandatory accounts.
 
 🎲 TILES THAT FEEL REAL
 Two-layer tiles drawn in high detail: polished ivory over an ebony base, brass spinner pin and
@@ -121,7 +122,7 @@ souvenir; there are no coins or cash prizes to manage, only the next city.
 
 🎯 DAILY CHALLENGE
 One challenge a day, the same for everyone, with the same deal. Keep the streak and unlock the
-daily achievements. A reason to come back tomorrow without an ad asking you to.
+daily achievements. The best reason to return each day and test your strategy.
 
 👥 TWO PLAYERS ON ONE PHONE
 Pass-and-play with a privacy curtain: play against another person on the same device in any of
@@ -142,9 +143,9 @@ sessions.
 🌐 SIX LANGUAGES
 Spanish, English, French, Italian, Portuguese and German.
 
-🔒 YOUR PRIVACY, NO FINE PRINT
-Zero ads, zero in-app purchases, zero accounts and zero permissions. The whole game works
-offline: no servers, no trackers, not a single byte leaving your phone.
+🔒 PRIVACY & RESPECT FOR THE PLAYER
+No pay-to-win coins or mandatory sign-ups. Your game progress is stored privately on your
+device, with non-intrusive ads powered by Google AdMob to keep the game completely free.
 
 ♿ ACCESSIBLE
 Tiles and main buttons are announced through TalkBack: the game can be played without seeing the
@@ -203,16 +204,13 @@ instalación).
 
 ## 6. Seguridad de Datos y Clasificación (Play Console)
 
-- **¿Recopila o comparte datos del usuario?** `No` (0 permisos, 0 red, 0 SDKs de terceros).
-- **¿Contiene anuncios?** `No`.
+- **¿Contiene anuncios?** `Sí` (declarar **Sí** en la sección "Anuncios" del contenido de la app).
+- **¿Recopila o comparte datos del usuario?** `Sí`:
+  - **Identificadores del dispositivo o de otro tipo:** `ID de publicidad` (recopilado automáticamente por el SDK de Google Mobile Ads / AdMob con fines de Publicidad o marketing y Análisis).
+  - **Diagnóstico:** Información sobre fallos y rendimiento técnico de anuncios.
 - **¿Compras dentro de la app?** `No`.
-- **Clasificación IARC:** `PEGI 3` / `ESRB Everyone` (dominó tradicional, sin violencia ni
-  apuestas con dinero real).
-- **Política de privacidad:** la misma URL publicada, actualizada a la v2.5.0 (trofeos como
-  recuerdos, sin monedas virtuales).
-
-> Nota: si algún día se añaden anuncios o compras, hay que cambiar **en el mismo envío** esta
-> sección, el cuestionario de clasificación y la política, y volver a pasar la revisión.
+- **Clasificación IARC:** `PEGI 3` / `ESRB Everyone` (juego de mesa tradicional, apto para todos los públicos).
+- **Política de privacidad:** la URL publicada en tu Google Site, actualizada para reflejar Google AdMob.
 
 
 
