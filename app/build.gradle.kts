@@ -20,8 +20,8 @@ android {
         applicationId = "com.horts.dominoimperial"
         minSdk = 24
         targetSdk = 36
-        versionCode = 21
-        versionName = "2.5.5"
+        versionCode = 22
+        versionName = "2.5.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // ------------------------------------------------------------------------------------
@@ -161,6 +161,7 @@ dependencies {
   // Google Play Billing (IAP quitar publicidad)
   implementation(libs.google.billing)
 }
+
 
 
 

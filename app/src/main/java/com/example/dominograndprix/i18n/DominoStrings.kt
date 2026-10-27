@@ -1034,6 +1034,14 @@ object DominoStrings {
         "📤 Compartilhar",
         "📤 Teilen"
     )
+    fun replayTutorialBtn(): String = multi(
+        "🎓 Ver tutorial otra vez",
+        "🎓 Replay tutorial",
+        "🎓 Revoir le tutoriel",
+        "🎓 Rivedi il tutorial",
+        "🎓 Ver tutorial novamente",
+        "🎓 Tutorial erneut ansehen"
+    )
 
     fun shareAppMessage(): String = multi(
         "¡Juega conmigo a Dominó Grand Prix World Tour! 8 modalidades de dominó y 7 sedes mundiales: https://play.google.com/store/apps/details?id=com.horts.dominoimperial",
@@ -1995,6 +2003,7 @@ fun LanguageSelectorButton(modifier: Modifier = Modifier) {
         }
     }
 }
+
 
 
 

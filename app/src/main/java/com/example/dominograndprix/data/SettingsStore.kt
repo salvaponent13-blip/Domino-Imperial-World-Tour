@@ -19,6 +19,8 @@ object SettingsStore {
     private const val KEY_LIGHT = "ambient_light"
     private const val KEY_SPEED = "game_speed"
     private const val KEY_PRO = "is_pro_no_ads"
+    private const val KEY_TUTORIAL_SEEN = "tutorial_seen"
+    private const val KEY_MODE_HINTS = "mode_hints_seen"
 
     const val DEFAULT_CAMERA = "TOP_2D"
     const val DEFAULT_LIGHT = "WARM_CLUB"
@@ -67,5 +69,29 @@ object SettingsStore {
 
     fun setPro(context: Context, pro: Boolean) {
         prefs(context).edit().putBoolean(KEY_PRO, pro).apply()
+    }
+
+    // --- Tutorial de la primera partida ---
+
+    /** Si el jugador ya ha visto el tutorial de tres pasos sobre la mesa. */
+    fun isTutorialSeen(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_TUTORIAL_SEEN, false)
+
+    fun setTutorialSeen(context: Context, seen: Boolean) {
+        prefs(context).edit().putBoolean(KEY_TUTORIAL_SEEN, seen).apply()
+    }
+
+    /** Vuelve a activar el tutorial para que salga en la próxima partida. */
+    fun resetTutorial(context: Context) {
+        prefs(context).edit().putBoolean(KEY_TUTORIAL_SEEN, false).apply()
+    }
+
+    /** Si ya se explicó la modalidad [mode] (nombre del enum `GameMode`). */
+    fun hasSeenModeHint(context: Context, mode: String): Boolean =
+        prefs(context).getStringSet(KEY_MODE_HINTS, emptySet())?.contains(mode) == true
+
+    fun setModeHintSeen(context: Context, mode: String) {
+        val actual = prefs(context).getStringSet(KEY_MODE_HINTS, emptySet()).orEmpty()
+        prefs(context).edit().putStringSet(KEY_MODE_HINTS, actual + mode).apply()
     }
 }

@@ -24,6 +24,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.dominograndprix.audio.DominoHaptics
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.billing.BillingManager
+import com.example.dominograndprix.data.SettingsStore
+import com.example.dominograndprix.i18n.TutorialStrings
 import com.example.dominograndprix.billing.BillingNotice
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
@@ -40,6 +42,9 @@ fun SettingsDialog(
 ) {
     val context = LocalContext.current
     var hapticsEnabled by remember { mutableStateOf(DominoHaptics.enabled) }
+    // Aviso tras pulsar "Ver tutorial": el tutorial no se lanza desde aquí, se reactiva para la
+    // próxima partida (así se ve sobre la mesa, que es donde tiene sentido).
+    var tutorialReset by remember { mutableStateOf(false) }
 
     // Limpiar avisos de compra antiguos al cerrar el diálogo de ajustes.
     DisposableEffect(Unit) {
@@ -273,6 +278,36 @@ fun SettingsDialog(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                // --- VOLVER A VER EL TUTORIAL ---
+                TextButton(
+                    onClick = {
+                        DominoSoundManager.playTileTap()
+                        SettingsStore.resetTutorial(context)
+                        tutorialReset = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = DominoStrings.replayTutorialBtn(),
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                if (tutorialReset) {
+                    Text(
+                        text = TutorialStrings.replayHint(),
+                        color = Color(0xFFA7F3D0),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp)
+                    )
+                }
+
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier
@@ -336,3 +371,4 @@ private fun SettingRow(
         }
     }
 }
+

@@ -42,6 +42,9 @@ import com.example.dominograndprix.data.SettingsStore
 import com.example.dominograndprix.engine.DominoBoardLayout
 import com.example.dominograndprix.engine.DominoEngine
 import com.example.dominograndprix.engine.ai.AiMove
+import com.example.dominograndprix.i18n.TutorialStrings
+import com.example.dominograndprix.ui.tutorial.FirstMatchTutorial
+import com.example.dominograndprix.ui.tutorial.ModeHintCard
 import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.model.BoardPlacedTile
 import com.example.dominograndprix.model.BoardSide
@@ -166,6 +169,15 @@ fun DominoTableScreen(
     var turnAnnouncement by remember { mutableStateOf<String?>(null) }
     var gameSpeed by remember { mutableIntStateOf(SettingsStore.gameSpeed(context).coerceIn(1, 2)) }
     var showTileCounter by remember { mutableStateOf(false) }
+
+    // Tutorial de la primera partida (tres pasos) y tarjeta de la modalidad, una vez por modo.
+    // La tarjeta del modo no sale en la misma partida que el tutorial para no encadenar dos
+    // avisos seguidos: al terminar el tutorial se marca ese modo como explicado.
+    val tutorialPending = remember { !SettingsStore.isTutorialSeen(context) }
+    var tutorialStep by remember { mutableIntStateOf(if (tutorialPending) 0 else -1) }
+    var modeHintVisible by remember {
+        mutableStateOf(!tutorialPending && !SettingsStore.hasSeenModeHint(context, gameMode.name))
+    }
 
     LaunchedEffect(turnAnnouncement) {
         if (turnAnnouncement != null) {
@@ -1517,6 +1529,33 @@ fun DominoTableScreen(
                 onDismiss = { showTileCounter = false }
             )
         }
+
+        // 7. TUTORIAL DE LA PRIMERA PARTIDA Y TARJETA DE LA MODALIDAD
+        if (tutorialStep in 0..2) {
+            val acabarTutorial = {
+                SettingsStore.setTutorialSeen(context, true)
+                SettingsStore.setModeHintSeen(context, gameMode.name)
+                tutorialStep = -1
+                modeHintVisible = false
+            }
+            FirstMatchTutorial(
+                step = tutorialStep,
+                totalSteps = 3,
+                onAdvance = {
+                    if (tutorialStep >= 2) acabarTutorial() else tutorialStep++
+                },
+                onFinish = acabarTutorial
+            )
+        } else if (modeHintVisible) {
+            ModeHintCard(
+                modeTitle = DominoStrings.modeName(gameMode),
+                hint = TutorialStrings.modeHint(gameMode),
+                onDismiss = {
+                    SettingsStore.setModeHintSeen(context, gameMode.name)
+                    modeHintVisible = false
+                }
+            )
+        }
     }
 }
 
@@ -1725,4 +1764,6 @@ private fun MesaActionButton(symbol: String, description: String, onClick: () ->
         }
     }
 }
+
+
 
