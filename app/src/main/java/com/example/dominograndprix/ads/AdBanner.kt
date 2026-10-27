@@ -4,12 +4,15 @@ import android.view.View
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.dominograndprix.billing.BillingManager
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -20,17 +23,20 @@ import com.google.android.gms.ads.LoadAdError
  * Banner adaptativo anclado de Google AdMob para Jetpack Compose.
  *
  * Características:
+ * - Observa reactivamente [BillingManager.pro] y [ConsentManager.canRequestAds].
  * - Se adapta dinámicamente al ancho real del dispositivo en lugar de forzar 320x50 fijo.
  * - Destruye la instancia de [AdView] en `onRelease` al salir de composición para prevenir fugas.
- * - Si no hay anuncios o el dispositivo no tiene red, se oculta (`View.GONE`) para no dejar
- *   huecos vacíos antiestéticos en el diseño.
+ * - Permanece oculto (`View.GONE`) mientras aún no hay inventario activo o sin red, evitando
+ *   huecos vacíos en la pantalla de inicio.
  */
 @Composable
 fun AdBanner(
     modifier: Modifier = Modifier,
     adUnitId: String = AdConfig.bannerUnitId
 ) {
-    if (AdManager.adsDisabled) return
+    val isPro by BillingManager.pro.collectAsState()
+    val canRequestAds by ConsentManager.canRequestAds.collectAsState()
+    if (isPro || AdManager.adsDisabled || !canRequestAds) return
 
     val context = LocalContext.current
 
@@ -49,6 +55,7 @@ fun AdBanner(
                 modifier = Modifier.fillMaxWidth(),
                 factory = { ctx ->
                     AdView(ctx).apply {
+                        visibility = View.GONE
                         this.adUnitId = adUnitId
                         setAdSize(adSize)
                         adListener = object : AdListener() {

@@ -25,10 +25,14 @@ class MainActivity : ComponentActivity() {
         DominoStrings.init(this)
         DominoSoundManager.init(this)
         DominoHaptics.init(this)
-        // Consentimiento RGPD (UMP) antes de inicializar la publicidad.
-        ConsentManager.ensureConsent(this)
-        AdManager.initialize(this)
+        // 1. Inicializar facturación primero para cargar el estado PRO local antes de pedir anuncios.
         BillingManager.init(this)
+        // 2. Solo si el usuario no es PRO, consultar consentimiento RGPD (UMP) y arrancar AdMob.
+        if (!BillingManager.isPro()) {
+            ConsentManager.ensureConsent(this) {
+                AdManager.initialize(this)
+            }
+        }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowCompat.getInsetsController(window, window.decorView)

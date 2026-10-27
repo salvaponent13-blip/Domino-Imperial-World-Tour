@@ -19,28 +19,39 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
  *   referencias a Activities destruidas.
  * - Cooldown mínimo entre intersticiales (60 segundos) para no saturar al usuario.
  * - [show] garantiza la ejecución de [onDismissed] bajo cualquier escenario (sin conexión,
- *   fallo de carga o tras cerrar el anuncio), impidiendo bloqueos de pantalla.
- * - Soporte para desactivación total ([adsDisabled]), útil para futuras compras integradas.
+ *   anuncios aún no activos en tienda, fallo de carga o tras cerrar el anuncio), impidiendo
+ *   bloqueos de pantalla.
+ * - Soporte para desactivación total ([adsDisabled]) con la compra integrada PRO.
  */
 object AdManager {
     private const val TAG = "AdManager"
     private const val COOLDOWN_MS = 60_000L
 
+    @Volatile
     var adsDisabled: Boolean = false
 
     private var interstitialAd: InterstitialAd? = null
     private var isLoading = false
+    private var isInitialized = false
     private var lastShownTime = 0L
 
     /**
-     * Inicializa el SDK de MobileAds y lanza la precarga del primer intersticial.
+     * Inicializa el SDK de MobileAds y lanza la precarga del primer intersticial
+     * cuando el callback de inicialización se completa.
      */
     fun initialize(context: Context) {
+        if (adsDisabled) return
+        val appCtx = context.applicationContext
+        if (isInitialized) {
+            preload(appCtx)
+            return
+        }
         try {
-            MobileAds.initialize(context.applicationContext) { status ->
+            MobileAds.initialize(appCtx) { status ->
+                isInitialized = true
                 Log.d(TAG, "MobileAds inicializado: $status")
+                preload(appCtx)
             }
-            preload(context.applicationContext)
         } catch (e: Exception) {
             Log.w(TAG, "Error al inicializar MobileAds: ${e.message}")
         }
@@ -61,6 +72,11 @@ object AdManager {
             request,
             object : InterstitialAdLoadCallback() {
                 override fun onAdLoaded(ad: InterstitialAd) {
+                    if (adsDisabled) {
+                        interstitialAd = null
+                        isLoading = false
+                        return
+                    }
                     interstitialAd = ad
                     isLoading = false
                     Log.d(TAG, "Interstitial de AdMob cargado y listo.")

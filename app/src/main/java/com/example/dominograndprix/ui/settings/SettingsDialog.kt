@@ -1,8 +1,9 @@
 package com.example.dominograndprix.ui.settings
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -27,10 +29,10 @@ import com.example.dominograndprix.i18n.DominoStrings
 import com.example.dominograndprix.i18n.LanguageSelectorButton
 
 /**
- * Ajustes del jugador: sonido, vibracion e idioma.
+ * Ajustes del jugador: sonido, vibracion, idioma, version PRO y enlaces de comunidad.
  *
- * Las tres cosas se guardan en [com.example.dominograndprix.data.SettingsStore] y sobreviven al
- * cierre de la app. Antes el silencio se perdia en cada arranque.
+ * Las preferencias se guardan en [com.example.dominograndprix.data.SettingsStore] y sobreviven al
+ * cierre de la app.
  */
 @Composable
 fun SettingsDialog(
@@ -38,6 +40,13 @@ fun SettingsDialog(
 ) {
     val context = LocalContext.current
     var hapticsEnabled by remember { mutableStateOf(DominoHaptics.enabled) }
+
+    // Limpiar avisos de compra antiguos al cerrar el diálogo de ajustes.
+    DisposableEffect(Unit) {
+        onDispose {
+            BillingManager.consumeNotice()
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -120,7 +129,7 @@ fun SettingsDialog(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "✓ Versión PRO (Sin publicidad)",
+                                text = DominoStrings.proActiveBadge(),
                                 color = Color(0xFFA7F3D0),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
@@ -146,7 +155,7 @@ fun SettingsDialog(
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(
-                                text = "Quitar publicidad ($price)",
+                                text = DominoStrings.removeAdsBtn(price),
                                 fontWeight = FontWeight.Black,
                                 fontSize = 12.sp
                             )
@@ -159,7 +168,7 @@ fun SettingsDialog(
                             enabled = !busy
                         ) {
                             Text(
-                                text = "Restaurar compra",
+                                text = DominoStrings.restorePurchasesBtn(),
                                 color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
@@ -170,23 +179,99 @@ fun SettingsDialog(
 
                 notice?.let { n ->
                     val noticeText = when (n) {
-                        BillingNotice.PURCHASED -> "¡Gracias! Publicidad eliminada."
-                        BillingNotice.RESTORED -> "Compra restaurada con éxito."
-                        BillingNotice.CANCELED -> "Compra cancelada."
-                        BillingNotice.NOT_READY -> "Conectando con Google Play..."
-                        BillingNotice.NOTHING -> "No se encontraron compras anteriores."
-                        BillingNotice.FAILED -> "No se pudo completar la compra."
+                        BillingNotice.PURCHASED -> DominoStrings.billingPurchasedNotice()
+                        BillingNotice.RESTORED -> DominoStrings.billingRestoredNotice()
+                        BillingNotice.CANCELED -> DominoStrings.billingCanceledNotice()
+                        BillingNotice.NOT_READY -> DominoStrings.billingNotReadyNotice()
+                        BillingNotice.NOTHING -> DominoStrings.billingNothingNotice()
+                        BillingNotice.FAILED -> DominoStrings.billingFailedNotice()
                     }
                     Text(
                         text = noticeText,
                         color = if (n == BillingNotice.PURCHASED || n == BillingNotice.RESTORED) Color(0xFFA7F3D0) else Color(0xFFFCA5A5),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 4.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // --- VALORAR Y COMPARTIR APP ---
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            DominoSoundManager.playTileTap()
+                            val pkg = context.packageName
+                            try {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg"))
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            } catch (_: Exception) {
+                                try {
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("https://play.google.com/store/apps/details?id=$pkg")
+                                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    )
+                                } catch (_: Exception) {
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp),
+                        border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = DominoStrings.rateAppBtn(),
+                            color = Color(0xFFFFD700),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            DominoSoundManager.playTileTap()
+                            try {
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, DominoStrings.shareAppMessage())
+                                }
+                                context.startActivity(
+                                    Intent.createChooser(sendIntent, null)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            } catch (_: Exception) {
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = DominoStrings.shareAppBtn(),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Button(
                     onClick = onDismiss,

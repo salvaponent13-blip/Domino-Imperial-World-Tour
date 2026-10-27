@@ -37,7 +37,17 @@ data class MoveSimulation(
     /** Puntos inmediatos que otorga la jugada en los modos que puntuan extremos. */
     val pointsEarned: Int,
     /** Si la jugada vacia la mano y gana la ronda al instante. */
-    val winsTheRound: Boolean
+    val winsTheRound: Boolean,
+    /**
+     * Cuantas fichas de la mano restante de quien juega encajan con los nuevos extremos
+     * abiertos (continuidad o afinidad de palo propia).
+     */
+    val mySuitSupport: Int = 0,
+    /**
+     * Cuantos extremos abiertos coinciden con fallas publicas cantadas por los rivales
+     * (pases previos observables en la mesa).
+     */
+    val opponentPassedEndsMatched: Int = 0
 ) {
     /** Suma de los extremos abiertos. */
     val openEndsSum: Int get() = (leftOpenPip ?: 0) + (rightOpenPip ?: 0)

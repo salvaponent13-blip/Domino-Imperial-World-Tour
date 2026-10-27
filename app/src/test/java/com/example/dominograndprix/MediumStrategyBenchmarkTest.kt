@@ -61,7 +61,8 @@ class MediumStrategyBenchmarkTest {
         val dominoOnly = measure(MediumWeights.DOMINO_ONLY, "1. domino inmediato")
         val withPips = measure(MediumWeights.DOMINO_AND_PIPS, "2. + drenaje de pips y dobles")
         val withBlock = measure(MediumWeights.WITHOUT_SCORING, "3. + tranca consciente de pips")
-        val all = measure(MediumWeights.ALL, "4. + suma de extremos (completa)")
+        val withScoring = measure(MediumWeights.WITH_SCORING, "4. + suma de extremos")
+        val all = measure(MediumWeights.ALL, "5. + afinidad de palo y fallas (completa)")
 
         val table = buildString {
             appendLine("Medicion incremental de MediumStrategy contra LegacyStrategy")
@@ -72,7 +73,8 @@ class MediumStrategyBenchmarkTest {
                 "1. domino inmediato" to dominoOnly,
                 "2. + drenaje de pips y dobles" to withPips,
                 "3. + tranca consciente de pips" to withBlock,
-                "4. + suma de extremos (completa)" to all
+                "4. + suma de extremos" to withScoring,
+                "5. + afinidad de palo y fallas (completa)" to all
             ).forEach { (label, tally) ->
                 appendLine(
                     "%-46s %8.2f%% %9.2f %+9.2f".format(
@@ -84,7 +86,8 @@ class MediumStrategyBenchmarkTest {
             appendLine("Aporte de cada factor (incremento sobre el paso anterior):")
             appendLine("  factor 2 (pips y dobles):   ${"%+.2f".format((withPips.winRate - dominoOnly.winRate) * 100)} puntos")
             appendLine("  factor 3 (tranca):          ${"%+.2f".format((withBlock.winRate - withPips.winRate) * 100)} puntos")
-            appendLine("  factor 4 (puntuacion):      ${"%+.2f".format((all.winRate - withBlock.winRate) * 100)} puntos")
+            appendLine("  factor 4 (puntuacion):      ${"%+.2f".format((withScoring.winRate - withBlock.winRate) * 100)} puntos")
+            appendLine("  factor 5 (palo y fallas):   ${"%+.2f".format((all.winRate - withScoring.winRate) * 100)} puntos")
             appendLine()
             append("Winrate final: ${"%.2f".format(all.winRate * 100)}% " +
                 "(objetivo >= ${"%.0f".format(TARGET_WIN_RATE * 100)}%)")
@@ -93,7 +96,7 @@ class MediumStrategyBenchmarkTest {
         AiBenchmarkHarness.dumpReport("medium-incremental.txt", table)
 
         // Coherencia del arnes
-        listOf(dominoOnly, withPips, withBlock, all).forEach { tally ->
+        listOf(dominoOnly, withPips, withBlock, withScoring, all).forEach { tally ->
             assertEquals(
                 "Cada configuracion debe jugar las mismas rondas",
                 PAIRS * AiBenchmarkHarness.ROUNDS * 2,

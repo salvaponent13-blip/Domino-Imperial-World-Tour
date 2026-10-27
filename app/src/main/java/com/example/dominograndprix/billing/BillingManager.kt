@@ -29,6 +29,8 @@ enum class BillingNotice { PURCHASED, CANCELED, FAILED, RESTORED, NOTHING, NOT_R
  * Características:
  * - Carga el estado PRO offline desde [SettingsStore] al iniciar para silenciar anuncios de inmediato.
  * - Sincroniza y valida la compra con los servidores de Google Play al conectar.
+ * - Si el producto aún no está activo en Google Play Console o no hay red, responde de forma
+ *   controlada con [BillingNotice.NOT_READY] sin bloquear la interfaz.
  * - Desactiva y limpia la caché de [AdManager] en cuanto se confirma el estado PRO.
  */
 object BillingManager {
@@ -67,6 +69,7 @@ object BillingManager {
         if (SettingsStore.isPro(app)) {
             _pro.value = true
             AdManager.adsDisabled = true
+            AdManager.clear()
         }
 
         if (client != null) return
@@ -85,25 +88,37 @@ object BillingManager {
         connect()
     }
 
-    private fun connect() {
-        val c = client ?: return
-        if (c.isReady) {
-            onConnected()
+    private fun connect(onResult: ((Boolean) -> Unit)? = null) {
+        val c = client
+        if (c == null) {
+            onResult?.invoke(false)
             return
         }
-        c.startConnection(object : BillingClientStateListener {
-            override fun onBillingSetupFinished(result: BillingResult) {
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                    onConnected()
-                } else {
-                    Log.w(TAG, "Billing setup no completado: ${result.debugMessage}")
+        if (c.isReady) {
+            onConnected()
+            onResult?.invoke(true)
+            return
+        }
+        try {
+            c.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(result: BillingResult) {
+                    val ok = result.responseCode == BillingClient.BillingResponseCode.OK
+                    if (ok) {
+                        onConnected()
+                    } else {
+                        Log.w(TAG, "Billing setup no completado: ${result.debugMessage}")
+                    }
+                    onResult?.invoke(ok)
                 }
-            }
 
-            override fun onBillingServiceDisconnected() {
-                Log.w(TAG, "Servicio de Billing desconectado; se reconectará al reintentar.")
-            }
-        })
+                override fun onBillingServiceDisconnected() {
+                    Log.w(TAG, "Servicio de Billing desconectado; se reconectará al reintentar.")
+                }
+            })
+        } catch (e: Exception) {
+            Log.w(TAG, "Error al conectar con Google Play Billing: ${e.message}")
+            onResult?.invoke(false)
+        }
     }
 
     private fun onConnected() {
@@ -111,8 +126,12 @@ object BillingManager {
         queryPurchases(silent = true)
     }
 
-    private fun queryProduct() {
-        val c = client ?: return
+    private fun queryProduct(onDone: ((ProductDetails?) -> Unit)? = null) {
+        val c = client
+        if (c == null || !c.isReady) {
+            onDone?.invoke(null)
+            return
+        }
         val params = QueryProductDetailsParams.newBuilder()
             .setProductList(
                 listOf(
@@ -134,8 +153,10 @@ object BillingManager {
                         _price.value = formatted
                     }
                 }
+                onDone?.invoke(details)
             } else {
                 Log.w(TAG, "queryProductDetails falló: ${result.debugMessage}")
+                onDone?.invoke(null)
             }
         }
     }
@@ -181,8 +202,13 @@ object BillingManager {
                 }
             }
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
-                applyOwnership(purchases)
-                _notice.value = BillingNotice.PURCHASED
+                if (applyOwnership(purchases)) {
+                    _notice.value = BillingNotice.PURCHASED
+                } else {
+                    // Cuando Google Play responde ITEM_ALREADY_OWNED, la lista del callback puede
+                    // venir vacía: consultamos las compras activas para activar PRO en firme.
+                    queryPurchases(silent = false)
+                }
             }
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 _notice.value = BillingNotice.CANCELED
@@ -205,20 +231,35 @@ object BillingManager {
         }
     }
 
-    /** Inicia el flujo de pago de Google Play. */
+    /** Inicia el flujo de pago de Google Play. Si aún no está activo el producto, avisa sin colgarse. */
     fun buy(activity: Activity) {
+        val existingDetails = product
         val c = client
-        if (c == null || !c.isReady) {
-            connect()
-            _notice.value = BillingNotice.NOT_READY
+        if (c != null && c.isReady && existingDetails != null) {
+            launchFlow(activity, c, existingDetails)
             return
         }
-        val details = product
-        if (details == null) {
-            queryProduct()
-            _notice.value = BillingNotice.NOT_READY
-            return
+
+        _busy.value = true
+        connect { connected ->
+            if (!connected) {
+                _busy.value = false
+                _notice.value = BillingNotice.NOT_READY
+                return@connect
+            }
+            queryProduct { fetchedDetails ->
+                val readyClient = client
+                if (fetchedDetails != null && readyClient != null && readyClient.isReady && !activity.isFinishing) {
+                    launchFlow(activity, readyClient, fetchedDetails)
+                } else {
+                    _busy.value = false
+                    _notice.value = BillingNotice.NOT_READY
+                }
+            }
         }
+    }
+
+    private fun launchFlow(activity: Activity, c: BillingClient, details: ProductDetails) {
         val params = BillingFlowParams.newBuilder()
             .setProductDetailsParamsList(
                 listOf(
@@ -236,11 +277,17 @@ object BillingManager {
         }
     }
 
-    /** Restaura compras anteriores para usuarios que reinstalan o cambian de móvil. */
+    /** Restaura compras anteriores esperando a reconectar si el servicio estaba desconectado. */
     fun restore() {
         _busy.value = true
-        if (client?.isReady != true) connect()
-        queryPurchases(silent = false) { _busy.value = false }
+        connect { connected ->
+            if (connected) {
+                queryPurchases(silent = false) { _busy.value = false }
+            } else {
+                _busy.value = false
+                _notice.value = BillingNotice.NOT_READY
+            }
+        }
     }
 
     private fun setPro(value: Boolean) {

@@ -1,47 +1,32 @@
-# Notas de versión — v2.5.4 (versionCode 20)
+# Notas de versión — v2.5.5 (versionCode 21)
 
-> Añade la compra **remove_ads** (quitar anuncios para siempre) sobre la publicidad de la v2.5.3.
-> Es la versión que se promociona a producción.
+> Versión definitiva para Producción (`DominoGrandPrix_v2.5.5_b21.aab`).
+> Incluye la compra **remove_ads** (2,50 €), consentimiento RGPD (UMP), botones de Valorar y Compartir en Ajustes, IA mejorada sin información oculta (61,06 % frente a Legacy) y actualización del SDK `androidx.fragment` (1.8.5).
 
 ## Para pegar en Play Console (≤ 500 caracteres por idioma)
 
 ```text
 <es-ES>
-• Nuevo: quita los anuncios para siempre con una compra única desde Ajustes.
-• Restauración de compra incluida si cambias de móvil o reinstalas.
-• Banner solo en el menú y un intersticial al cerrar la partida, nunca sobre la mesa.
-• Consentimiento de privacidad (RGPD) antes de mostrar anuncios personalizados.
-• Mejoras de estabilidad y rendimiento.
+• Nuevo: opción PRO para quitar anuncios desde Ajustes y botón de restaurar compra.
+• Añadidos botones de Valorar y Compartir aplicación en Ajustes.
+• IA táctica mejorada: mayor dominio de palo y respuesta a fallas sin mirar manos ocultas.
+• Traducción completa revisada en 6 idiomas (ES, EN, FR, IT, PT, DE).
+• Actualización de librerías AndroidX (fragment 1.8.5) y mejoras de estabilidad.
 </es-ES>
 <en-US>
-• New: remove ads for good with a one-time purchase from Settings.
-• Purchase restore included if you change phone or reinstall.
-• Banner only in the menu and one interstitial after a match, never over the table.
-• GDPR privacy consent before personalised ads.
-• Stability and performance improvements.
+• New: one-time PRO purchase to remove ads from Settings, plus purchase restore.
+• Added Rate App and Share App buttons in Settings.
+• Improved tactical AI: smarter suit continuity and pass tracking with 100% fair play.
+• Complete localization across 6 languages (ES, EN, FR, IT, PT, DE).
+• Updated AndroidX libraries (fragment 1.8.5) and stability improvements.
 </en-US>
 ```
 
 ---
 
-## Cambios técnicos en v2.5.4
+## Cambios técnicos en v2.5.5 (build 21)
 
-- Compra integrada `remove_ads` (producto único no consumible) con Google Play Billing:
-  `BillingManager` con conexión, consulta de compras, `acknowledge` y **restauración** al abrir.
-- El estado Pro solo se activa con la compra confirmada por Play; se guarda en `SettingsStore`
-  y desactiva banner, intersticial y precarga.
-- Consentimiento RGPD con **User Messaging Platform** (`ConsentManager`): sin consentimiento no
-  se piden anuncios personalizados.
-- IDs de AdMob: reales en release, de **prueba** en debug (`BuildConfig.DEBUG`) para no generar
-  tráfico inválido durante el desarrollo.
-- Ajustes: entrada "Quitar anuncios" con precio de referencia y estado de la compra.
-- Tests unitarios de `AdConfig` y `BillingConfig`.
-
-## Pendiente en Play Console (no se puede hacer desde el código)
-
-- Monetización → Productos dentro de la app → crear `remove_ads` (2,49 €) y **activarlo**.
-- Contenido de la aplicación → **Anuncios: Sí** y **Compras dentro de la app: Sí**.
-- Seguridad de los datos → ID de publicidad y diagnóstico (AdMob).
-- Clasificación IARC → repetir el cuestionario (ha cambiado por anuncios y compras).
-- AdMob → Privacidad y mensajería → publicar el mensaje de consentimiento (RGPD/UMP).
-- Probar la compra con una cuenta de licencia de prueba antes de producción.
+- **SDK actualizado (`androidx.fragment:fragment-ktx:1.8.5`):** elimina el aviso de Google Play Console sobre `androidx.fragment:fragment:1.1.0` obsoleto detectado en la versión 20.
+- **Facturación y anuncios blindados:** `BillingManager.init` se ejecuta antes de `ConsentManager` y `AdManager`; el `AdBanner` queda anclado fijo en el pie fuera del scroll, nace en `View.GONE` mientras no haya inventario y reacciona en vivo a `BillingManager.pro`.
+- **IA limpia y más fuerte (61,06 % winrate vs Legacy):** `DominoEngine.simulate` estima los puntos rivales sin espiar manos ocultas y `MediumStrategy` / `StrategyCatalog` incorporan afinidad de palo (`suitAffinity`) y explotación de fallas (`passExploit`), diferenciando `STANDARD` y `TOUGH` en los 8 modos.
+- **Feedback de testers aplicado:** botones de **Valorar app** y **Compartir** en `SettingsDialog` y textos traducidos a los 6 idiomas en `DominoStrings`.

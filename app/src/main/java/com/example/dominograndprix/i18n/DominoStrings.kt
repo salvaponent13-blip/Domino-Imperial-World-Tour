@@ -936,6 +936,195 @@ object DominoStrings {
 
     fun settingsClose(): String = multi("CERRAR", "CLOSE", "FERMER", "CHIUDI", "FECHAR", "SCHLIESSEN")
 
+    fun proActiveBadge(): String = multi(
+        "✓ Versión PRO (Sin publicidad)",
+        "✓ PRO Version (Ad-Free)",
+        "✓ Version PRO (Sans publicité)",
+        "✓ Versione PRO (Senza pubblicità)",
+        "✓ Versão PRO (Sem anúncios)",
+        "✓ PRO-Version (Werbefrei)"
+    )
+
+    fun removeAdsBtn(price: String): String = multi(
+        "Quitar publicidad ($price)",
+        "Remove ads ($price)",
+        "Supprimer la pub ($price)",
+        "Rimuovi pubblicità ($price)",
+        "Remover anúncios ($price)",
+        "Werbung entfernen ($price)"
+    )
+
+    fun restorePurchasesBtn(): String = multi(
+        "Restaurar compra",
+        "Restore purchase",
+        "Restaurer l'achat",
+        "Ripristina acquisto",
+        "Restaurar compra",
+        "Kauf wiederherstellen"
+    )
+
+    fun billingPurchasedNotice(): String = multi(
+        "¡Gracias! Publicidad eliminada.",
+        "Thank you! Ads removed.",
+        "Merci ! Publicité supprimée.",
+        "Grazie! Pubblicità rimossa.",
+        "Obrigado! Anúncios removidos.",
+        "Danke! Werbung entfernt."
+    )
+
+    fun billingRestoredNotice(): String = multi(
+        "Compra restaurada con éxito.",
+        "Purchase restored successfully.",
+        "Achat restauré avec succès.",
+        "Acquisto ripristinato con successo.",
+        "Compra restaurada com sucesso.",
+        "Kauf erfolgreich wiederhergestellt."
+    )
+
+    fun billingCanceledNotice(): String = multi(
+        "Compra cancelada.",
+        "Purchase canceled.",
+        "Achat annulé.",
+        "Acquisto annullato.",
+        "Compra cancelada.",
+        "Kauf abgebrochen."
+    )
+
+    fun billingNotReadyNotice(): String = multi(
+        "Tienda aún no disponible en Google Play. Inténtalo más tarde.",
+        "Store not available on Google Play yet. Try again later.",
+        "Boutique pas encore disponible sur Google Play. Réessayez plus tard.",
+        "Negozio non ancora disponibile su Google Play. Riprova più tardi.",
+        "Loja ainda não disponível no Google Play. Tente mais tarde.",
+        "Shop bei Google Play noch nicht verfügbar. Später erneut versuchen."
+    )
+
+    fun billingNothingNotice(): String = multi(
+        "No se encontraron compras anteriores.",
+        "No previous purchases found.",
+        "Aucun achat antérieur trouvé.",
+        "Nessun acquisto precedente trovato.",
+        "Nenhuma compra anterior encontrada.",
+        "Keine früheren Käufe gefunden."
+    )
+
+    fun billingFailedNotice(): String = multi(
+        "No se pudo completar la compra.",
+        "Could not complete the purchase.",
+        "Impossible de finaliser l'achat.",
+        "Impossibile completare l'acquisto.",
+        "Não foi possível concluir a compra.",
+        "Kauf konnte nicht abgeschlossen werden."
+    )
+
+    fun rateAppBtn(): String = multi(
+        "⭐ Valorar app",
+        "⭐ Rate app",
+        "⭐ Noter l'app",
+        "⭐ Valuta l'app",
+        "⭐ Avaliar app",
+        "⭐ App bewerten"
+    )
+
+    fun shareAppBtn(): String = multi(
+        "📤 Compartir",
+        "📤 Share",
+        "📤 Partager",
+        "📤 Condividi",
+        "📤 Compartilhar",
+        "📤 Teilen"
+    )
+
+    fun shareAppMessage(): String = multi(
+        "¡Juega conmigo a Dominó Grand Prix World Tour! 8 modalidades de dominó y 7 sedes mundiales: https://play.google.com/store/apps/details?id=com.horts.dominoimperial",
+        "Play Domino Grand Prix World Tour! 8 domino modes across 7 world cities: https://play.google.com/store/apps/details?id=com.horts.dominoimperial",
+        "Jouez à Domino Grand Prix World Tour ! 8 modes de dominos dans 7 villes du monde : https://play.google.com/store/apps/details?id=com.horts.dominoimperial",
+        "Gioca a Domino Grand Prix World Tour! 8 modalità di domino in 7 città del mondo: https://play.google.com/store/apps/details?id=com.horts.dominoimperial",
+        "Jogue Dominó Grand Prix World Tour! 8 modalidades de dominó em 7 cidades mundiais: https://play.google.com/store/apps/details?id=com.horts.dominoimperial",
+        "Spiele Domino Grand Prix World Tour! 8 Domino-Modi in 7 Weltstädten: https://play.google.com/store/apps/details?id=com.horts.dominoimperial"
+    )
+
+    fun resumeTournamentBtn(): String = multi(
+        "CONTINUAR TORNEO ➔",
+        "CONTINUE TOURNAMENT ➔",
+        "CONTINUER LE TOURNOI ➔",
+        "CONTINUA TORNEO ➔",
+        "CONTINUAR TORNEIO ➔",
+        "TURNIER FORTSETZEN ➔"
+    )
+
+    fun resumeTournamentSub(venueName: String, challengeNumber: Int): String = multi(
+        "$venueName • Reto $challengeNumber de 5",
+        "$venueName • Challenge $challengeNumber of 5",
+        "$venueName • Défi $challengeNumber sur 5",
+        "$venueName • Sfida $challengeNumber di 5",
+        "$venueName • Desafio $challengeNumber de 5",
+        "$venueName • Herausforderung $challengeNumber von 5"
+    )
+
+    fun newMatchBtn(): String = multi(
+        "NUEVA PARTIDA",
+        "NEW TOURNAMENT",
+        "NOUVELLE PARTIE",
+        "NUOVA PARTITA",
+        "NOVA PARTIDA",
+        "NEUES SPIEL"
+    )
+
+    fun startWorldTourBtn(): String = multi(
+        "INICIAR TORNEO MUNDIAL ➔",
+        "START WORLD TOURNAMENT ➔",
+        "LANCER LE TOURNOI MONDIAL ➔",
+        "INIZIA TORNEO MONDIALE ➔",
+        "INICIAR TORNEIO MUNDIAL ➔",
+        "WELTTURNIER STARTEN ➔"
+    )
+
+    fun startWorldTourSub(): String = multi(
+        "7 Sedes Mundiales • 35 Retos Progresivos",
+        "7 World Venues • 35 Progressive Challenges",
+        "7 Villes Mondiales • 35 Défis Progressifs",
+        "7 Sedi Mondiali • 35 Sfide Progressive",
+        "7 Sedes Mundiais • 35 Desafios Progressivos",
+        "7 Weltstädte • 35 Progressive Herausforderungen"
+    )
+
+    fun sevenVenuesFooter(): String = multi(
+        "7 Sedes: México • La Habana • San Juan • Nueva Orleans • Miami • Las Vegas • Tokio",
+        "7 Venues: Mexico City • Havana • San Juan • New Orleans • Miami • Las Vegas • Tokyo",
+        "7 Villes : Mexico • La Havane • San Juan • La Nouvelle-Orléans • Miami • Las Vegas • Tokyo",
+        "7 Sedi: Città del Messico • L'Avana • San Juan • New Orleans • Miami • Las Vegas • Tokyo",
+        "7 Sedes: Cidade do México • Havana • San Juan • Nova Orleans • Miami • Las Vegas • Tóquio",
+        "7 Städte: Mexiko-Stadt • Havanna • San Juan • New Orleans • Miami • Las Vegas • Tokio"
+    )
+
+    fun resetTournamentTitle(): String = multi(
+        "¿Empezar nuevo torneo?",
+        "Start a new tournament?",
+        "Commencer un nouveau tournoi ?",
+        "Iniziare un nuovo torneo?",
+        "Começar novo torneio?",
+        "Neues Turnier starten?"
+    )
+
+    fun resetTournamentBody(): String = multi(
+        "Se reiniciará el progreso actual y comenzarás desde el Reto 1 en Ciudad de México. ¿Deseas continuar?",
+        "Current tournament progress will be reset and you will start from Challenge 1 in Mexico City. Continue?",
+        "La progression actuelle sera réinitialisée et vous recommencerez au Défi 1 à Mexico. Continuer ?",
+        "I progressi attuali verranno azzerati e ripartirai dalla Sfida 1 a Città del Messico. Continuare?",
+        "O progresso atual será reiniciado e você começará no Desafio 1 na Cidade do México. Deseja continuar?",
+        "Dein aktueller Fortschritt wird zurückgesetzt und du startest bei Herausforderung 1 in Mexiko-Stadt. Fortfahren?"
+    )
+
+    fun resetTournamentConfirmBtn(): String = multi(
+        "SÍ, REINICIAR",
+        "YES, RESET",
+        "OUI, RÉINITIALISER",
+        "SÌ, RIAVVIA",
+        "SIM, REINICIAR",
+        "JA, ZURÜCKSETZEN"
+    )
+
     // --- Desafío diario: cabecera y resultados ---
 
     fun dailyStreakLabel(streak: Int): String = multi(

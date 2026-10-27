@@ -1736,22 +1736,51 @@ class DominoEngine(
             check(applied) { "No se puede simular una jugada ilegal: $move" }
 
             val hand = players[playerIndex].hand
-            val opponents = players.filter { it.team != players[playerIndex].team }
-                .sumOf { player -> player.hand.sumOf { it.totalPips } }
+            val myTeam = players[playerIndex].team
+            val myPips = hand.sumOf { it.totalPips }
+
+            // Estimación limpia sin mirar las fichas ocultas de otros asientos:
+            // En un juego doble-6 las 28 fichas suman 168 puntos. Restando la mesa y nuestra mano,
+            // repartimos el promedio de puntos no vistos según el número público de fichas de cada asiento.
+            val boardPips = boardChain.sumOf { it.tile.totalPips }
+            val unseenPips = (168 - boardPips - myPips).coerceAtLeast(0)
+            val unseenTilesCount = (28 - boardChain.size - hand.size).coerceAtLeast(1)
+
+            fun estimateSeatPips(seatIdx: Int): Int {
+                if (seatIdx == playerIndex) return myPips
+                val count = players[seatIdx].hand.size
+                return (count * unseenPips + unseenTilesCount / 2) / unseenTilesCount
+            }
+
+            val opponentsEstimated = players.indices
+                .filter { players[it].team != myTeam }
+                .sumOf { estimateSeatPips(it) }
+            val ownTeamEstimated = players.indices
+                .filter { players[it].team == myTeam }
+                .sumOf { estimateSeatPips(it) }
+
+            val suitSupport = hand.count { getPlayableSides(playerIndex, it).isNotEmpty() }
+            val openPipsAfter = listOfNotNull(leftOpenPip, rightOpenPip, upOpenPip, downOpenPip)
+            val opponentPassedPips = players.indices
+                .filter { players[it].team != myTeam }
+                .flatMap { playerPassedPips[it].orEmpty() }
+                .toSet()
+            val passedEndsMatched = openPipsAfter.count { it in opponentPassedPips }
 
             return MoveSimulation(
                 move = move,
                 myRemainingTiles = hand.size,
-                myRemainingPips = hand.sumOf { it.totalPips },
+                myRemainingPips = myPips,
                 myRemainingDoubles = hand.count { it.isDouble },
-                opponentsPips = opponents,
-                ownTeamPips = players.filter { it.team == players[playerIndex].team }
-                    .sumOf { player -> player.hand.sumOf { it.totalPips } },
+                opponentsPips = opponentsEstimated,
+                ownTeamPips = ownTeamEstimated,
                 leftOpenPip = leftOpenPip,
                 rightOpenPip = rightOpenPip,
-                blocksTheBoard = isBoardBlocked(),
+                blocksTheBoard = isBoardBlockedFairly(playerIndex),
                 pointsEarned = lastPointsEarned,
-                winsTheRound = isRoundOver
+                winsTheRound = isRoundOver,
+                mySuitSupport = suitSupport,
+                opponentPassedEndsMatched = passedEndsMatched
             )
         } finally {
             restore(snapshot)
@@ -1763,10 +1792,46 @@ class DominoEngine(
      * puede nadie seguir sacando fichas del pozo. Sin la comprobacion del pozo, un modo de
      * robo en el que todos tuvieran que robar se reportaria como trancado sin serlo.
      */
-    private fun isBoardBlocked(): Boolean {
-        val anyoneCanPlay = players.indices.any { getPlayableTiles(it).isNotEmpty() }
-        if (anyoneCanPlay) return false
-        return !gameMode.allowsDraw || boneyard.isEmpty()
+    /**
+     * ¿La mesa queda trancada según la información pública y la mano de [playerIndex]?
+     *
+     * Deduce el cierre sin espiar las manos ocultas de otros jugadores:
+     * 1. Si el propio jugador aún tiene jugada legal o queda pozo en modo con robo, no hay tranca.
+     * 2. Calcula las fichas no vistas del juego de 28 fichas (descontando las de la mesa y la mano
+     *    propia). Si ninguna ficha no vista puede conectar con los extremos abiertos (o todos los
+     *    demás jugadores ya han pasado públicamente a todos los extremos abiertos), la tranca es segura.
+     */
+    private fun isBoardBlockedFairly(playerIndex: Int): Boolean {
+        if (getPlayableTiles(playerIndex).isNotEmpty()) return false
+        if (gameMode.allowsDraw && boneyard.isNotEmpty()) return false
+
+        val openEnds = listOfNotNull(leftOpenPip, rightOpenPip, upOpenPip, downOpenPip).distinct()
+        if (openEnds.isEmpty()) return false
+
+        val otherSeatsWithTiles = players.indices.filter { it != playerIndex && players[it].hand.isNotEmpty() }
+        if (otherSeatsWithTiles.all { seat ->
+                val passed = playerPassedPips[seat].orEmpty()
+                openEnds.all { it in passed }
+            }
+        ) {
+            return true
+        }
+
+        val knownTiles = HashSet<DominoTile>(boardChain.size + players[playerIndex].hand.size)
+        boardChain.forEach { knownTiles.add(it.tile) }
+        players[playerIndex].hand.forEach { knownTiles.add(it) }
+
+        for (h in 0..6) {
+            for (l in 0..h) {
+                val candidate = DominoTile(h, l)
+                if (candidate !in knownTiles) {
+                    if (canConnectLeft(candidate) || canConnectRight(candidate) || canConnectUp(candidate) || canConnectDown(candidate)) {
+                        return false
+                    }
+                }
+            }
+        }
+        return true
     }
 
     // --- Deshacer y pista (solo para asientos humanos) ---

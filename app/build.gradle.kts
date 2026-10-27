@@ -20,8 +20,8 @@ android {
         applicationId = "com.horts.dominoimperial"
         minSdk = 24
         targetSdk = 36
-        versionCode = 20
-        versionName = "2.5.4"
+        versionCode = 21
+        versionName = "2.5.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // ------------------------------------------------------------------------------------
@@ -123,6 +123,7 @@ dependencies {
 
   // Core Android dependencies
   implementation(libs.androidx.core.ktx)
+  implementation("androidx.fragment:fragment-ktx:1.8.5")
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
 

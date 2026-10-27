@@ -73,9 +73,9 @@ fun AchievementUnlockedBanner(
         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
     ) {
         val isAchievement = achievementId != null
-        val title = if (isAchievement) {
+        val title = if (achievementId != null) {
             DominoStrings.achievementUnlockedToast(
-                AchievementStrings.titleFor(achievementId!!, DominoStrings.currentLanguage)
+                AchievementStrings.titleFor(achievementId, DominoStrings.currentLanguage)
             )
         } else {
             val mission = AchievementStrings.allMissions().firstOrNull { it.id == missionId }

@@ -178,4 +178,28 @@ class MoveSimulationTest {
             view.playableMoves.contains(decision)
         )
     }
+
+    @Test
+    fun simulateDoesNotPeekAtHiddenOpponentHands() {
+        val engineA = engine(GameMode.BLOCK, seed = 91L)
+        val engineB = engine(GameMode.BLOCK, seed = 91L)
+        val seat = engineA.currentPlayerIndex
+        val move = engineA.viewFor(seat).playableMoves.first()
+
+        // Intercambiamos las manos ocultas de dos rivales manteniendo el mismo número de fichas.
+        val otherSeats = engineB.players.indices.filter { it != seat }
+        val hand1 = engineB.players[otherSeats[0]].hand
+        val hand2 = engineB.players[otherSeats[1]].hand
+        engineB.players[otherSeats[0]] = engineB.players[otherSeats[0]].copy(hand = hand2)
+        engineB.players[otherSeats[1]] = engineB.players[otherSeats[1]].copy(hand = hand1)
+
+        val simA = engineA.simulate(seat, move)
+        val simB = engineB.simulate(seat, move)
+
+        assertEquals(
+            "La simulación no debe cambiar al permutar manos ocultas de los rivales",
+            simA,
+            simB
+        )
+    }
 }

@@ -175,15 +175,16 @@ fun MainTitleScreen(
         // Panel de Botones Principales en la mitad inferior.
         // Envoltorio con scroll: con la Partida Rapida el panel crecio y en pantallas bajas o
         // en apaisado el contenido se salia por arriba (el boton de continuar quedaba oculto).
-        Box(
+        Column(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomCenter
+            verticalArrangement = Arrangement.Bottom
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 22.dp, vertical = 24.dp),
+                    .padding(horizontal = 22.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -208,13 +209,13 @@ fun MainTitleScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "CONTINUAR TORNEO ➔",
+                            text = DominoStrings.resumeTournamentBtn(),
                             color = DarkNavy,
                             fontWeight = FontWeight.Black,
                             fontSize = 16.sp
                         )
                         Text(
-                            text = "$currentVenueName • Reto $currentChallengeNumber de 5",
+                            text = DominoStrings.resumeTournamentSub(currentVenueName, currentChallengeNumber),
                             color = DarkNavy.copy(alpha = 0.85f),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp
@@ -242,7 +243,7 @@ fun MainTitleScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         Text(
-                            text = "NUEVA PARTIDA",
+                            text = DominoStrings.newMatchBtn(),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -270,13 +271,13 @@ fun MainTitleScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "INICIAR TORNEO MUNDIAL ➔",
+                            text = DominoStrings.startWorldTourBtn(),
                             color = DarkNavy,
                             fontWeight = FontWeight.Black,
                             fontSize = 16.sp
                         )
                         Text(
-                            text = "7 Sedes Mundiales • 35 Retos Progresivos",
+                            text = DominoStrings.startWorldTourSub(),
                             color = DarkNavy.copy(alpha = 0.85f),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp
@@ -485,16 +486,15 @@ fun MainTitleScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "7 Sedes: México • La Habana • San Juan • Nueva Orleans • Miami • Las Vegas • Tokio",
+                text = DominoStrings.sevenVenuesFooter(),
                 color = Color.White.copy(alpha = 0.60f),
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center
             )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AdBanner(modifier = Modifier.fillMaxWidth())
             }
+
+            // Banner anclado fijo en el pie (fuera del scroll) para que siempre quede visible.
+            AdBanner(modifier = Modifier.fillMaxWidth())
         }
 
         QuickPlayDialog(
@@ -547,14 +547,14 @@ fun MainTitleScreen(
                 onDismissRequest = { showResetConfirmDialog = false },
                 title = {
                     Text(
-                        text = "¿Empezar nuevo torneo?",
+                        text = DominoStrings.resetTournamentTitle(),
                         color = GoldAccent,
                         fontWeight = FontWeight.Black
                     )
                 },
                 text = {
                     Text(
-                        text = "Se reiniciará el progreso actual y comenzarás desde el Reto 1 en Ciudad de México. ¿Deseas continuar?",
+                        text = DominoStrings.resetTournamentBody(),
                         color = Color.White
                     )
                 },
@@ -569,7 +569,7 @@ fun MainTitleScreen(
                             contentColor = Color.White
                         )
                     ) {
-                        Text("SÍ, REINICIAR", fontWeight = FontWeight.Bold)
+                        Text(DominoStrings.resetTournamentConfirmBtn(), fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {

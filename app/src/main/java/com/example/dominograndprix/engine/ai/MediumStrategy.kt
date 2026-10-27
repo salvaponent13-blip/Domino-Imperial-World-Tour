@@ -1,10 +1,8 @@
 package com.example.dominograndprix.engine.ai
 
-import com.example.dominograndprix.model.GameMode
-
 /**
- * Pesos de la estrategia MEDIA. Cada factor se puede activar o desactivar por separado para
- * poder medir su aporte real en el benchmark en lugar de meterlos todos a la vez y no saber
+ * Pesos de la estrategia MEDIA y DIFÍCIL. Cada factor se puede activar o desactivar por separado
+ * para poder medir su aporte real en el benchmark en lugar de meterlos todos a la vez y no saber
  * cual funciona. Los valores por defecto son los que salieron de medir.
  */
 data class MediumWeights(
@@ -26,11 +24,27 @@ data class MediumWeights(
      * cortoplacista, mientras que vaciar la mano es lo que gana rondas, y las rondas son lo
      * que suma puntos. Aqui la puntuacion solo desempata entre jugadas equivalentes en pips.
      */
-    val scoring: Double = 0.25
+    val scoring: Double = 0.25,
+    /**
+     * Factor 5 — Afinidad de palo (continuidad): bonificacion por cada ficha que nos queda en
+     * la mano capaz de conectar con los nuevos extremos abiertos que deja la jugada.
+     */
+    val suitAffinity: Double = 0.85,
+    /**
+     * Factor 6 — Castigo a las fallas del rival: bonificacion por dejar abiertos numeros en
+     * los que los rivales ya han pasado publicamente durante la ronda.
+     */
+    val passExploit: Double = 1.5
 ) {
     companion object {
         /** Solo el factor 1 (dominó inmediato); el resto de decisiones caen a la referencia. */
-        val DOMINO_ONLY = MediumWeights(pipDrain = 0.0, blockAwareness = 0.0, scoring = 0.0)
+        val DOMINO_ONLY = MediumWeights(
+            pipDrain = 0.0,
+            blockAwareness = 0.0,
+            scoring = 0.0,
+            suitAffinity = 0.0,
+            passExploit = 0.0
+        )
 
         /** Factores 1 y 2. */
         val DOMINO_AND_PIPS = DOMINO_ONLY.copy(pipDrain = 1.0)
@@ -38,19 +52,25 @@ data class MediumWeights(
         /** Factores 1, 2 y 3. */
         val WITHOUT_SCORING = DOMINO_AND_PIPS.copy(blockAwareness = 4.0)
 
-        /** Los cuatro factores activos: la configuracion por defecto, con los pesos medidos. */
-        val ALL = WITHOUT_SCORING.copy(scoring = 0.25)
+        /** Factores 1, 2, 3 y 4 (puntuacion de extremos, sin afinidad ni fallas). */
+        val WITH_SCORING = WITHOUT_SCORING.copy(scoring = 0.25)
+
+        /** Todos los factores activos: la configuracion completa medida. */
+        val ALL = WITH_SCORING.copy(
+            suitAffinity = 0.85,
+            passExploit = 1.5
+        )
     }
 }
 
 /**
- * Estrategia heuristica con cuatro factores de dominó clasico.
+ * Estrategia heuristica con factores tacticos de dominó clasico (sin informacion oculta).
  *
  * A diferencia de una IA que solo mira el estado actual, esta **simula** cada jugada legal a
  * traves del motor ([com.example.dominograndprix.engine.DominoEngine.simulate]) para conocer
- * sus consecuencias: si vacia la mano, cuanto castiga la mano que deja, si tranca la mesa y
- * cuantos puntos otorga. Simular es lo que permite razonar sobre el futuro sin duplicar las
- * reglas de colocacion.
+ * sus consecuencias observables sin mirar las manos de los demas: si vacia la mano, cuanto
+ * castiga la mano que deja, si deduce que tranca la mesa, cuantos puntos otorga, cuanta
+ * continuidad de palo conserva en su mano y si explota las fallas cantadas por el rival.
  */
 class MediumStrategy(
     private val weights: MediumWeights = MediumWeights.ALL,
@@ -92,7 +112,7 @@ class MediumStrategy(
             score -= weights.pipDrain * (simulation.myRemainingPips + doubleLoad)
         }
 
-        // Factor 3: trancar solo compensa si voy por delante en la cuenta de pips.
+        // Factor 3: trancar solo compensa si voy por delante en la cuenta estimada de pips.
         if (weights.blockAwareness != 0.0 && simulation.blocksTheBoard) {
             score += if (simulation.pipAdvantage < 0) {
                 weights.blockAwareness * -simulation.pipAdvantage
@@ -107,12 +127,16 @@ class MediumStrategy(
             score += weights.scoring * simulation.pointsEarned
         }
 
+        // Factor 5: afinidad de palo (preferir dejar abiertos extremos de los que conservamos fichas).
+        if (weights.suitAffinity != 0.0) {
+            score += weights.suitAffinity * simulation.mySuitSupport
+        }
+
+        // Factor 6: castigar las fallas publicas de los rivales dejando los extremos donde pasaron.
+        if (weights.passExploit != 0.0) {
+            score += weights.passExploit * simulation.opponentPassedEndsMatched
+        }
+
         return score
     }
 }
-
-/** Si la modalidad otorga puntos por los extremos abiertos. */
-private val GameMode.isPointGame: Boolean
-    get() = this == GameMode.ALL_FIVES ||
-        this == GameMode.ALL_THREES ||
-        this == GameMode.FIVES_AND_THREES

@@ -84,15 +84,23 @@ desacoplada de *Rumbo* y *Butimania*:
 
 ---
 
-## 7. IA: pendiente, con los defectos conocidos
+## 7. IA: afinidad de palo, diferenciación STANDARD/TOUGH y simulación sin información oculta (v2.5.5)
 
-La auditoría de la v2.4.0 dejó tres cosas sin arreglar, aplazadas a una sesión propia:
+En la v2.5.5 (b21) se resolvieron los tres puntos pendientes de la auditoría de IA y se separaron
+en el banco de pruebas (`MediumStrategyBenchmarkTest`) los pasos incrementales:
 
-1. `MediumStrategy` no mira el palo que deja abierto (solo los pips que suelta).
-2. STANDARD y TOUGH solo escalan constantes; en los 5 modos sin puntos juegan igual salvo cuando
-   la jugada tranca. RELAXED sí se nota (estrategia aleatoria).
-3. `simulate` usa las manos reales: la IA sabe cuándo su jugada tranca la mesa.
-
-**Plan:** quitar/estimar el dato oculto → añadir afinidad de palo → **volver a medir** con
-`MediumStrategyBenchmarkTest` aceptando que el número baje al principio. No se toca sin medir: la
-referencia medida (MEDIUM 55,81 % vs LEGACY) es la fuente de verdad del proyecto.
+1. **Afinidad de palo (`suitAffinity`) y explotación de fallas (`passExploit`) en `MediumStrategy`:**
+   la evaluación valora cuántas fichas conserva el jugador para responder a los extremos que deja
+   abiertos (`mySuitSupport`) y bonifica dejar abiertos números en los que los rivales ya han pasado
+   públicamente (`opponentPassedEndsMatched`). En `MediumWeights` se mantiene `WITH_SCORING` (paso 4,
+   solo puntos de extremos) separado de `ALL` (paso 5, que suma afinidad de palo y fallas y eleva la
+   winrate frente a `LegacyStrategy` del **55,81 % al 61,06 %**).
+2. **Diferenciación real entre `STANDARD` y `TOUGH` en los 8 modos (`StrategyCatalog`):**
+   `STANDARD` mantiene una continuidad básica de palo sin explotar memoria de fallas (`passExploit = 0.0`),
+   mientras que `TOUGH` pondera activamente el dominio de palo y el castigo a las fallas rivales
+   (`suitAffinity = 1.75`, `passExploit = 2.4`), tomando decisiones tácticas distintas incluso en los
+   5 modos que no suman puntos en mesa.
+3. **Simulación limpia sin espiar manos ocultas (`DominoEngine.simulate`):**
+   `opponentsPips` y `ownTeamPips` se estiman a partir de los 168 puntos totales del juego menos las
+   fichas visibles en mesa y la mano propia, repartidos según el tamaño público de cada mano; y
+   `isBoardBlockedFairly` deduce la tranca exclusivamente por conteo de fichas vistas y pases cantados.

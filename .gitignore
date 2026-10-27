@@ -25,3 +25,5 @@ PLAY_STORE_RELEASE/*.jks
 *.aab
 *.ap_
 PREVIEW_MUSIC/
+# Cache de Kotlin (aparece al compilar con K2)
+.kotlin/

@@ -101,7 +101,7 @@ object DominoSoundManager {
             "cuba" -> R.raw.mus_region_havana to "Ritmo del Malecón (Son Cubano)"
             "new_orleans" -> R.raw.mus_region_neworleans to "The Entertainer (Ragtime de Scott Joplin)"
             "tokyo" -> R.raw.mus_region_tokyo to "Festival de Asakusa (Koto & Shamisen)"
-            "miami" -> R.raw.mus_region_montecarlo to "Noche de South Beach (Miami)"
+            "montecarlo" -> R.raw.mus_region_montecarlo to "Noche de Montecarlo (Riviera)"
             "las_vegas" -> R.raw.mus_region_lasvegas to "Hot Swing Casino (Las Vegas)"
             "miami" -> R.raw.mus_region_miami to "Brisa de Ocean Drive (Miami)"
             "bronx" -> R.raw.mus_region_bronx to "Hot Swing (Nueva York)"
