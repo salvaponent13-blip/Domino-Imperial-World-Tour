@@ -82,7 +82,7 @@ Español, inglés, francés, italiano, portugués y alemán.
 🔒 PRIVACIDAD Y RESPETO AL JUGADOR
 Sin monedas de pago ni cuentas obligatorias. El juego guarda tu progreso de forma privada
 en tu dispositivo y cuenta con anuncios no invasivos gestionados por Google AdMob para
-mantener el juego gratuito.
+mantener el juego gratuito. Si los anuncios te molestan, puedes quitarlos para siempre con una compra única desde Ajustes.
 
 ♿ ACCESIBLE
 Las fichas y los botones principales se anuncian con TalkBack: se puede jugar sin ver la mesa.
@@ -145,7 +145,8 @@ Spanish, English, French, Italian, Portuguese and German.
 
 🔒 PRIVACY & RESPECT FOR THE PLAYER
 No pay-to-win coins or mandatory sign-ups. Your game progress is stored privately on your
-device, with non-intrusive ads powered by Google AdMob to keep the game completely free.
+device, with non-intrusive ads powered by Google AdMob to keep the game completely free. If the
+ads bother you, you can remove them for good with a one-time purchase from Settings.
 
 ♿ ACCESSIBLE
 Tiles and main buttons are announced through TalkBack: the game can be played without seeing the
@@ -208,9 +209,11 @@ instalación).
 - **¿Recopila o comparte datos del usuario?** `Sí`:
   - **Identificadores del dispositivo o de otro tipo:** `ID de publicidad` (recopilado automáticamente por el SDK de Google Mobile Ads / AdMob con fines de Publicidad o marketing y Análisis).
   - **Diagnóstico:** Información sobre fallos y rendimiento técnico de anuncios.
-- **¿Compras dentro de la app?** `No`.
+- **¿Compras dentro de la app?** `Sí`: una compra única `remove_ads` (2,49 €) que quita los anuncios para siempre. Se declara en Play Console → Contenido de la aplicación → Compras. Los datos de pago los gestiona Google Play: no los recibimos.
 - **Clasificación IARC:** `PEGI 3` / `ESRB Everyone` (juego de mesa tradicional, apto para todos los públicos).
 - **Política de privacidad:** la URL publicada en tu Google Site, actualizada para reflejar Google AdMob.
+
+
 
 
 

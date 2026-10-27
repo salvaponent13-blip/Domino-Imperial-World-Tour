@@ -10,7 +10,7 @@
 
 ## 1. Resumen
 
-Dominó Grand Prix es un juego de salón diseñado para ofrecer una experiencia auténtica de dominó tradicional. El juego almacena tu progreso exclusivamente en tu dispositivo móvil. Para ofrecer el juego de forma gratuita y sin compras integradas, se integran anuncios no invasivos mediante la red publicitaria oficial **Google AdMob**.
+Dominó Grand Prix es un juego de salón diseñado para ofrecer una experiencia auténtica de dominó tradicional. El juego almacena tu progreso exclusivamente en tu dispositivo móvil. Para ofrecer el juego de forma gratuita se integran anuncios no invasivos mediante la red publicitaria oficial **Google AdMob**. Si lo prefieres, puedes quitar los anuncios con una compra única dentro de la aplicación.
 
 ---
 
@@ -31,7 +31,7 @@ Para financiar el desarrollo y mantener el juego totalmente gratuito, Dominó Gr
 
 - **Identificador de publicidad de Android (AD_ID):** El SDK de Google Mobile Ads puede recopilar de forma automática el ID de publicidad del dispositivo, dirección IP e identificadores técnicos para mostrar anuncios, limitar la frecuencia de repetición y prevenir el tráfico no válido.
 - **Diagnóstico y rendimiento:** Google AdMob recopila datos técnicos sobre interacciones y tiempos de respuesta de los anuncios para asegurar la estabilidad técnica.
-- **Sin compras dentro de la aplicación:** El juego no ofrece micropagos ni venta de monedas virtuales.
+- **Compras dentro de la aplicación:** existe una única compra opcional para quitar los anuncios (`remove_ads`), procesada íntegramente por Google Play. No recibimos ni almacenamos datos de pago, tarjeta ni dirección. No hay monedas virtuales, suscripciones ni micropagos recurrentes.
 - **Políticas de Google:** Puedes consultar cómo Google gestiona la información en la [Política de Privacidad de Google](https://policies.google.com/privacy) y en [Cómo utiliza Google la información de sitios o aplicaciones asociados](https://policies.google.com/technologies/ads).
 
 ---
@@ -70,3 +70,5 @@ Puedes restablecer o inhabilitar la personalización de tu identificador de publ
 ## 7. Contacto
 
 Si tienes cualquier duda sobre esta política de privacidad, puedes contactar con nosotros a través de la ficha de la aplicación en Google Play Store.
+
+

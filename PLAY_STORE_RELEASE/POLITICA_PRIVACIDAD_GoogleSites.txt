@@ -1,13 +1,13 @@
 Política de Privacidad — Dominó Grand Prix
 
-Última actualización: 24 de octubre de 2026
+Última actualización: 27 de octubre de 2026
 Aplicación: Dominó Grand Prix (com.horts.dominoimperial)
 Desarrollador: Horts Studio
 
 
 1. RESUMEN
 
-Dominó Grand Prix es un juego de salón diseñado para ofrecer una experiencia auténtica de dominó tradicional. El juego almacena tu progreso exclusivamente en tu dispositivo móvil. Para ofrecer el juego de forma gratuita y sin compras integradas, se integran anuncios no invasivos mediante la red publicitaria oficial Google AdMob.
+Dominó Grand Prix es un juego de salón diseñado para ofrecer una experiencia auténtica de dominó tradicional. El juego almacena tu progreso exclusivamente en tu dispositivo móvil. Para ofrecer el juego de forma gratuita se integran anuncios no invasivos mediante la red publicitaria oficial Google AdMob. Si lo prefieres, puedes quitar los anuncios con una compra única dentro de la aplicación.
 
 
 2. QUÉ DATOS RECOGEMOS NOSOTROS
@@ -26,7 +26,7 @@ Para financiar el desarrollo y mantener el juego totalmente gratuito, Dominó Gr
 
 • Identificador de publicidad de Android (AD_ID): El SDK de Google Mobile Ads puede recopilar de forma automática el ID de publicidad del dispositivo, dirección IP e identificadores técnicos para mostrar anuncios, limitar la frecuencia de repetición y prevenir el tráfico no válido.
 • Diagnóstico y rendimiento: Google AdMob recopila datos técnicos sobre interacciones y tiempos de respuesta de los anuncios para asegurar la estabilidad técnica.
-• Sin compras dentro de la aplicación: El juego no ofrece micropagos ni venta de monedas virtuales.
+• Compras dentro de la aplicación: existe una única compra opcional para quitar los anuncios (remove_ads), procesada íntegramente por Google Play. No recibimos ni almacenamos datos de pago, tarjeta ni dirección. No hay monedas virtuales, suscripciones ni micropagos recurrentes.
 • Políticas de Google: Puedes consultar cómo Google gestiona la información en https://policies.google.com/privacy y en https://policies.google.com/technologies/ads
 
 
@@ -36,6 +36,7 @@ La aplicación únicamente requiere los permisos esenciales para el funcionamien
 
 • Acceso a Internet (INTERNET, ACCESS_NETWORK_STATE): Necesario para cargar los anuncios de Google AdMob.
 • Identificador de publicidad (com.google.android.gms.permission.AD_ID): Permiso estándar de Android para que Google Play Services gestione el identificador publicitario.
+• Facturación (com.android.vending.BILLING): Necesario únicamente para procesar la compra opcional de quitar anuncios a través de Google Play.
 • Respuesta háptica: La vibración de las fichas utiliza la función háptica estándar del sistema y no recopila ningún tipo de dato.
 
 
@@ -60,3 +61,4 @@ Ajustes de Android > Privacidad > Anuncios.
 7. CONTACTO
 
 Si tienes cualquier duda sobre esta política de privacidad, puedes contactar con nosotros a través de la ficha de la aplicación en Google Play Store.
+
