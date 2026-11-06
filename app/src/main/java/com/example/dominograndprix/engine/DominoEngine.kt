@@ -248,11 +248,30 @@ class DominoEngine(
         private set
 
     /**
-     * Puntos que el CIERRE de la ronda sumo al ganador: los pips de los rivales, o los de la
-     * jugada que alcanzo la meta en los modos de puntos. Es lo que debe mostrar el resumen de
-     * ronda; [lastPointsEarned] es solo de la ultima jugada y no sirve para eso.
+     * TOTAL que la ronda acaba de sumar al bando ganador: [lastRoundTablePoints] +
+     * [lastRoundClosingPoints]. Es la unica cifra valida para el "total sumado" del resumen:
+     * [lastPointsEarned] es solo de la ultima jugada y no sirve para eso.
+     *
+     * Antes este campo guardaba solo los pips del cierre, y el resumen lo usaba como si fuera
+     * el total de la ronda: en All Fives valia siempre 0 (el cierre no reparte pips) y el
+     * jugador veia "+0 pts" aunque hubiera anotado 30 en la mesa. Ese era el fallo de
+     * "voy sumando y al final no estan los puntos".
      */
     var lastRoundPointsAwarded: Int = 0
+        private set
+
+    /**
+     * Parte de [lastRoundPointsAwarded] ganada en la MESA (modos de tanteo): lo que sumaron
+     * entre todos los asientos del bando ganador con sus jugadas. En el resto de modos, 0.
+     */
+    var lastRoundTablePoints: Int = 0
+        private set
+
+    /**
+     * Parte de [lastRoundPointsAwarded] que reparto el CIERRE de la ronda: los pips que
+     * quedaban en las manos rivales. En All Fives es 0 (alli solo puntua la mesa).
+     */
+    var lastRoundClosingPoints: Int = 0
         private set
 
     /** Puntos de mesa ganados por cada asiento durante la ronda en curso (modos de puntos). */
@@ -437,6 +456,8 @@ class DominoEngine(
         turnNumber = 0
         lastPointsEarned = 0
         lastRoundPointsAwarded = 0
+        lastRoundTablePoints = 0
+        lastRoundClosingPoints = 0
         roundPointsByPlayer.clear()
         undoPoint = null
         lastRoundWasBlocked = false
@@ -452,8 +473,10 @@ class DominoEngine(
         // Barajado con el generador inyectado: fijando su semilla, la partida es reproducible.
         deck.shuffle(random)
 
-        // En 1v1 (2 jugadores), 7 fichas cada uno. En 4 jugadores: Draw reparte 5 y Block reparte 7.
-        val tilesPerPlayer = if (players.size == 2) 7 else if (gameMode.allowsDraw) 5 else 7
+        // En 1v1 (2 jugadores), 7 fichas cada uno. En mesas de 3-4 manda el modo: los juegos
+        // con robo reparten 5, y los de bloqueo 7 (Fives & Threes es la excepcion: no roba y
+        // reparte 5).
+        val tilesPerPlayer = if (players.size == 2) 7 else gameMode.handSize
         for (i in players.indices) {
             val hand = mutableListOf<DominoTile>()
             repeat(tilesPerPlayer) {
@@ -578,12 +601,23 @@ class DominoEngine(
         if (canConnectRight(tile) && isBranchOpenFor(playerIndex, BoardSide.RIGHT)) {
             sides.add(BoardSide.RIGHT)
         }
-        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null) {
+        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null && canOpenCrossArms()) {
             if (canConnectUp(tile)) sides.add(BoardSide.UP)
             if (canConnectDown(tile)) sides.add(BoardSide.DOWN)
         }
         return sides
     }
+
+    /**
+     * Si el spinner ya admite brazos transversales.
+     *
+     * Regla oficial de All Fives: la primera y la segunda ficha que se ponen junto al spinner van
+     * contra sus dos lados (izquierda y derecha), y solo despues se abren los brazos de arriba y
+     * abajo. Antes se podia jugar arriba nada mas salir el spinner, saltandose ese orden.
+     */
+    fun canOpenCrossArms(): Boolean =
+        gameMode == GameMode.ALL_FIVES && spinnerTile != null &&
+            leftBranchTiles.isNotEmpty() && rightBranchTiles.isNotEmpty()
 
     /** ¿La rama indicada está cerrada para este jugador por la regla de Draw Special? */
     fun isBranchRestrictedFor(playerIndex: Int, side: BoardSide): Boolean =
@@ -1019,144 +1053,132 @@ class DominoEngine(
         return true
     }
 
+    /** Una parte de la suma de extremos: los pips que aporta y como se llama en el HUD. */
+    private data class OpenEndContribution(val label: String, val pips: Int)
+
     /**
-     * Calcula la suma de los extremos abiertos para los modos de puntos (All Fives, All Threes, Fives & Threes).
-     * En las reglas oficiales de dominó americano (All Fives / Muggins con spinner):
-     * - Si hay una sola ficha en mesa: cuenta doble si es doble (ej. [6|6] = 12), o la suma de sus dos extremos si no.
-     * - Si hay un spinner establecido en All Fives: hay 4 extremos abiertos (LEFT, RIGHT, UP, DOWN).
-     *   Cada rama abierta no jugada aporta el extremo del spinner (tile.high). Una vez jugada una rama,
-     *   aporta el extremo abierto de la ficha más externa (contando doble sólo si esa ficha extrema es doble).
-     * - En los modos sin spinner (All Threes, Fives & Threes, o All Fives antes del primer doble):
-     *   se suman únicamente los extremos LEFT y RIGHT.
+     * Desglose de los extremos abiertos: UNICA fuente de verdad del tanteo de mesa.
+     *
+     * De aqui salen tanto [calculateOpenEndsSum] como el texto del HUD, para que no puedan decir
+     * cosas distintas (el HUD anunciaba la suma mientras el motor pagaba otra cifra en Fives &
+     * Threes).
+     *
+     * Reglas:
+     * - Una sola ficha en la mesa vale por si misma; un doble, sus dos mitades.
+     * - Modos de linea (All Threes, Fives & Threes): los dos extremos, y un doble en el extremo
+     *   cuenta sus dos mitades.
+     * - All Fives con spinner: cuentan los extremos de los brazos EMPEZADOS. El spinner aporta
+     *   sus dos mitades mientras solo tenga cubierto uno de sus lados; en cuanto los dos lados
+     *   tienen ficha deja de aportar y pasa a ser una ficha mas de la linea. Un brazo sin
+     *   empezar NO es un extremo abierto: contarlo sumaba de mas el pip del spinner al empezar
+     *   el tercer brazo (la regla solo lo cuenta "cuando se empieza").
      */
-    fun calculateOpenEndsSum(): Int {
-        if (boardChain.isEmpty()) return 0
-        if (boardChain.size == 1) {
-            val tile = boardChain.first()
-            return if (tile.isDouble) tile.pipLeft * 2 else tile.pipLeft + tile.pipRight
+    private fun openEndsBreakdown(): List<OpenEndContribution> {
+        if (boardChain.isEmpty()) return emptyList()
+        val firstTile = firstPlacedTile ?: boardChain.first()
+
+        fun describe(pip: Int, doubled: Boolean): OpenEndContribution =
+            if (doubled) OpenEndContribution("[$pip|$pip=${pip * 2}]", pip * 2)
+            else OpenEndContribution("[$pip]", pip)
+
+        fun branchContribution(branch: List<BoardPlacedTile>, openPip: Int?): OpenEndContribution? {
+            if (branch.isEmpty()) return null
+            val pip = openPip ?: return null
+            return describe(pip, branch.last().isDouble)
         }
 
-        val hasCrossBranches = boardChain.any { it.branchSide == BoardSide.UP || it.branchSide == BoardSide.DOWN }
-
-        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null && hasCrossBranches) {
-            val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
-            val leftVal = if (leftTile != null && leftTile.isDouble && leftTile.tile.high == leftOpenPip) {
-                (leftOpenPip ?: 0) * 2
+        val startedDirections = listOf(leftBranchTiles, rightBranchTiles, upBranchTiles, downBranchTiles)
+            .count { it.isNotEmpty() }
+        if (startedDirections == 0) {
+            val pips = if (firstTile.isDouble) firstTile.tile.high * 2
+            else firstTile.tile.high + firstTile.tile.low
+            val label = if (firstTile.isDouble) {
+                "[${firstTile.tile.high}|${firstTile.tile.high}=$pips]"
             } else {
-                leftOpenPip ?: 0
+                "[${firstTile.tile.high}]+[${firstTile.tile.low}]"
             }
-
-            val rightTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
-            val rightVal = if (rightTile != null && rightTile.isDouble && rightTile.tile.high == rightOpenPip) {
-                (rightOpenPip ?: 0) * 2
-            } else {
-                rightOpenPip ?: 0
-            }
-
-            val upTile = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
-            val upVal = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) {
-                (upOpenPip ?: 0) * 2
-            } else {
-                upOpenPip ?: 0
-            }
-
-            val downTile = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
-            val downVal = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) {
-                (downOpenPip ?: 0) * 2
-            } else {
-                downOpenPip ?: 0
-            }
-
-            return leftVal + rightVal + upVal + downVal
+            return listOf(OpenEndContribution(label, pips))
         }
 
-        val firstTile = boardChain.firstOrNull { it.isFirstTile }
-        val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
-            ?: firstTile
-            ?: boardChain.first()
-        val rightTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
-            ?: firstTile
-            ?: boardChain.last()
+        val spinner = if (gameMode == GameMode.ALL_FIVES) spinnerTile else null
+        val out = mutableListOf<OpenEndContribution>()
 
-        val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-        val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
-        return leftVal + rightVal
+        if (spinner != null) {
+            listOf(
+                leftBranchTiles to leftOpenPip,
+                rightBranchTiles to rightOpenPip,
+                upBranchTiles to upOpenPip,
+                downBranchTiles to downOpenPip
+            ).forEach { (branch, openPip) ->
+                branchContribution(branch, openPip)?.let { out.add(it) }
+            }
+
+            // El spinner solo aporta mientras le quede un lado sin cubrir, y aporta como mucho
+            // sus dos mitades (no una por cada lado abierto).
+            val sidesCovered = (if (leftBranchTiles.isNotEmpty()) 1 else 0) +
+                (if (rightBranchTiles.isNotEmpty()) 1 else 0)
+            if (sidesCovered < 2) {
+                val halves = minOf(4 - startedDirections, 2)
+                when (halves) {
+                    2 -> out.add(
+                        OpenEndContribution(
+                            "[${spinner.high}|${spinner.high}=${spinner.high * 2}]",
+                            spinner.high * 2
+                        )
+                    )
+                    1 -> out.add(OpenEndContribution("[${spinner.high}]", spinner.high))
+                }
+            }
+        } else {
+            // Dos extremos: si una rama sigue sin jugar, el extremo es la propia primera ficha.
+            out.add(
+                branchContribution(leftBranchTiles, leftOpenPip)
+                    ?: describe(leftOpenPip ?: firstTile.tile.high, firstTile.isDouble)
+            )
+            out.add(
+                branchContribution(rightBranchTiles, rightOpenPip)
+                    ?: describe(rightOpenPip ?: firstTile.tile.low, firstTile.isDouble)
+            )
+        }
+        return out
+    }
+
+    /** Suma de los extremos abiertos (0 si la mesa esta vacia). */
+    fun calculateOpenEndsSum(): Int = openEndsBreakdown().sumOf { it.pips }
+
+    /**
+     * Puntos que paga una suma de extremos segun el modo (0 si esa suma no puntua).
+     *
+     * Lo usan el motor al acreditar y el HUD al anunciar, para que no puedan discrepar.
+     */
+    private fun pointsForOpenEnds(sum: Int): Int = when (gameMode) {
+        GameMode.ALL_FIVES -> if (sum > 0 && sum % 5 == 0) sum else 0
+        GameMode.ALL_THREES -> if (sum > 0 && sum % 3 == 0) sum else 0
+        // Regla clasica: 1 punto por cada 5 y 1 punto por cada 3. 15 => 3 + 5 = 8.
+        GameMode.FIVES_AND_THREES ->
+            (if (sum > 0 && sum % 5 == 0) sum / 5 else 0) +
+                (if (sum > 0 && sum % 3 == 0) sum / 3 else 0)
+        else -> 0
     }
 
     /**
-     * Texto explicativo y transparente de los extremos abiertos para el HUD, desglosando
-     * las fichas dobles y la suma de puntos en juego.
+     * Texto explicativo y transparente de los extremos abiertos para el HUD.
+     *
+     * En los modos que pagan por factor (Fives & Threes) anuncia los PUNTOS, no la suma:
+     * 15 extremos pagan 8, y decir "15 pts" era otra forma de que el marcador no cuadrase.
      */
     fun getOpenEndsEvaluationText(): String {
-        if (boardChain.isEmpty()) return ""
-        if (boardChain.size == 1) {
-            val tile = boardChain.first()
-            val pts = if (tile.isDouble) tile.pipLeft * 2 else tile.pipLeft + tile.pipRight
-            val desc = if (tile.isDouble) "[${tile.pipLeft}|${tile.pipLeft}=$pts]" else "[${tile.pipLeft}]+[${tile.pipRight}]"
-            val isScoring = when (gameMode) {
-                GameMode.ALL_FIVES -> pts > 0 && pts % 5 == 0
-                GameMode.ALL_THREES -> pts > 0 && pts % 3 == 0
-                GameMode.FIVES_AND_THREES -> pts > 0 && (pts % 5 == 0 || pts % 3 == 0)
-                else -> false
-            }
-            return if (isScoring) "$desc = $pts pts ⭐" else "$desc = $pts"
+        val parts = openEndsBreakdown()
+        if (parts.isEmpty()) return ""
+        val sum = parts.sumOf { it.pips }
+        val badge = parts.joinToString(" + ") { it.label }
+        if (!gameMode.isPointGame) return badge
+        val points = pointsForOpenEnds(sum)
+        return when {
+            points <= 0 -> "$badge = $sum"
+            points == sum -> "$badge = $sum pts ⭐"
+            else -> "$badge = $sum → $points pts ⭐"
         }
-
-        val sum = calculateOpenEndsSum()
-        val parts = mutableListOf<String>()
-        val hasCrossBranches = boardChain.any { it.branchSide == BoardSide.UP || it.branchSide == BoardSide.DOWN }
-
-        if (gameMode == GameMode.ALL_FIVES && spinnerTile != null && hasCrossBranches) {
-            val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
-            val leftVal = if (leftTile != null && leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-            val lDesc = if (leftTile != null && leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$leftVal]" else "[$leftOpenPip]"
-            parts.add(lDesc)
-
-            val rightTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
-            val rightVal = if (rightTile != null && rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
-            val rDesc = if (rightTile != null && rightTile.isDouble && rightTile.tile.high == rightOpenPip) "[$rightOpenPip|$rightOpenPip=$rightVal]" else "[$rightOpenPip]"
-            parts.add(rDesc)
-
-            val upTile = boardChain.lastOrNull { it.branchSide == BoardSide.UP }
-            val upVal = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) (upOpenPip ?: 0) * 2 else (upOpenPip ?: 0)
-            val uDesc = if (upTile != null && upTile.isDouble && upTile.tile.high == upOpenPip) "[$upOpenPip|$upOpenPip=$upVal]" else "[$upOpenPip]"
-            parts.add(uDesc)
-
-            val downTile = boardChain.lastOrNull { it.branchSide == BoardSide.DOWN }
-            val downVal = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) (downOpenPip ?: 0) * 2 else (downOpenPip ?: 0)
-            val dDesc = if (downTile != null && downTile.isDouble && downTile.tile.high == downOpenPip) "[$downOpenPip|$downOpenPip=$downVal]" else "[$downOpenPip]"
-            parts.add(dDesc)
-        } else {
-            val firstTile = boardChain.firstOrNull { it.isFirstTile }
-            val leftTile = boardChain.firstOrNull { it.branchSide == BoardSide.LEFT }
-                ?: firstTile
-                ?: boardChain.first()
-            val rightTile = boardChain.lastOrNull { it.branchSide == BoardSide.RIGHT }
-                ?: firstTile
-                ?: boardChain.last()
-
-            if (leftTile == rightTile) {
-                val v = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-                val d = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$v]" else "[$leftOpenPip]"
-                parts.add(d)
-            } else {
-                val leftVal = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) (leftOpenPip ?: 0) * 2 else (leftOpenPip ?: 0)
-                val rightVal = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) (rightOpenPip ?: 0) * 2 else (rightOpenPip ?: 0)
-                val lDesc = if (leftTile.isDouble && leftTile.tile.high == leftOpenPip) "[$leftOpenPip|$leftOpenPip=$leftVal]" else "[$leftOpenPip]"
-                val rDesc = if (rightTile.isDouble && rightTile.tile.high == rightOpenPip) "[$rightOpenPip|$rightOpenPip=$rightVal]" else "[$rightOpenPip]"
-                parts.add(lDesc)
-                parts.add(rDesc)
-            }
-        }
-
-        val isScoring = when (gameMode) {
-            GameMode.ALL_FIVES -> sum > 0 && sum % 5 == 0
-            GameMode.ALL_THREES -> sum > 0 && sum % 3 == 0
-            GameMode.FIVES_AND_THREES -> sum > 0 && (sum % 5 == 0 || sum % 3 == 0)
-            else -> false
-        }
-        val badge = parts.joinToString(" + ")
-        return if (isScoring) "$badge = $sum pts ⭐" else if (gameMode in listOf(GameMode.ALL_FIVES, GameMode.ALL_THREES, GameMode.FIVES_AND_THREES)) "$badge = $sum" else badge
     }
 
     /** Puntos acumulados por un equipo. */
@@ -1165,25 +1187,10 @@ class DominoEngine(
 
     private fun evaluatePointScoring(playerIndex: Int) {
         val sum = calculateOpenEndsSum()
-        var pointsEarned = 0
         lastPointsEarned = 0
-
-        when (gameMode) {
-            GameMode.ALL_FIVES -> {
-                if (sum > 0 && sum % 5 == 0) pointsEarned = sum
-            }
-            GameMode.ALL_THREES -> {
-                if (sum > 0 && sum % 3 == 0) pointsEarned = sum
-            }
-            GameMode.FIVES_AND_THREES -> {
-                // Regla clásica: 1 punto por cada 5 y 1 punto por cada 3.
-                // Extremos sumando 15 => 3 (por el 5) + 5 (por el 3) = 8 puntos.
-                val fives = if (sum > 0 && sum % 5 == 0) sum / 5 else 0
-                val threes = if (sum > 0 && sum % 3 == 0) sum / 3 else 0
-                pointsEarned = fives + threes
-            }
-            else -> {}
-        }
+        // El pago sale de la misma funcion que usa el HUD: si algun dia cambia la regla, cambian
+        // los dos a la vez y no pueden decir numeros distintos.
+        val pointsEarned = pointsForOpenEnds(sum)
 
         if (pointsEarned > 0) {
             lastPointsEarned = pointsEarned
@@ -1196,7 +1203,6 @@ class DominoEngine(
                 isMatchOver = true
                 winningTeam = p.team
                 winnerPlayerId = playerIndex
-                lastRoundPointsAwarded = pointsEarned
                 finishMatchByPoints(winnerIndex = playerIndex)
             }
         }
@@ -1214,13 +1220,23 @@ class DominoEngine(
         isMatchOver = true
         roundLog = "¡${winner.name} alcanza la meta de $targetScore puntos y gana la partida!"
 
+        // La partida se cierra A MITAD de ronda: lo anotado en la mesa hasta ese momento es todo
+        // lo que la ronda suma (no hay pips de cierre que repartir). Se deja desglosado para que
+        // el resumen pueda ensenar mesa y total sin inventar cifras.
+        lastRoundClosingPoints = 0
+        lastRoundTablePoints = tablePointsForTeam(winner.team)
+        lastRoundPointsAwarded = lastRoundTablePoints
+
         val playerTeam = players.firstOrNull()?.team ?: 0
         matchRoundsPlayed++
+        // Igual que en finishRound: los puntos de mesa del bando se cuentan siempre, gane o no
+        // la mano. Aqui la partida se cierra al alcanzar la meta, asi que el que llega suele ser
+        // el ganador, pero el bando del jugador puede haber anotado tambien antes.
+        val scoredThisRound = roundPointsForTeam(playerTeam)
+        matchPointsScored += scoredThisRound
+        if (scoredThisRound > matchBestRoundPoints) matchBestRoundPoints = scoredThisRound
         if (winner.team == playerTeam) {
             matchRoundsWon++
-            val scoredThisRound = roundPointsForTeam(playerTeam)
-            matchPointsScored += scoredThisRound
-            if (scoredThisRound > matchBestRoundPoints) matchBestRoundPoints = scoredThisRound
         }
     }
 
@@ -1307,10 +1323,26 @@ class DominoEngine(
         } else {
             "¡Cerrado! Gana equipo ${winTeam + 1} ($winPips pts vs $losingPips pts)."
         }
-        finishRound(winnerIndex = winner.id, byDomino = false)
+        // All Fives: si la tranca empata a pips, la regla no reparte puntos a nadie.
+        val tieBlocksScoring = gameMode == GameMode.ALL_FIVES && team0Pips == team1Pips
+        finishRound(
+            winnerIndex = winner.id,
+            byDomino = false,
+            closingPointsOverride = if (tieBlocksScoring) 0 else null
+        )
     }
 
-    private fun finishRound(winnerIndex: Int, byDomino: Boolean) {
+    /**
+     * Cierre de la ronda.
+     *
+     * @param closingPointsOverride pips que reparte el cierre, cuando el cierre no se deduce de
+     *   la regla general (la tranca empatada de All Fives no reparte nada).
+     */
+    private fun finishRound(
+        winnerIndex: Int,
+        byDomino: Boolean,
+        closingPointsOverride: Int? = null
+    ) {
         // Una ronda solo se cierra una vez. Sin esta guarda, cerrar dos veces contaria dos
         // rondas y corromperia las estadisticas de carrera.
         if (isRoundOver) return
@@ -1324,18 +1356,25 @@ class DominoEngine(
         val winner = players[winnerIndex]
         winningTeam = winner.team
 
-        // En ALL_FIVES (fidelidad a MagnoJuegos) los puntos se ganan en la mesa durante la partida,
-        // no sumando pips brutos de las manos al cerrar.
-        val totalOpponentPips = if (gameMode == GameMode.ALL_FIVES) 0 else {
-            players.filter { it.team != winner.team }
-                .sumOf { it.hand.sumOf { tile -> tile.totalPips } }
+        // Lo que reparte el cierre. En All Fives son los pips de los rivales redondeados al
+        // multiplo de 5 mas cercano (regla oficial: [1|2] = 3 pips -> 5, [1|1] = 2 -> 0); en el
+        // resto de modos, los pips tal cual.
+        val opponentPips = players.filter { it.team != winner.team }
+            .sumOf { it.hand.sumOf { tile -> tile.totalPips } }
+        val totalOpponentPips = closingPointsOverride ?: when (gameMode) {
+            GameMode.ALL_FIVES -> roundToNearestFive(opponentPips)
+            else -> opponentPips
         }
 
         val newScore = winner.score + totalOpponentPips
         players[winnerIndex] = winner.copy(score = newScore)
-        // Lo que este cierre sumo de verdad al ganador. Es la unica fuente valida para el
-        // desglose del resumen de ronda (lastPointsEarned es solo de la ultima jugada).
-        lastRoundPointsAwarded = totalOpponentPips
+        // Desglose real de la ronda, para que el resumen no tenga que adivinar nada:
+        //   mesa  = lo que el bando ganador anoto jugando (modos de tanteo)
+        //   cierre = lo que reparte el cierre (pips rivales, redondeados en All Fives)
+        //   total  = mesa + cierre
+        lastRoundClosingPoints = totalOpponentPips
+        lastRoundTablePoints = tablePointsForTeam(winner.team)
+        lastRoundPointsAwarded = lastRoundTablePoints + lastRoundClosingPoints
 
         if (byDomino) {
             val bonusTag = when (lastRoundBonusType) {
@@ -1367,34 +1406,54 @@ class DominoEngine(
         // reglas no hay ningun asiento humano y el contador quedaria muerto.
         val playerTeam = players.firstOrNull()?.team ?: 0
         matchRoundsPlayed++
+        // Los puntos de la ronda completos, no los de la ultima jugada: en los modos de tanteo
+        // estos se acumulan jugada a jugada y lastPointsEarned solo guarda la ultima. Se cuentan
+        // SIEMPRE, tambien cuando la mano la gana el rival: los puntos que el jugador anoto en la
+        // mesa existen aunque pierda esa mano (es lo que promete el contador de carrera), y antes
+        // se perdian.
+        val scoredThisRound = roundPointsForTeam(playerTeam)
+        matchPointsScored += scoredThisRound
+        if (scoredThisRound > matchBestRoundPoints) matchBestRoundPoints = scoredThisRound
         if (winner.team == playerTeam) {
             matchRoundsWon++
             if (byDomino) matchDominos++ else matchTrancasWon++
             // Una sola ficha en la mano: victoria apurada. Solo puede pasar ganando por tranca,
             // porque quien cierra con domino se queda sin ninguna.
             if (winner.hand.size == 1) matchWinsWithSingleTile++
-            // Los puntos de la ronda completos, no los de la ultima jugada: en los modos de
-            // tanteo estos se acumulan jugada a jugada y lastPointsEarned solo guarda la ultima.
-            val scoredThisRound = roundPointsForTeam(playerTeam)
-            matchPointsScored += scoredThisRound
-            if (scoredThisRound > matchBestRoundPoints) matchBestRoundPoints = scoredThisRound
         }
         if (!byDomino) matchBlockedRounds++
+    }
+
+    /**
+     * Redondeo al multiplo de 5 mas cercano (3 -> 5, 2 -> 0), como manda la regla de All Fives
+     * para los pips que quedan en las manos rivales al cerrar la mano.
+     */
+    private fun roundToNearestFive(pips: Int): Int = ((pips + 2) / 5) * 5
+
+    /**
+     * Puntos de mesa que anoto un bando durante la ronda (0 en los modos que no tantean).
+     *
+     * Es la parte "jugada" de lo que la ronda sumo al bando; el resto es el cierre.
+     */
+    private fun tablePointsForTeam(team: Int): Int {
+        if (!gameMode.isPointGame) return 0
+        return players.filter { it.team == team }.sumOf { roundPointsByPlayer[it.id] ?: 0 }
     }
 
     /**
      * Puntos que la ronda aporto al equipo indicado, tal y como se contabilizan en la carrera.
      *
      * En los modos de tanteo (All Fives y familia) los puntos se ganan durante la ronda, asi que
-     * se suman los acumulados por los asientos del equipo. En el resto, el unico ingreso es el
-     * cierre: los pips de los rivales, que es lo que guarda [lastRoundPointsAwarded].
+     * se suman los acumulados por los asientos del equipo mas los pips del cierre si el equipo
+     * gano la mano. En el resto, el unico ingreso es el cierre: los pips de los rivales, que es
+     * lo que guarda [lastRoundClosingPoints].
      */
     private fun roundPointsForTeam(team: Int): Int {
-        if (gameMode.isPointGame) {
-            return players.filter { it.team == team }.sumOf { roundPointsByPlayer[it.id] ?: 0 }
+        if (!gameMode.isPointGame) {
+            return if (winningTeam == team) lastRoundClosingPoints else 0
         }
-        val winner = players.getOrNull(winnerPlayerId ?: -1) ?: return 0
-        return if (winner.team == team) lastRoundPointsAwarded else 0
+        val table = tablePointsForTeam(team)
+        return if (winningTeam == team) table + lastRoundClosingPoints else table
     }
 
     /**
@@ -1420,7 +1479,11 @@ class DominoEngine(
 
         val play = lastAiMove as? AiMove.Play
         if (play != null && view.playableMoves.contains(play)) {
-            return playTile(seat, play.tile, play.side)
+            if (playTile(seat, play.tile, play.side)) return true
+            // La jugada estaba en la lista de legales pero no se pudo aplicar. Devolver false
+            // aqui dejaba la mesa esperando un turno que ya no avanza nunca (la interfaz solo
+            // reintenta cuando cambia el turno): se cae al turno de reserva.
+            return fallbackTurn(seat)
         }
 
         // Jugada no legal (o una estrategia que no supo que hacer): se usa la referencia.
@@ -1428,7 +1491,8 @@ class DominoEngine(
             val fallback = LegacyStrategy(players[seat].personality).decide(view)
             lastAiMove = fallback
             val safe = fallback as? AiMove.Play ?: return fallbackTurn(seat)
-            return playTile(seat, safe.tile, safe.side)
+            if (playTile(seat, safe.tile, safe.side)) return true
+            return fallbackTurn(seat)
         }
 
         return fallbackTurn(seat)
@@ -1440,11 +1504,12 @@ class DominoEngine(
             val drawn = drawTile(playerIndex, 0)
             if (drawn != null) {
                 val playableSides = getPlayableSides(playerIndex, drawn)
-                if (playableSides.isNotEmpty()) {
-                    playTile(playerIndex, drawn, playableSides.first())
+                if (playableSides.isNotEmpty() && playTile(playerIndex, drawn, playableSides.first())) {
                     return true
                 }
             }
+            // La ficha robada no se pudo colocar: se pasa. Antes se devolvia true sin mover el
+            // turno, que es la otra forma de dejar la mesa congelada.
             passTurn(playerIndex)
         } else {
             passTurn(playerIndex)
@@ -1488,6 +1553,8 @@ class DominoEngine(
             randomSeed = randomSeed,
             lastRoundBonusType = lastRoundBonusType,
             lastRoundPointsAwarded = lastRoundPointsAwarded,
+            lastRoundTablePoints = lastRoundTablePoints,
+            lastRoundClosingPoints = lastRoundClosingPoints,
             blockedPlayers = blockedPlayers.toSet(),
             matchRoundsPlayed = matchRoundsPlayed,
             matchRoundsWon = matchRoundsWon,
@@ -1557,6 +1624,8 @@ class DominoEngine(
         lastPassTurnNumber = -1
         lastPointsEarned = 0
         lastRoundPointsAwarded = snapshot.lastRoundPointsAwarded
+        lastRoundTablePoints = snapshot.lastRoundTablePoints
+        lastRoundClosingPoints = snapshot.lastRoundClosingPoints
         roundPointsByPlayer.clear()
 
         lastRoundBonusType = snapshot.lastRoundBonusType
@@ -1624,6 +1693,8 @@ class DominoEngine(
         val matchDrewFromBoneyard: Boolean,
         val lastRoundBonusType: DominoBonusType,
         val lastRoundPointsAwarded: Int,
+        val lastRoundTablePoints: Int,
+        val lastRoundClosingPoints: Int,
         val roundPointsByPlayer: Map<Int, Int>,
         val playerPassedPips: Map<Int, Set<Int>>
     )
@@ -1662,6 +1733,8 @@ class DominoEngine(
         matchDrewFromBoneyard = matchDrewFromBoneyard,
         lastRoundBonusType = lastRoundBonusType,
         lastRoundPointsAwarded = lastRoundPointsAwarded,
+        lastRoundTablePoints = lastRoundTablePoints,
+        lastRoundClosingPoints = lastRoundClosingPoints,
         roundPointsByPlayer = roundPointsByPlayer.toMap(),
         playerPassedPips = playerPassedPips.mapValues { it.value.toSet() }
     )
@@ -1714,6 +1787,8 @@ class DominoEngine(
         matchDrewFromBoneyard = snapshot.matchDrewFromBoneyard
         lastRoundBonusType = snapshot.lastRoundBonusType
         lastRoundPointsAwarded = snapshot.lastRoundPointsAwarded
+        lastRoundTablePoints = snapshot.lastRoundTablePoints
+        lastRoundClosingPoints = snapshot.lastRoundClosingPoints
         roundPointsByPlayer.clear()
         roundPointsByPlayer.putAll(snapshot.roundPointsByPlayer)
         playerPassedPips.clear()
@@ -1825,7 +1900,11 @@ class DominoEngine(
             for (l in 0..h) {
                 val candidate = DominoTile(h, l)
                 if (candidate !in knownTiles) {
-                    if (canConnectLeft(candidate) || canConnectRight(candidate) || canConnectUp(candidate) || canConnectDown(candidate)) {
+                    // Los brazos transversales solo cuentan si ya estan abiertos: si no, una
+                    // ficha que solo encajaria arriba/abajo no evita la tranca.
+                    val fitsCross = canOpenCrossArms() &&
+                        (canConnectUp(candidate) || canConnectDown(candidate))
+                    if (canConnectLeft(candidate) || canConnectRight(candidate) || fitsCross) {
                         return false
                     }
                 }

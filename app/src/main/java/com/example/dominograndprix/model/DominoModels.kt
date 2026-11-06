@@ -86,12 +86,17 @@ data class BoardPlacedTile(
 
 /**
  * Las 8 modalidades de juego incluidas en el juego.
+ *
+ * [handSize] son las fichas por asiento en mesas de 3 o 4 jugadores. No se deriva de
+ * [allowsDraw] porque Fives & Threes no roba del pozo y aun asi reparte 5 (no 7) con cuatro
+ * jugadores: son dos cosas distintas.
  */
 enum class GameMode(
     val title: String,
     val summary: String,
     val isPointGame: Boolean = false,
-    val allowsDraw: Boolean = true
+    val allowsDraw: Boolean = true,
+    val handSize: Int = if (allowsDraw) 5 else 7
 ) {
     DRAW(
         title = "Draw Domino",
@@ -114,8 +119,11 @@ enum class GameMode(
     ),
     FIVES_AND_THREES(
         title = "Fives & Threes",
-        summary = "Suma puntos para múltiplos de 5 y 3. ¡Puntuación doble si es múltiplo de ambos (15)!",
-        isPointGame = true
+        summary = "Suma puntos por múltiplos de 5 y de 3 a la vez: el 15 paga 8 (tres cincos y cinco treses).",
+        isPointGame = true,
+        // La regla oficial no roba del pozo: las fichas sobrantes quedan fuera de la partida.
+        allowsDraw = false,
+        handSize = 5
     ),
     MATADOR(
         title = "Matador",

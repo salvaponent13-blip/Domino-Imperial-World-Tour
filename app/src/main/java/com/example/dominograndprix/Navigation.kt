@@ -284,10 +284,18 @@ fun MainNavigation() {
                             val daily = activeDaily
                             if (daily != null) {
                                 val streak = DailyChallengeManager.nextStreak(dailyResult, daily.date, won)
+                                // Los puntos del reto son los del BANDO del jugador, no los de su
+                                // asiento: en parejas el compañero tambien suma, y ensenar solo
+                                // la puntuacion del asiento 0 parecia que faltaban puntos.
+                                val myTeam = finishedEngine.players.firstOrNull()?.team ?: 0
                                 val result = DailyChallengeResult(
                                     dayNumber = daily.dayNumber,
                                     won = won,
-                                    points = finishedEngine.players.firstOrNull()?.score ?: 0,
+                                    points = if (finishedEngine.isTeamGame) {
+                                        finishedEngine.teamScore(myTeam)
+                                    } else {
+                                        finishedEngine.players.firstOrNull()?.score ?: 0
+                                    },
                                     streak = streak
                                 )
                                 DailyChallengeStore.save(context, result)

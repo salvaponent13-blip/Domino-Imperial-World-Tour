@@ -56,6 +56,16 @@ lo narra como "dominó": dice que se alcanzó la meta.
 guardados antes de la v2.4.0 tienen ese contador infravalorado y no se migran: es histórico, no
 una moneda.
 
+**Ampliación (resumen de ronda).** El resumen que ve el jugador al cerrar la mano desglosa la
+ronda en las dos cifras que calcula el motor: `lastRoundTablePoints` (lo anotado jugando) y
+`lastRoundClosingPoints` (los pips del cierre). Su suma es `lastRoundPointsAwarded`, y **ese** es
+el total que muestra el diálogo. Antes `lastRoundPointsAwarded` guardaba solo el cierre y el
+diálogo lo usaba como total: en All Fives (donde el cierre no reparte pips) el resumen decía
+"+0 pts" aunque el jugador acabara de anotar 30 en la mesa, y en Fives & Threes se comía los
+puntos de mesa y enseñaba solo los pips. Invariante que hay que respetar si se toca:
+`mesa + cierre == lo que sube el marcador del bando ganador` (test: `RoundSummaryPointsTest`).
+
+
 ---
 
 ## 5. Deshacer revierte también la respuesta de la IA
@@ -104,3 +114,38 @@ en el banco de pruebas (`MediumStrategyBenchmarkTest`) los pasos incrementales:
    `opponentsPips` y `ownTeamPips` se estiman a partir de los 168 puntos totales del juego menos las
    fichas visibles en mesa y la mano propia, repartidos según el tamaño público de cada mano; y
    `isBoardBlockedFairly` deduce la tranca exclusivamente por conteo de fichas vistas y pases cantados.
+
+---
+
+## 8. Tanteo de mesa: una sola fuente de verdad (auditoría de puntuación)
+
+`DominoEngine.openEndsBreakdown()` es **la única** función que decide qué extremos cuentan y cuánto
+vale cada uno; de ella salen `calculateOpenEndsSum()` (lo que se cobra) y
+`getOpenEndsEvaluationText()` (lo que enseña el HUD), y el pago lo aplica `pointsForOpenEnds()`.
+Antes había tres copias de la regla y no decían lo mismo: el HUD anunciaba la suma mientras el motor
+pagaba la suma dividida por 5 y por 3 en Fives & Threes (decía "15 pts" y pagaba 8).
+
+Reglas que aplica, según la [regla oficial de All Fives](https://www.pagat.com/domino/cross/all_fives.html)
+y la de [Fives and Threes](https://www.pagat.com/domino/line/fives_and_threes.html):
+
+- Un doble en el extremo de un brazo vale sus dos mitades; en medio de la línea, nada.
+- El spinner (primer doble) aporta como mucho sus dos mitades, y solo mientras tenga un lado sin
+  cubrir. Con los dos lados cubiertos pasa a ser una ficha más de la línea.
+- **Un brazo sin empezar no es un extremo abierto.** El cuarto brazo del spinner cuenta cuando se
+  empieza el cuarto, no antes: contar el pip del spinner desde el tercer brazo regalaba 6 puntos por
+  jugada (el 24,6 % de las colocaciones de una partida IA salían con la suma mal).
+- Fives & Threes paga 1 punto por cada 5 y 1 por cada 3 (15 → 8), no la suma. El 15 **sí** es
+  alcanzable: [6|6] en un extremo (12) y un 3 en el otro.
+- **Los brazos transversales del spinner se abren después de cubrir sus dos lados.** Antes se podía
+  jugar arriba/abajo nada más salir el spinner, saltándose el orden que marca la regla
+  (`canOpenCrossArms()` en el motor).
+- **All Fives reparte al cerrar la mano**: los pips de los rivales redondeados al múltiplo de 5 más
+  cercano (22 → 20, 3 → 5, 2 → 0). Si la tranca empata a pips, no puntúa nadie.
+- **Fives & Threes no roba del pozo**: las fichas sobrantes quedan fuera (por eso `allowsDraw = false`
+  y `handSize = 5` con 3-4 jugadores, que no se derivan uno del otro).
+
+Queda como desviación consciente, porque cambiarla deja las metas de la campaña fuera de escala:
+Fives & Threes sigue repartiendo los pips rivales al cerrar (la regla oficial solo da 1 punto por
+"chip out"), y en los tres modos de tanteo se gana al *alcanzar* la meta, no al clavarla exacta.
+
+

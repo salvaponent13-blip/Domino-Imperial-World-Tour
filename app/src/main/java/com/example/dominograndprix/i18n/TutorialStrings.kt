@@ -102,12 +102,12 @@ object TutorialStrings {
             "Zählt, wenn die offenen Enden ein Vielfaches von 3 ergeben. Schnelles Tempo, kurze Züge."
         )
         GameMode.FIVES_AND_THREES -> t(
-            "Suma las dos reglas: puntúan los múltiplos de 5 y de 3, y el 15 paga doble.",
-            "Both rules at once: multiples of 5 and of 3 score, and 15 pays double.",
-            "Les deux règles : les multiples de 5 et de 3 marquent, et 15 paie double.",
-            "Entrambe le regole: segnano i multipli di 5 e di 3, e il 15 paga doppio.",
-            "As duas regras: pontuam múltiplos de 5 e de 3, e o 15 paga a dobrar.",
-            "Beide Regeln: Vielfache von 5 und 3 zählen, die 15 zahlt doppelt."
+            "Suma las dos reglas: puntúan los múltiplos de 5 y de 3. El 15 paga 8 (tres cincos y cinco treses).",
+            "Both rules at once: multiples of 5 and of 3 score. 15 pays 8 (three fives and five threes).",
+            "Les deux règles : les multiples de 5 et de 3 marquent. 15 paie 8 (trois cinq et cinq trois).",
+            "Entrambe le regole: segnano i multipli di 5 e di 3. Il 15 paga 8 (tre cinque e cinque tre).",
+            "As duas regras: pontuam múltiplos de 5 e de 3. O 15 paga 8 (três cincos e cinco três).",
+            "Beide Regeln: Vielfache von 5 und 3 zählen. Die 15 zahlt 8 (drei Fünfen und fünf Dreien)."
         )
         GameMode.MATADOR -> t(
             "Conecta fichas que sumen 7 con el extremo, o usa los cuatro comodines Matadores (0-0, 6-1, 5-2, 4-3).",

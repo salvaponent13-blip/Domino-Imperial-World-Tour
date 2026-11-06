@@ -154,10 +154,10 @@ class GameModeRulesTest {
     fun fivesAndThrees_reachableSumsPayOnePointPerFiveAndPerThree() {
         // Tabla de pagos con la regla clásica: 1 punto por cada 5 y 1 por cada 3.
         //
-        // Ojo: con un set doble-seis los dos extremos abiertos suman como máximo 12, así
-        // que las sumas alcanzables en partida son 0..12. La suma 15 (el ejemplo clásico
-        // de "5 y 3") NO puede darse nunca en una partida real de doble-seis; aquí se
-        // comprueba igualmente porque era donde la regla anterior pagaba el doble.
+        // Cuidado con el comentario que había aquí: decía que 15 no puede darse en doble-seis
+        // porque "los extremos suman como máximo 12". Es falso: un doble en un extremo cuenta
+        // sus dos mitades, así que [6|6] en un extremo (12) más un 3 en el otro suman 15, que
+        // es justo el ejemplo clásico de la regla. El motor lo paga bien (8).
         fun points(sum: Int): Int {
             val fives = if (sum > 0 && sum % 5 == 0) sum / 5 else 0
             val threes = if (sum > 0 && sum % 3 == 0) sum / 3 else 0
@@ -486,6 +486,104 @@ class GameModeRulesTest {
     }
 
     @Test
+    fun allFives_thirdArmDoesNotCountTheFourthArmThatIsNotStarted() {
+        // Regla oficial de All Fives: el cuarto brazo del spinner cuenta "cuando se empieza".
+        // El motor sumaba su pip ya desde el tercer brazo, regalando puntos que no existian.
+        val engine = engine(GameMode.ALL_FIVES)
+        stageHands(
+            engine,
+            0 to tiles(6 to 6),
+            1 to tiles(6 to 1),
+            2 to tiles(6 to 3),
+            3 to tiles(6 to 0)
+        )
+
+        engine.currentPlayerIndex = 0
+        assertTrue(engine.playTile(0, tileOf(engine, 0, 6, 6), BoardSide.LEFT))
+        engine.currentPlayerIndex = 1
+        assertTrue(engine.playTile(1, tileOf(engine, 1, 6, 1), BoardSide.RIGHT))
+        engine.currentPlayerIndex = 2
+        assertTrue(engine.playTile(2, tileOf(engine, 2, 6, 3), BoardSide.LEFT))
+        engine.currentPlayerIndex = 3
+        assertTrue(engine.playTile(3, tileOf(engine, 3, 6, 0), BoardSide.UP))
+
+        // Extremos de los brazos empezados: 3 (izq) + 1 (der) + 0 (arriba). El de abajo no existe.
+        assertEquals("El cuarto brazo sin empezar no cuenta", 4, engine.calculateOpenEndsSum())
+        assertEquals("4 no es múltiplo de 5: no se anota nada", 0, scoreOf(engine, 3))
+    }
+
+    @Test
+    fun allFives_thirdArmStillPaysWhenTheThreeEndsAddUpToAFive() {
+        // El mismo 4o brazo fantasma tapaba puntos legitimos: 3 + 2 + 0 = 5 debe pagar 5.
+        val engine = engine(GameMode.ALL_FIVES)
+        stageHands(
+            engine,
+            0 to tiles(6 to 6),
+            1 to tiles(6 to 2),
+            2 to tiles(6 to 3),
+            3 to tiles(6 to 0)
+        )
+
+        engine.currentPlayerIndex = 0
+        assertTrue(engine.playTile(0, tileOf(engine, 0, 6, 6), BoardSide.LEFT))
+        engine.currentPlayerIndex = 1
+        assertTrue(engine.playTile(1, tileOf(engine, 1, 6, 2), BoardSide.RIGHT))
+        engine.currentPlayerIndex = 2
+        assertTrue(engine.playTile(2, tileOf(engine, 2, 6, 3), BoardSide.LEFT))
+        engine.currentPlayerIndex = 3
+        assertTrue(engine.playTile(3, tileOf(engine, 3, 6, 0), BoardSide.UP))
+
+        assertEquals(5, engine.calculateOpenEndsSum())
+        assertEquals("5 en los extremos paga 5", 5, scoreOf(engine, 3))
+    }
+
+    @Test
+    fun fivesAndThrees_hudAnnouncesThePointsPaidNotTheSum() {
+        // El HUD decia "15 pts" y el motor pagaba 8: el jugador veia un numero que no era el suyo.
+        val engine = engine(GameMode.FIVES_AND_THREES)
+        stageHands(engine, 0 to tiles(6 to 6), 1 to tiles(6 to 3))
+        engine.currentPlayerIndex = 0
+        play(engine, 0, tileOf(engine, 0, 6, 6))
+        engine.currentPlayerIndex = 1
+        play(engine, 1, tileOf(engine, 1, 6, 3))
+
+        assertEquals("Extremos 12 + 3", 15, engine.calculateOpenEndsSum())
+        assertEquals("15 paga 8 (tres cincos y cinco treses)", 8, scoreOf(engine, 1))
+        val hud = engine.getOpenEndsEvaluationText()
+        assertTrue("El HUD debe anunciar los 8 puntos, no la suma: $hud", hud.contains("8 pts ⭐"))
+    }
+
+    @Test
+    fun aiTurnAlwaysAdvancesOrClosesTheRoundInEveryMode() {
+        // Invariante de la interfaz: solo reintenta cuando cambia el turno, la mesa o la ronda.
+        // Si executeAIMove devolviera true sin mover nada, la partida se queda congelada para
+        // siempre ("se queda pensando"). Se comprueba en las 8 modalidades.
+        for (mode in GameMode.values()) {
+            val engine = DominoEngine.allAi(gameMode = mode, targetScore = 60, seed = 99L)
+            var guard = 0
+            while (guard < 600 && !engine.isMatchOver) {
+                guard++
+                if (engine.isRoundOver) {
+                    engine.startNewRound(engine.nextRoundOpener())
+                    continue
+                }
+                val seatBefore = engine.currentPlayerIndex
+                val boardBefore = engine.boardChain.size
+                val moved = engine.executeAIMove()
+                assertTrue("executeAIMove debe actuar en ${mode.name}", moved)
+                assertTrue(
+                    "El turno debe avanzar, crecer la mesa o cerrar la ronda en ${mode.name}",
+                    engine.isRoundOver ||
+                        engine.isMatchOver ||
+                        engine.currentPlayerIndex != seatBefore ||
+                        engine.boardChain.size > boardBefore
+                )
+            }
+            assertTrue("La partida de ${mode.name} debe terminar", engine.isMatchOver)
+        }
+    }
+
+    @Test
     fun matador_connectsProperPipsToSumSeven() {
         val engine = engine(GameMode.MATADOR)
         stageHands(
@@ -575,81 +673,60 @@ class GameModeRulesTest {
     }
 
     @Test
-    fun allFives_spinnerAllowsPlayOnFourSidesAndScoresAllEnds() {
+    fun allFives_spinnerScoresTheFourEndsOnceBothSidesAreCovered() {
         val engine = engine(GameMode.ALL_FIVES)
         stageHands(
             engine,
             0 to tiles(6 to 6, 6 to 1),
             1 to tiles(6 to 3),
-            2 to tiles(6 to 5),
-            3 to tiles(6 to 1)
+            2 to tiles(6 to 2),
+            3 to tiles(6 to 5)
         )
 
-        // 1. Asiento 0 juega el primer doble [6|6]: se convierte en spinner
+        // 1. Asiento 0 juega el primer doble [6|6]: se convierte en spinner.
         engine.currentPlayerIndex = 0
-        val double6 = tileOf(engine, 0, 6, 6)
-        assertTrue(engine.playTileLeft(0, double6))
-        assertEquals(double6, engine.spinnerTile)
-        // [6|6] abierto en ambos extremos (cuenta doble al estar sola): 6 * 2 = 12 (no múltiplo de 5 => 0 pts)
+        assertTrue(engine.playTileLeft(0, tileOf(engine, 0, 6, 6)))
+        assertEquals(tileOf(engine, 0, 6, 6), engine.spinnerTile)
+        // [6|6] sola en la mesa vale sus dos mitades: 12 (no múltiplo de 5 => 0 pts).
         assertEquals(0, scoreOf(engine, 0))
 
-        // 2. Asiento 1 juega [6|3] a la derecha:
-        // Aún no hay ramas transversales UP/DOWN conectadas. Extremos abiertos: izquierda [6|6] (cuenta 12),
-        // derecha [3] => 12 + 3 = 15 => ¡Múltiplo de 5 => 15 puntos para asiento 1!
+        // 2. [6|3] a la derecha: el spinner sigue contando sus dos mitades => 12 + 3 = 15.
         engine.currentPlayerIndex = 1
-        val tile63 = tileOf(engine, 1, 6, 3)
-        assertTrue(engine.playTileRight(1, tile63))
+        assertTrue(engine.playTileRight(1, tileOf(engine, 1, 6, 3)))
         assertEquals(15, scoreOf(engine, 1))
         assertEquals(6, engine.leftOpenPip)
         assertEquals(3, engine.rightOpenPip)
 
-        // 3. Como [6|6] es el spinner, se pueden conectar fichas por UP y DOWN con pip 6!
-        val tile65Up = tileOf(engine, 2, 6, 5)
-        assertTrue("Debe poder conectar arriba del spinner [6|6]", engine.canConnectUp(tile65Up))
-        val playableSidesSeat2 = engine.getPlayableSides(2, tile65Up)
-        assertTrue(playableSidesSeat2.contains(BoardSide.UP))
-        assertTrue(playableSidesSeat2.contains(BoardSide.DOWN))
+        // 3. Con un lado del spinner libre, arriba/abajo NO se abren: la regla obliga a poner
+        //    las dos primeras fichas contra sus dos lados.
+        val tile62 = tileOf(engine, 2, 6, 2)
+        assertFalse(
+            "Con un lado libre no se puede abrir un brazo transversal",
+            engine.getPlayableSides(2, tile62).contains(BoardSide.UP)
+        )
 
-        // Jugamos [6|5] por UP: se activan las 4 ramas del spinner:
+        // 4. [6|2] a la izquierda cubre el otro lado: el spinner deja de contar => 2 + 3 = 5.
         engine.currentPlayerIndex = 2
-        assertTrue(engine.playTile(2, tile65Up, BoardSide.UP))
-        assertEquals(5, engine.upOpenPip)
+        assertTrue(engine.playTile(2, tile62, BoardSide.LEFT))
+        assertEquals(5, scoreOf(engine, 2))
 
-        // Ahora los extremos abiertos en cruz son:
-        // LEFT: 6 (extremo libre spinner), RIGHT: 3, UP: 5, DOWN: 6 (extremo libre spinner)
-        // Suma: 6 + 3 + 5 + 6 = 20 => ¡Múltiplo de 5 => 20 puntos para asiento 2!
-        assertEquals(20, scoreOf(engine, 2))
-
-        // 4. Asiento 3 juega [6|1] por DOWN:
+        // 5. Ya se puede abrir el tercer brazo: 2 + 3 + 5 = 10 (el cuarto aún no existe).
+        val tile65 = tileOf(engine, 3, 6, 5)
+        assertTrue(engine.getPlayableSides(3, tile65).contains(BoardSide.UP))
         engine.currentPlayerIndex = 3
-        val tile61Down = tileOf(engine, 3, 6, 1)
-        assertTrue(engine.playTile(3, tile61Down, BoardSide.DOWN))
-        assertEquals(1, engine.downOpenPip)
-
-        // Ahora los extremos abiertos son:
-        // LEFT: 6, RIGHT: 3, UP: 5, DOWN: 1
-        // Suma: 6 + 3 + 5 + 1 = 15 => ¡Múltiplo de 5 => 15 puntos para asiento 3!
-        assertEquals(15, scoreOf(engine, 3))
-
-        // 5. Asiento 0 juega [6|1] por LEFT cubriendo el último brazo directo del spinner:
-        engine.currentPlayerIndex = 0
-        val tile61Left = tileOf(engine, 0, 6, 1)
-        assertTrue(engine.playTileLeft(0, tile61Left))
-        assertEquals(1, engine.leftOpenPip)
-
-        // Ahora los 4 extremos son: LEFT: 1, RIGHT: 3, UP: 5, DOWN: 1
-        // Suma: 1 + 3 + 5 + 1 = 10 => ¡Múltiplo de 5 => 10 puntos para asiento 0!
-        assertEquals(10, scoreOf(engine, 0))
+        assertTrue(engine.playTile(3, tile65, BoardSide.UP))
+        assertEquals(5, engine.upOpenPip)
+        assertEquals(10, scoreOf(engine, 3))
     }
 
     @Test
-    fun allFives_lateSpinnerAllowsPlayOnFourSides() {
+    fun allFives_lateSpinnerNeedsBothSidesCoveredBeforeOpeningCrossArms() {
         val engine = engine(GameMode.ALL_FIVES)
         stageHands(
             engine,
             0 to tiles(5 to 4),
             1 to tiles(4 to 4),
-            2 to tiles(4 to 2)
+            2 to tiles(4 to 2, 4 to 3)
         )
 
         // 1. Asiento 0 abre con [5|4] (no es doble, no hay spinner todavía)
@@ -659,7 +736,7 @@ class GameModeRulesTest {
         assertNull(engine.upOpenPip)
         assertNull(engine.downOpenPip)
 
-        // 2. Asiento 1 juega [4|4] a la derecha: es el primer doble de la ronda -> ¡se convierte en spinner!
+        // 2. Asiento 1 juega [4|4] a la derecha: es el primer doble -> se convierte en spinner.
         engine.currentPlayerIndex = 1
         val double4 = tileOf(engine, 1, 4, 4)
         assertTrue(engine.playTileRight(1, double4))
@@ -667,16 +744,19 @@ class GameModeRulesTest {
         assertEquals(4, engine.upOpenPip)
         assertEquals(4, engine.downOpenPip)
 
-        // 3. Asiento 2 debe poder jugar en las ramas UP y DOWN del nuevo spinner tardío
+        // 3. El lado derecho del spinner está libre: los brazos transversales siguen cerrados.
         val tile42 = tileOf(engine, 2, 4, 2)
-        val playableSides = engine.getPlayableSides(2, tile42)
-        assertTrue("Debe permitir jugar UP en spinner tardío", playableSides.contains(BoardSide.UP))
-        assertTrue("Debe permitir jugar DOWN en spinner tardío", playableSides.contains(BoardSide.DOWN))
+        assertFalse(engine.getPlayableSides(2, tile42).contains(BoardSide.UP))
+        assertFalse(engine.getPlayableSides(2, tile42).contains(BoardSide.DOWN))
 
-        // Jugamos en UP:
+        // 4. [4|2] por el lado que faltaba; ahora sí se abre arriba.
         engine.currentPlayerIndex = 2
-        assertTrue(engine.playTile(2, tile42, BoardSide.UP))
-        assertEquals(2, engine.upOpenPip)
+        assertTrue(engine.playTile(2, tile42, BoardSide.RIGHT))
+        val tile43 = tileOf(engine, 2, 4, 3)
+        assertTrue(
+            "Con los dos lados cubiertos ya se puede jugar UP",
+            engine.getPlayableSides(2, tile43).contains(BoardSide.UP)
+        )
     }
 
     @Test
@@ -825,7 +905,7 @@ class GameModeRulesTest {
             engine,
             0 to tiles(4 to 5, 0 to 3),
             1 to tiles(5 to 3, 3 to 6),
-            2 to tiles(3 to 3, 6 to 1),
+            2 to tiles(3 to 3, 4 to 6),
             3 to tiles(4 to 3)
         )
 
@@ -842,21 +922,21 @@ class GameModeRulesTest {
         assertTrue(engine.playTileRight(2, tileOf(engine, 2, 3, 3)))
         assertEquals(DominoTile(3, 3), engine.spinnerTile)
 
-        // 4. Asiento 3 juega [4|3] en UP
+        // 4. El lado derecho del spinner está libre: primero se cubre (regla de los dos lados)
         engine.currentPlayerIndex = 3
-        assertTrue(engine.playTileUp(3, tileOf(engine, 3, 4, 3)))
+        assertTrue(engine.playTileRight(3, tileOf(engine, 3, 4, 3)))
 
-        // 5. Asiento 0 juega [0|3] en DOWN
+        // 5. Ahora sí: [0|3] en UP
         engine.currentPlayerIndex = 0
-        assertTrue(engine.playTileDown(0, tileOf(engine, 0, 0, 3)))
+        assertTrue(engine.playTileUp(0, tileOf(engine, 0, 0, 3)))
 
-        // 6. Asiento 1 juega [3|6] en RIGHT
+        // 6. Asiento 1 juega [3|6] en DOWN
         engine.currentPlayerIndex = 1
-        assertTrue(engine.playTileRight(1, tileOf(engine, 1, 3, 6)))
+        assertTrue(engine.playTileDown(1, tileOf(engine, 1, 3, 6)))
 
-        // 7. Asiento 2 juega [6|1] en RIGHT
+        // 7. Asiento 2 juega [4|6] en RIGHT
         engine.currentPlayerIndex = 2
-        assertTrue(engine.playTileRight(2, tileOf(engine, 2, 6, 1)))
+        assertTrue(engine.playTileRight(2, tileOf(engine, 2, 4, 6)))
 
         // Dump positions
         println("=== BOARD CHAIN DUMP ===")

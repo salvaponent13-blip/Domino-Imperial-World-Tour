@@ -74,8 +74,17 @@ data class MatchSnapshot(
     // --- Persistencia completa de partida y acumuladores ---
     val lastRoundBonusType: DominoBonusType = DominoBonusType.NONE,
 
-    /** Lo que el cierre de la ronda sumo al ganador (se muestra en el resumen al reanudar). */
+    /**
+     * Total que la ronda cerrada sumo al bando ganador (mesa + cierre), para que el resumen
+     * que se muestra al reanudar ensene la misma cifra que antes de cerrar la app.
+     */
     val lastRoundPointsAwarded: Int = 0,
+
+    /** Parte de [lastRoundPointsAwarded] anotada en la mesa (modos de tanteo). */
+    val lastRoundTablePoints: Int = 0,
+
+    /** Parte de [lastRoundPointsAwarded] repartida por el cierre (pips de las manos rivales). */
+    val lastRoundClosingPoints: Int = 0,
     val blockedPlayers: Set<Int> = emptySet(),
     val matchRoundsPlayed: Int = 0,
     val matchRoundsWon: Int = 0,

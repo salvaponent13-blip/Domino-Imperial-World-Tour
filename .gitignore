@@ -27,3 +27,5 @@ PLAY_STORE_RELEASE/*.jks
 PREVIEW_MUSIC/
 # Cache de Kotlin (aparece al compilar con K2)
 .kotlin/
+
+tools/audit-scoring/out/

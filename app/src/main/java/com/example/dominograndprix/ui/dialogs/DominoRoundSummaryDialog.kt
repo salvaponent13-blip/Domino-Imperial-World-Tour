@@ -32,8 +32,10 @@ import com.example.dominograndprix.ui.game.GoldAccent
  * Resumen de ronda / partida con el tanteo **real** del motor.
  *
  * Lo que se muestra sale de lo que el motor ya calculo, no de una reconstruccion paralela:
- * - [DominoEngine.lastRoundPointsAwarded] es lo que el cierre sumo al ganador.
- * - [DominoEngine.roundPointsByPlayer] son los puntos de mesa de los modos que puntuan extremos.
+ * - [DominoEngine.lastRoundPointsAwarded] es el TOTAL que la ronda sumo al bando ganador.
+ * - [DominoEngine.lastRoundTablePoints] es la parte anotada jugando (modos de tanteo).
+ * - [DominoEngine.lastRoundClosingPoints] es la parte repartida al cerrar (pips rivales).
+ * - [DominoEngine.roundPointsByPlayer] desglosa la mesa asiento por asiento.
  * - Las bonificaciones (capicua/doble) se anuncian como etiqueta, sin inventar multiplicadores:
  *   el motor no aplica ninguno.
  */
@@ -57,6 +59,11 @@ fun DominoRoundSummaryDialog(
     val closedByDomino = !isBlocked && (winnerPlayer?.hand?.isEmpty() == true)
     val reachedTarget = !isBlocked && !closedByDomino
     val roundPoints = engine.lastRoundPointsAwarded
+    // Desglose en dos mitades: lo anotado jugando y lo repartido al cerrar. Salen del motor,
+    // no de reconstruir nada aqui: el resumen tiene que ensenar exactamente las mismas cifras
+    // que se sumaron al marcador (antes ensenaba "+0" en All Fives aunque hubiera 30 en mesa).
+    val tablePoints = engine.lastRoundTablePoints
+    val closingPoints = engine.lastRoundClosingPoints
     val pointMode = engine.gameMode.isPointGame
 
     Dialog(
@@ -212,11 +219,16 @@ fun DominoRoundSummaryDialog(
                                     Text(
                                         text = when {
                                             player.hand.isEmpty() -> DominoStrings.summaryEmptyHand()
+                                            // En los modos de tanteo los pips de la mano no se
+                                            // convierten en puntos: decir "33 pts" hacia creer
+                                            // que se iban a sumar al marcador.
+                                            pointMode -> DominoStrings.summaryHandPips(pipsSum)
                                             countsTowardWinner -> DominoStrings.summaryCountsForWinner(pipsSum)
                                             else -> "$pipsSum pts"
                                         },
                                         color = when {
                                             player.hand.isEmpty() -> Color(0xFF34D399)
+                                            pointMode -> Color.LightGray
                                             countsTowardWinner -> GoldAccent
                                             else -> Color.LightGray
                                         },
@@ -268,16 +280,22 @@ fun DominoRoundSummaryDialog(
                                 Spacer(modifier = Modifier.height(4.dp))
 
                                 if (pointMode) {
-                                    // En los modos de puntos lo que suma son las jugadas de mesa,
-                                    // no los pips que quedan en las manos.
+                                    // En los modos de puntos lo que suma son las jugadas de mesa
+                                    // mas los pips que se reparten al cerrar (si los hay). El
+                                    // total de abajo es la suma exacta de estas filas: por eso el
+                                    // desglose solo lista al bando ganador, que es a quien se le
+                                    // sumo la ronda.
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text(DominoStrings.summaryTablePoints(), color = Color.LightGray, fontSize = 11.sp)
-                                        Text("$roundPoints pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        Text("$tablePoints pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                     engine.roundPointsByPlayer
+                                        .filterKeys { seat ->
+                                            engine.players.getOrNull(seat)?.team == engine.winningTeam
+                                        }
                                         .filterValues { it > 0 }
                                         .forEach { (seat, points) ->
                                             val name = engine.players.getOrNull(seat)?.name ?: "—"
@@ -289,16 +307,22 @@ fun DominoRoundSummaryDialog(
                                                 Text("+$points", color = GoldAccent, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                         }
+                                    if (closingPoints > 0) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(DominoStrings.summaryRivalPips(), color = Color.LightGray, fontSize = 11.sp)
+                                            Text("+$closingPoints pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        }
+                                    }
                                 } else {
-                                    val opponentPips = engine.players
-                                        .filter { it.team != engine.winningTeam }
-                                        .sumOf { it.hand.sumOf { t -> t.totalPips } }
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text(DominoStrings.summaryRivalPips(), color = Color.LightGray, fontSize = 11.sp)
-                                        Text("$opponentPips pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        Text("$closingPoints pts", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                 }
 

@@ -827,6 +827,19 @@ object DominoStrings {
         "Zählt für den Sieger: +$points Pkt."
     )
 
+    /**
+     * Pips que quedan en una mano, para los modos que NO los convierten en puntos (All Fives y
+     * compania). Decir "33 pts" ahi hacia creer que esos pips se iban a sumar al marcador.
+     */
+    fun summaryHandPips(pips: Int): String = multi(
+        "$pips pips en mano",
+        "$pips pips in hand",
+        "$pips points en main",
+        "$pips punti in mano",
+        "$pips pips na mão",
+        "$pips Augen auf der Hand"
+    )
+
     fun summaryNextRound(): String =
         multi("SIGUIENTE RONDA ➔", "NEXT ROUND ➔", "MANCHE SUIVANTE ➔", "MANO SUCCESSIVA ➔", "PRÓXIMA RODADA ➔", "NÄCHSTE RUNDE ➔")
 
@@ -1455,7 +1468,7 @@ object DominoStrings {
             GameMode.BLOCK -> "Pure tactical block dominoes without drawing. Pass if you have no valid move."
             GameMode.ALL_FIVES -> "Score points immediately whenever the sum of open board ends is a multiple of 5."
             GameMode.ALL_THREES -> "Score points immediately whenever the sum of open board ends is a multiple of 3."
-            GameMode.FIVES_AND_THREES -> "Score on multiples of 5 and 3. Double bonus points when divisible by 15!"
+            GameMode.FIVES_AND_THREES -> "Score on multiples of 5 and 3 at once: 15 pays 8 (three fives and five threes)."
             GameMode.MATADOR -> "Connect tiles that add up to 7 with the open end, or play the 4 Matador wildcards."
             GameMode.DRAW_SPECIAL -> "Each player plays on their own assigned branch or on a blocked opponent's branch."
             GameMode.BLOCK_HUNGARIAN -> "Chain and play as many valid tiles in a row as you can during a single turn!"
@@ -1465,7 +1478,7 @@ object DominoStrings {
             GameMode.BLOCK -> "Blocage tactique pur sans pioche. Passez votre tour si vous êtes bloqué."
             GameMode.ALL_FIVES -> "Marquez des points dès que la somme des extrémités ouvertes est un multiple de 5."
             GameMode.ALL_THREES -> "Marquez des points dès que la somme des extrémités ouvertes est un multiple de 3."
-            GameMode.FIVES_AND_THREES -> "Marquez sur les multiples de 5 et de 3. Points doublés sur les multiples de 15 !"
+            GameMode.FIVES_AND_THREES -> "Marquez sur les multiples de 5 et de 3 à la fois : 15 paie 8 (trois cinq et cinq trois)."
             GameMode.MATADOR -> "Connectez des dominos dont la somme fait 7 avec l'extrémité, ou utilisez les 4 Matadors."
             GameMode.DRAW_SPECIAL -> "Chaque joueur joue sur sa propre branche ou sur celle d'un adversaire bloqué."
             GameMode.BLOCK_HUNGARIAN -> "Enchaînez et posez autant de dominos valides que possible en un seul tour !"
@@ -1475,7 +1488,7 @@ object DominoStrings {
             GameMode.BLOCK -> "Blocco tattico puro senza tallone. Se non puoi giocare, passi il turno."
             GameMode.ALL_FIVES -> "Ottieni punti immediati se la somma degli estremi aperti è multiplo di 5."
             GameMode.ALL_THREES -> "Ottieni punti immediati se la somma degli estremi aperti è multiplo di 3."
-            GameMode.FIVES_AND_THREES -> "Punti sui multipli di 5 e 3. Punteggio doppio se è multiplo di entrambi (15)!"
+            GameMode.FIVES_AND_THREES -> "Punti sui multipli di 5 e 3 insieme: il 15 paga 8 (tre cinque e cinque tre)."
             GameMode.MATADOR -> "Collega tessere che sommano 7 con l'estremo aperto o usa i 4 jolly Matador."
             GameMode.DRAW_SPECIAL -> "Ogni giocatore gioca sul proprio ramo o su quello di un avversario bloccato."
             GameMode.BLOCK_HUNGARIAN -> "Concatena e gioca tutte le tessere valide consecutive che puoi in un solo turno!"
@@ -1485,7 +1498,7 @@ object DominoStrings {
             GameMode.BLOCK -> "Bloqueio puro sem monte. Se não tiver jogada, deve passar a vez."
             GameMode.ALL_FIVES -> "Some pontos imediatamente se a soma das pontas abertas for múltiplo de 5."
             GameMode.ALL_THREES -> "Some pontos imediatamente se a soma das pontas abertas for múltiplo de 3."
-            GameMode.FIVES_AND_THREES -> "Pontue em múltiplos de 5 e 3. Pontuação dupla se for múltiplo de 15!"
+            GameMode.FIVES_AND_THREES -> "Pontue em múltiplos de 5 e 3 ao mesmo tempo: o 15 paga 8 (três cincos e cinco três)."
             GameMode.MATADOR -> "Conecte peças que somem 7 com a ponta aberta ou use os 4 curingas Matadores."
             GameMode.DRAW_SPECIAL -> "Cada jogador joga em sua própria ponta ou na ponta de um rival bloqueado."
             GameMode.BLOCK_HUNGARIAN -> "Encadeie e jogue várias peças seguidas em um único turno!"
@@ -1495,7 +1508,7 @@ object DominoStrings {
             GameMode.BLOCK -> "Reines Block-Domino ohne Stock. Wenn du nicht anlegen kannst, musst du passen."
             GameMode.ALL_FIVES -> "Sofortige Punkte, wenn die Summe der offenen Enden durch 5 teilbar ist."
             GameMode.ALL_THREES -> "Sofortige Punkte, wenn die Summe der offenen Enden durch 3 teilbar ist."
-            GameMode.FIVES_AND_THREES -> "Punkte für Vielfache von 5 und 3. Doppelte Punktzahl bei Vielfachen von 15!"
+            GameMode.FIVES_AND_THREES -> "Punkte für Vielfache von 5 und 3 zugleich: die 15 zahlt 8 (drei Fünfen und fünf Dreien)."
             GameMode.MATADOR -> "Lege Steine an, die zusammen mit dem Ende 7 ergeben, oder nutze die 4 Matadore."
             GameMode.DRAW_SPECIAL -> "Jeder Spieler legt an seinem eigenen Zweig oder am Zweig eines blockierten Gegners an."
             GameMode.BLOCK_HUNGARIAN -> "Lege in einem einzigen Zug so viele passende Steine hintereinander an wie möglich!"
@@ -1506,7 +1519,7 @@ object DominoStrings {
         AppLanguage.ES -> when (mode) {
             GameMode.MATADOR -> "Estrategia clave: Comodines Matadores: [6|1], [5|2], [4|3] y [0|0]."
             GameMode.BLOCK_HUNGARIAN -> "Estrategia clave: ¡Juega todas las fichas válidas seguidas en una sola tirada!"
-            GameMode.FIVES_AND_THREES -> "Estrategia clave: Busca sumar 15 en los extremos para duplicar tu puntuación."
+            GameMode.FIVES_AND_THREES -> "Estrategia clave: busca sumar 15 en los extremos; paga 8 puntos."
             GameMode.ALL_FIVES -> "Estrategia clave: Suma 5, 10, 15 o 20 en los extremos abiertos en cada turno."
             GameMode.ALL_THREES -> "Estrategia clave: Suma 3, 6, 9, 12, 15 o 18 en los extremos abiertos."
             GameMode.DRAW_SPECIAL -> "Estrategia clave: Protege tu rama y aprovecha cuando el rival pase."
@@ -1516,7 +1529,7 @@ object DominoStrings {
         AppLanguage.EN -> when (mode) {
             GameMode.MATADOR -> "Key Strategy: Matador wildcards are [6|1], [5|2], [4|3], and [0|0]."
             GameMode.BLOCK_HUNGARIAN -> "Key Strategy: Chain as many consecutive valid tiles as possible in one turn!"
-            GameMode.FIVES_AND_THREES -> "Key Strategy: Aim for open ends totaling 15 to score double bonus points."
+            GameMode.FIVES_AND_THREES -> "Key Strategy: aim for open ends totaling 15; it pays 8 points."
             GameMode.ALL_FIVES -> "Key Strategy: Make open ends total 5, 10, 15, or 20 on every turn."
             GameMode.ALL_THREES -> "Key Strategy: Make open ends total 3, 6, 9, 12, 15, or 18."
             GameMode.DRAW_SPECIAL -> "Key Strategy: Guard your own branch and attack when opponents pass."
