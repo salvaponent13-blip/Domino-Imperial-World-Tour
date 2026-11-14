@@ -148,4 +148,26 @@ Queda como desviación consciente, porque cambiarla deja las metas de la campañ
 Fives & Threes sigue repartiendo los pips rivales al cerrar (la regla oficial solo da 1 punto por
 "chip out"), y en los tres modos de tanteo se gana al *alcanzar* la meta, no al clavarla exacta.
 
+---
+
+## 9. Final del torneo: repetir la gira, no repetir la última final (v2.5.8)
+
+Al ganar el reto 5 de Tokio el progreso se quedaba en `(venue 6, reto 4)`, indistinguible del
+estado "vas a jugar la final". El menú seguía diciendo "CONTINUAR TORNEO · Reto 5 de 5" y te
+devolvía a la misma final para siempre, sin manera de empezar la gira otra vez sin borrar la
+colección.
+
+**Decisión:** `JourneyProgress.tournamentFinished` marca la gira completada, y las transiciones se
+mueven a `CareerFlow` (con tests: `CareerFlowTest`), no dentro de la pantalla:
+
+- `CareerFlow.afterWin(...)`: avanza de reto, de sede y desbloquea la siguiente; en la última sede
+  marca `tournamentFinished`.
+- `CareerFlow.replayTour(...)`: vuelve a México (Reto 1) **conservando** trofeos, logros y
+  estadísticas. "Nuevo torneo" sigue siendo el único que empieza de cero.
+
+Con la gira terminada, el menú y la pantalla de sede ofrecen "VOLVER A JUGAR EL TORNEO" en lugar de
+"continuar". El campo nuevo tiene valor por defecto, así que los guardados anteriores cargan sin
+migración.
+
+
 

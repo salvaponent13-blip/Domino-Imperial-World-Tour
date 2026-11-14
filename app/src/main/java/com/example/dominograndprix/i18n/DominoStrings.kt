@@ -1083,6 +1083,36 @@ object DominoStrings {
         "$venueName • Herausforderung $challengeNumber von 5"
     )
 
+    /**
+     * Boton principal cuando la gira ya esta completa: repetirla sin perder trofeos ni logros.
+     */
+    fun replayTournamentBtn(): String = multi(
+        "VOLVER A JUGAR EL TORNEO ➔",
+        "PLAY THE TOURNAMENT AGAIN ➔",
+        "REJOUER LE TOURNOI ➔",
+        "GIOCA DI NUOVO IL TORNEO ➔",
+        "JOGAR O TORNEIO OUTRA VEZ ➔",
+        "TURNIER ERNEUT SPIELEN ➔"
+    )
+
+    fun tournamentCompletedSub(): String = multi(
+        "Torneo completado • 7 sedes y 35 retos",
+        "Tournament completed • 7 cities and 35 challenges",
+        "Tournoi terminé • 7 villes et 35 défis",
+        "Torneo completato • 7 città e 35 sfide",
+        "Torneio concluído • 7 cidades e 35 desafios",
+        "Turnier abgeschlossen • 7 Städte und 35 Herausforderungen"
+    )
+
+    fun tournamentCompletedBadge(): String = multi(
+        "🏆 TORNEO COMPLETADO",
+        "🏆 TOURNAMENT COMPLETED",
+        "🏆 TOURNOI TERMINÉ",
+        "🏆 TORNEO COMPLETATO",
+        "🏆 TORNEIO CONCLUÍDO",
+        "🏆 TURNIER ABGESCHLOSSEN"
+    )
+
     fun newMatchBtn(): String = multi(
         "NUEVA PARTIDA",
         "NEW TOURNAMENT",

@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import com.example.dominograndprix.audio.DominoSoundManager
 import com.example.dominograndprix.data.AchievementCatalog
+import com.example.dominograndprix.data.CareerFlow
 import com.example.dominograndprix.data.CareerProgressStore
 import com.example.dominograndprix.data.CareerReporter
 import com.example.dominograndprix.data.DailyChallenge
@@ -141,8 +142,15 @@ fun MainNavigation() {
                         hasSavedProgress = hasProgress,
                         currentVenueName = currentChallenge.venueName,
                         currentChallengeNumber = currentChallenge.challengeNumber,
+                        tournamentFinished = careerProgress.tournamentFinished,
                         onResumeTournament = {
                             DominoSoundManager.playTileClack(isDouble = true)
+                            // Gira terminada: el boton dice "volver a jugar el torneo" y reinicia
+                            // el recorrido conservando trofeos, logros y estadisticas.
+                            if (careerProgress.tournamentFinished) {
+                                careerProgress = CareerFlow.replayTour(careerProgress)
+                                CareerProgressStore.save(context, careerProgress)
+                            }
                             currentScreen = AppScreen.VENUE_STAGE
                         },
                         onStartNewTournament = {
@@ -214,6 +222,12 @@ fun MainNavigation() {
                         challenge = currentChallenge,
                         venueIndex = careerProgress.currentVenueIndex,
                         challengeIndex = careerProgress.currentChallengeIndex,
+                        tournamentFinished = careerProgress.tournamentFinished,
+                        onReplayTournament = {
+                            DominoSoundManager.playTileClack(isDouble = true)
+                            careerProgress = CareerFlow.replayTour(careerProgress)
+                            CareerProgressStore.save(context, careerProgress)
+                        },
                         onStartChallenge = {
                             DominoSoundManager.playTileClack(isDouble = true)
                             activeMode = currentChallenge.gameMode
@@ -368,31 +382,15 @@ fun MainNavigation() {
                             }
 
                             if (won) {
-                                // ¡RETO SUPERADO! Avanzar directamente al siguiente reto
-                                var nextVenue = careerProgress.currentVenueIndex
-                                var nextChallenge = careerProgress.currentChallengeIndex + 1
-                                val completedVenues = careerProgress.completedVenueIds.toMutableSet()
-                                val unlockedVenues = careerProgress.unlockedVenueIds.toMutableSet()
-
-                                // Si superó el reto 5 (índice 4), completa la sede y avanza a la siguiente
-                                if (careerProgress.currentChallengeIndex >= 4) {
-                                    completedVenues.add(currentChallenge.venueId)
-                                    if (nextVenue < 6) {
-                                        nextVenue++
-                                        nextChallenge = 0
-                                        val nextVenueId = TournamentCampaign.VENUE_IDS.getOrNull(nextVenue)
-                                        if (nextVenueId != null) unlockedVenues.add(nextVenueId)
-                                    } else {
-                                        // Final del torneo mundial alcanzada
-                                        nextChallenge = 4
-                                    }
-                                }
-
-                                careerProgress = careerProgress.copy(
-                                    currentVenueIndex = nextVenue,
-                                    currentChallengeIndex = nextChallenge,
-                                    completedVenueIds = completedVenues,
-                                    unlockedVenueIds = unlockedVenues
+                                // ¡RETO SUPERADO! La transicion (avanzar de sede, desbloquear la
+                                // siguiente y marcar el final de la gira) vive en CareerFlow, que
+                                // tiene sus propios tests. Antes, al ganar el ultimo reto la
+                                // carrera se quedaba clavada en "Reto 5 de 5" para siempre.
+                                careerProgress = CareerFlow.afterWin(
+                                    progress = careerProgress,
+                                    venueIndex = careerProgress.currentVenueIndex,
+                                    challengeIndex = careerProgress.currentChallengeIndex,
+                                    venueId = currentChallenge.venueId
                                 )
                                 CareerProgressStore.save(context, careerProgress)
                                 // Regresa directamente a la pantalla de sede con el siguiente reto ya listo

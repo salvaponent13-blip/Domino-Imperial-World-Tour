@@ -47,6 +47,8 @@ fun MainTitleScreen(
     hasSavedProgress: Boolean = false,
     currentVenueName: String = "Ciudad de México",
     currentChallengeNumber: Int = 1,
+    /** La gira ya esta terminada: el boton principal pasa a "volver a jugar el torneo". */
+    tournamentFinished: Boolean = false,
     onResumeTournament: () -> Unit = {},
     onStartNewTournament: () -> Unit = {},
     onOpenQuickPlay: (QuickPlayConfig) -> Unit = {},
@@ -209,13 +211,21 @@ fun MainTitleScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = DominoStrings.resumeTournamentBtn(),
+                            text = if (tournamentFinished) {
+                                DominoStrings.replayTournamentBtn()
+                            } else {
+                                DominoStrings.resumeTournamentBtn()
+                            },
                             color = DarkNavy,
                             fontWeight = FontWeight.Black,
                             fontSize = 16.sp
                         )
                         Text(
-                            text = DominoStrings.resumeTournamentSub(currentVenueName, currentChallengeNumber),
+                            text = if (tournamentFinished) {
+                                DominoStrings.tournamentCompletedSub()
+                            } else {
+                                DominoStrings.resumeTournamentSub(currentVenueName, currentChallengeNumber)
+                            },
                             color = DarkNavy.copy(alpha = 0.85f),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp

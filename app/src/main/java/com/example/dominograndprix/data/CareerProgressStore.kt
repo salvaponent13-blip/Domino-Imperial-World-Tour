@@ -30,7 +30,16 @@ data class JourneyProgress(
     /** Estadisticas acumuladas de la carrera. */
     val stats: CareerStats = CareerStats(),
     val currentVenueIndex: Int = 0,
-    val currentChallengeIndex: Int = 0
+    val currentChallengeIndex: Int = 0,
+    /**
+     * El jugador ya ha ganado el ultimo reto de la ultima sede.
+     *
+     * Sin esta bandera, al terminar la gira el progreso se quedaba en "Reto 5 de 5" y el menu
+     * seguia ofreciendo "continuar torneo", que volvia a jugar la misma final para siempre.
+     * Con ella el menu ofrece "volver a jugar el torneo" y ese boton reinicia la gira sin
+     * perder trofeos, logros ni estadisticas.
+     */
+    val tournamentFinished: Boolean = false
 )
 
 /**

@@ -44,6 +44,9 @@ fun VenueStageScreen(
     challenge: VenueChallenge,
     venueIndex: Int,
     challengeIndex: Int,
+    /** La gira ya esta completa: esta pantalla pasa a ofrecer repetirla. */
+    tournamentFinished: Boolean = false,
+    onReplayTournament: () -> Unit = {},
     onStartChallenge: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -197,14 +200,26 @@ fun VenueStageScreen(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (challenge.challengeNumber == 5) Color(0xFF8B1D1D) else Color(0xFF1B4E2B),
+                            color = when {
+                                tournamentFinished -> Color(0xFF7A5B00)
+                                challenge.challengeNumber == 5 -> Color(0xFF8B1D1D)
+                                else -> Color(0xFF1B4E2B)
+                            },
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (challenge.challengeNumber == 5) Color(0xFFFF6B6B) else Color(0xFF4CAF50)
+                                when {
+                                    tournamentFinished -> GoldAccent
+                                    challenge.challengeNumber == 5 -> Color(0xFFFF6B6B)
+                                    else -> Color(0xFF4CAF50)
+                                }
                             )
                         ) {
                             Text(
-                                text = if (challenge.challengeNumber == 5) "★ GRAN FINAL DE SEDE ★" else "RETO ${challenge.challengeNumber} DE 5",
+                                text = when {
+                                    tournamentFinished -> DominoStrings.tournamentCompletedBadge()
+                                    challenge.challengeNumber == 5 -> "★ GRAN FINAL DE SEDE ★"
+                                    else -> "RETO ${challenge.challengeNumber} DE 5"
+                                },
                                 color = Color.White,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 11.sp,
@@ -347,11 +362,11 @@ fun VenueStageScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // BOTÓN PRINCIPAL: JUGAR RETO
+                    // BOTÓN PRINCIPAL: JUGAR RETO (o repetir la gira si ya está terminada)
                     Button(
                         onClick = {
                             DominoSoundManager.playTileClack(isDouble = true)
-                            onStartChallenge()
+                            if (tournamentFinished) onReplayTournament() else onStartChallenge()
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = GoldAccent,
@@ -363,7 +378,11 @@ fun VenueStageScreen(
                             .height(52.dp)
                     ) {
                         Text(
-                            text = if (challengeIndex == 0 && venueIndex == 0) "INICIAR PRIMER RETO ➔" else "JUGAR RETO ${challenge.challengeNumber} ➔",
+                            text = when {
+                                tournamentFinished -> DominoStrings.replayTournamentBtn()
+                                challengeIndex == 0 && venueIndex == 0 -> "INICIAR PRIMER RETO ➔"
+                                else -> "JUGAR RETO ${challenge.challengeNumber} ➔"
+                            },
                             fontWeight = FontWeight.Black,
                             fontSize = 15.sp,
                             letterSpacing = 0.5.sp
