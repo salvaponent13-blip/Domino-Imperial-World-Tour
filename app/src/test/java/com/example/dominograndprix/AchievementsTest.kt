@@ -1,6 +1,8 @@
 package com.example.dominograndprix
 
 import com.example.dominograndprix.data.AchievementCatalog
+import com.example.dominograndprix.data.CareerFlow
+import com.example.dominograndprix.data.CareerProgressStore
 import com.example.dominograndprix.data.CareerStats
 import com.example.dominograndprix.data.JourneyProgress
 import com.example.dominograndprix.data.MatchReport
@@ -234,14 +236,48 @@ class AchievementsTest {
 
     @Test
     fun completingTheWholeTourUnlocksTheFinalAchievement() {
+        val beforeLast = progress(
+            completed = setOf("cuba", "mexico", "puerto_rico", "new_orleans", "tokyo", "miami")
+        )
+        // Ganar un reto intermedio (ej. 1/5) no completa la septima sede ni desbloquea PERFECT_TOUR.
+        val afterIntermediate = CareerFlow.afterWin(beforeLast, venueIndex = 5, challengeIndex = 0, venueId = "las_vegas")
+        val (midUpdated, _) = AchievementCatalog.applyReport(
+            afterIntermediate,
+            report(won = true, venueId = "las_vegas")
+        )
+        assertFalse(
+            "Sin completar las 7 sedes no debe desbloquearse gira completa",
+            midUpdated.unlockedAchievements.contains(AchievementCatalog.PERFECT_TOUR)
+        )
+
+        // Al ganar el reto 5/5 de la septima sede y aplicar el informe, si se desbloquea.
+        val afterFinal = CareerFlow.afterWin(beforeLast, venueIndex = 5, challengeIndex = 4, venueId = "las_vegas")
         val (updated, _) = AchievementCatalog.applyReport(
-            progress(completed = setOf("cuba", "mexico", "puerto_rico", "new_orleans", "tokyo", "miami")),
+            afterFinal,
             report(won = true, venueId = "las_vegas")
         )
         assertTrue(
             "Con las siete sedes cerradas debe caer el logro de gira completa",
             updated.unlockedAchievements.contains(AchievementCatalog.PERFECT_TOUR)
         )
+    }
+
+    @Test
+    fun careerProgressStoreIgnoresUnknownKeysAndFallsBackOnCorruptedJson() {
+        val jsonWithUnknownKey = """
+            {"completedVenueIds":["mexico"],"unlockedVenueIds":["mexico","cuba"],
+             "unlockedAchievements":["first_win"],"currentVenueIndex":1,"currentChallengeIndex":2,
+             "futureUnknownField":"value_v99"}
+        """.trimIndent()
+
+        val loaded = CareerProgressStore.decode(jsonWithUnknownKey)
+        assertEquals(setOf("mexico"), loaded.completedVenueIds)
+        assertEquals(setOf("first_win"), loaded.unlockedAchievements)
+        assertEquals(1, loaded.currentVenueIndex)
+        assertEquals(2, loaded.currentChallengeIndex)
+
+        val corrupted = CareerProgressStore.decode("{not-valid-json")
+        assertEquals(JourneyProgress(), corrupted)
     }
 
     @Test

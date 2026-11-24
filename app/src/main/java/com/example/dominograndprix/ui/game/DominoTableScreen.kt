@@ -123,6 +123,8 @@ fun DominoTableScreen(
      * un dia sea exactamente la misma partida para todo el mundo.
      */
     dailySeed: Long? = null,
+    /** Número de reto de la sede (1..5) para asociar el snapshot al reto exacto. */
+    challengeNumber: Int? = null,
     /** Partida guardada que hay que reanudar, si la hay. */
     resumeFrom: MatchSnapshot? = null,
     /**
@@ -278,7 +280,11 @@ fun DominoTableScreen(
         if (current.isRoundOver && !current.isMatchOver) {
             MatchSnapshotStore.save(
                 context,
-                current.toSnapshot(cityName = cityName, venueId = venueId)
+                current.toSnapshot(
+                    cityName = cityName,
+                    venueId = venueId,
+                    challengeNumber = challengeNumber
+                )
             )
         } else if (current.isMatchOver) {
             // La partida ha terminado: no debe quedar un guardado que la resucite.

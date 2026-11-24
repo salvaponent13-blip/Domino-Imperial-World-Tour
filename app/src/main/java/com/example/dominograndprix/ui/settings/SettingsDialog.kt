@@ -185,6 +185,7 @@ fun SettingsDialog(
                 notice?.let { n ->
                     val noticeText = when (n) {
                         BillingNotice.PURCHASED -> DominoStrings.billingPurchasedNotice()
+                        BillingNotice.PENDING -> DominoStrings.billingPendingNotice()
                         BillingNotice.RESTORED -> DominoStrings.billingRestoredNotice()
                         BillingNotice.CANCELED -> DominoStrings.billingCanceledNotice()
                         BillingNotice.NOT_READY -> DominoStrings.billingNotReadyNotice()
@@ -193,7 +194,11 @@ fun SettingsDialog(
                     }
                     Text(
                         text = noticeText,
-                        color = if (n == BillingNotice.PURCHASED || n == BillingNotice.RESTORED) Color(0xFFA7F3D0) else Color(0xFFFCA5A5),
+                        color = when (n) {
+                            BillingNotice.PURCHASED, BillingNotice.RESTORED -> Color(0xFFA7F3D0)
+                            BillingNotice.PENDING -> Color(0xFFFDE68A)
+                            else -> Color(0xFFFCA5A5)
+                        },
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,

@@ -32,6 +32,9 @@ data class MatchSnapshot(
     val patternIndex: Int,
     val cityName: String,
     val venueId: String?,
+    val playerCount: Int = 4,
+    val isTeamGame: Boolean = true,
+    val challengeNumber: Int? = null,
 
     // --- Progreso del match ---
     /** Marcadores acumulados por asiento, en orden de asiento. */

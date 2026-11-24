@@ -108,11 +108,6 @@ object AchievementCatalog {
         )
 
         val updatedProgress = progress.copy(
-            // Ganar una sede la marca como completada aqui mismo. Si no, la condicion de "gira
-            // completa" quedaria siempre una victoria por detras: el jugador tendria que volver
-            // a ganar en la ultima ciudad para que el logro se diese cuenta.
-            completedVenueIds = progress.completedVenueIds +
-                (if (report.won && report.venueId != null) setOf(report.venueId) else emptySet()),
             stats = updatedStats
         )
 

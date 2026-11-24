@@ -63,6 +63,7 @@ object CareerProgressStore {
      */
     private val json = Json {
         encodeDefaults = true
+        ignoreUnknownKeys = true
     }
 
     /** `true` solo si existe un progreso guardado con formato válido. */
@@ -74,11 +75,13 @@ object CareerProgressStore {
         val store = prefs(context)
         if (!store.getBoolean(KEY_SAVED, false)) return JourneyProgress()
         val raw = store.getString(KEY_PROGRESS, null) ?: return JourneyProgress()
-        return try {
-            json.decodeFromString(JourneyProgress.serializer(), raw)
-        } catch (_: Exception) {
-            JourneyProgress()
-        }
+        return decode(raw)
+    }
+
+    internal fun decode(raw: String): JourneyProgress = try {
+        json.decodeFromString(JourneyProgress.serializer(), raw)
+    } catch (_: Exception) {
+        JourneyProgress()
     }
 
     /** Escribe el progreso en disco sobrescribiendo el guardado anterior. */

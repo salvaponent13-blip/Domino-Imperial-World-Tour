@@ -177,6 +177,8 @@ class DominoEngine(
         fun resume(snapshot: MatchSnapshot): DominoEngine = DominoEngine(
             gameMode = snapshot.gameMode,
             targetScore = snapshot.targetScore,
+            isTeamGame = snapshot.isTeamGame,
+            playerCount = snapshot.playerCount,
             patternIndex = snapshot.patternIndex,
             random = Random(snapshot.randomSeed),
             randomSeed = snapshot.randomSeed,
@@ -1251,8 +1253,10 @@ class DominoEngine(
         players[playerIndex] = p.copy(hand = p.hand + drawn)
         hasDrawnThisTurn = true
         // Se recuerda para las misiones de sede del tipo "gana sin robar del pozo": hay que
-        // saber si el jugador robo ALGUNA VEZ, no si le quedaban fichas al terminar.
-        matchDrewFromBoneyard = true
+        // saber si un humano robo ALGUNA VEZ, no si robo la IA ni si le quedaban fichas al terminar.
+        if (playerIndex in humanPlayerIndices) {
+            matchDrewFromBoneyard = true
+        }
         roundLog = "${p.name} robó ficha del pozo."
         return drawn
     }
@@ -1528,7 +1532,11 @@ class DominoEngine(
      * acordo guardar, porque a mitad de jugada hay estados en vuelo (encadenamiento hungaro,
      * ventana de invasion) que complican la restauracion sin aportar valor al jugador.
      */
-    fun toSnapshot(cityName: String, venueId: String?): MatchSnapshot =
+    fun toSnapshot(
+        cityName: String,
+        venueId: String?,
+        challengeNumber: Int? = null
+    ): MatchSnapshot =
         MatchSnapshot(
             gameMode = gameMode,
             difficulty = difficulty,
@@ -1536,6 +1544,9 @@ class DominoEngine(
             patternIndex = patternIndex,
             cityName = cityName,
             venueId = venueId,
+            playerCount = playerCount,
+            isTeamGame = isTeamGame,
+            challengeNumber = challengeNumber,
             scores = players.map { it.score },
             isMatchOver = isMatchOver,
             winningTeam = winningTeam,
@@ -1588,7 +1599,11 @@ class DominoEngine(
                     personality = snapshot.personalities.getOrElse(seat) { Personality.NICE },
                     hand = hand,
                     score = snapshot.scores.getOrElse(seat) { 0 },
-                    team = SEAT_TEAMS.getOrElse(seat) { 0 }
+                    team = if (snapshot.isTeamGame && snapshot.playerCount == 4) {
+                        SEAT_TEAMS.getOrElse(seat) { 0 }
+                    } else {
+                        seat
+                    }
                 )
             )
         }

@@ -36,7 +36,11 @@ object CareerFlow {
     ): JourneyProgress {
         val venue = venueIndex.coerceIn(0, VENUES - 1)
         val challenge = challengeIndex.coerceIn(0, CHALLENGES_PER_VENUE - 1)
-        val completed = progress.completedVenueIds + venueId
+        val completed = if (challenge == CHALLENGES_PER_VENUE - 1) {
+            progress.completedVenueIds + venueId
+        } else {
+            progress.completedVenueIds
+        }
         val unlocked = progress.unlockedVenueIds.toMutableSet()
 
         var nextVenue = venue

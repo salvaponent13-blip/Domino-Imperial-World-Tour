@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /** Resultado de una acción de compra o restauración. */
-enum class BillingNotice { PURCHASED, CANCELED, FAILED, RESTORED, NOTHING, NOT_READY }
+enum class BillingNotice { PURCHASED, PENDING, CANCELED, FAILED, RESTORED, NOTHING, NOT_READY }
 
 /**
  * Gestor de la compra integrada "remove_ads" (Google Play Billing 8.0.0).
@@ -173,8 +173,11 @@ object BillingManager {
             .build()
 
         c.queryPurchasesAsync(params) { result, purchases ->
-            val owns = result.responseCode == BillingClient.BillingResponseCode.OK &&
-                applyOwnership(purchases)
+            val ok = result.responseCode == BillingClient.BillingResponseCode.OK
+            val owns = ok && applyOwnership(purchases)
+            if (ok && !owns) {
+                setPro(false)
+            }
             if (!silent) _notice.value = if (owns) BillingNotice.RESTORED else BillingNotice.NOTHING
             onResult?.invoke(owns)
         }
@@ -195,10 +198,14 @@ object BillingManager {
         _busy.value = false
         when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
-                if (applyOwnership(purchases)) {
-                    _notice.value = BillingNotice.PURCHASED
-                } else {
-                    _notice.value = BillingNotice.FAILED
+                val isPending = purchases.any {
+                    it.products.contains(BillingConfig.PRODUCT_REMOVE_ADS) &&
+                        it.purchaseState == Purchase.PurchaseState.PENDING
+                }
+                when {
+                    applyOwnership(purchases) -> _notice.value = BillingNotice.PURCHASED
+                    isPending -> _notice.value = BillingNotice.PENDING
+                    else -> _notice.value = BillingNotice.FAILED
                 }
             }
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
@@ -294,6 +301,8 @@ object BillingManager {
         if (value) {
             AdManager.adsDisabled = true
             AdManager.clear()
+        } else {
+            AdManager.adsDisabled = false
         }
         _pro.value = value
         appContext?.let { SettingsStore.setPro(it, value) }

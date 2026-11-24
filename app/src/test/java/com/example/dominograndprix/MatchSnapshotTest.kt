@@ -258,6 +258,55 @@ class MatchSnapshotTest {
             aggressive.pipDrain > nice.pipDrain && aggressive.scoring < nice.scoring
         )
     }
+
+    @Test
+    fun snapshotRoundTripPreservesPlayerCountTeamModeAndChallengeNumber() {
+        val duel = DominoEngine.newMatch(
+            gameMode = GameMode.DRAW,
+            targetScore = 200,
+            difficulty = Difficulty.STANDARD,
+            seed = 1234L,
+            playerCount = 2,
+            isTeamGame = false
+        )
+        playUntilRoundClosed(duel)
+
+        val original = duel.toSnapshot(cityName = "Ciudad de México", venueId = "mexico", challengeNumber = 4)
+        val restored = json.decodeFromString(
+            MatchSnapshot.serializer(),
+            json.encodeToString(MatchSnapshot.serializer(), original)
+        )
+
+        assertEquals(2, restored.playerCount)
+        assertFalse(restored.isTeamGame)
+        assertEquals(4, restored.challengeNumber)
+
+        val resumed = DominoEngine.resume(restored)
+        assertEquals("Una partida 1v1 debe seguir teniendo 2 jugadores", 2, resumed.playerCount)
+        assertEquals(2, resumed.players.size)
+        assertFalse("Una partida 1v1 no debe convertirse en 2v2", resumed.isTeamGame)
+        assertEquals(listOf(0, 1), resumed.players.map { it.team })
+    }
+
+    @Test
+    fun resumingIndividualFourPlayerMatchDoesNotTurnIntoTeams() {
+        val ffa = DominoEngine.newMatch(
+            gameMode = GameMode.BLOCK,
+            targetScore = 200,
+            difficulty = Difficulty.STANDARD,
+            seed = 5678L,
+            playerCount = 4,
+            isTeamGame = false
+        )
+        playUntilRoundClosed(ffa)
+
+        val snapshot = ffa.toSnapshot(cityName = "Ciudad de México", venueId = "mexico", challengeNumber = 1)
+        val resumed = DominoEngine.resume(snapshot)
+
+        assertEquals(4, resumed.playerCount)
+        assertFalse("Una partida individual de 4 no debe convertirse en 2v2", resumed.isTeamGame)
+        assertEquals(listOf(0, 1, 2, 3), resumed.players.map { it.team })
+    }
 }
 
 

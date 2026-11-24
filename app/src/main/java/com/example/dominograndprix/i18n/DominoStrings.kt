@@ -985,6 +985,15 @@ object DominoStrings {
         "Danke! Werbung entfernt."
     )
 
+    fun billingPendingNotice(): String = multi(
+        "Compra pendiente de confirmación. Se activará cuando Google Play la complete.",
+        "Purchase pending confirmation. It will activate once Google Play completes it.",
+        "Achat en attente de confirmation. Il sera activé une fois validé par Google Play.",
+        "Acquisto in attesa di conferma. Si attiverà al completamento su Google Play.",
+        "Compra pendente de confirmação. Será ativada quando o Google Play a concluir.",
+        "Kauf wartet auf Bestätigung. Er wird aktiviert, sobald Google Play ihn abschließt."
+    )
+
     fun billingRestoredNotice(): String = multi(
         "Compra restaurada con éxito.",
         "Purchase restored successfully.",

@@ -50,9 +50,11 @@ object ConsentManager {
         }
         requested = true
 
+        var consentInfo: ConsentInformation? = null
         try {
             val params = ConsentRequestParameters.Builder().build()
             val info: ConsentInformation = UserMessagingPlatform.getConsentInformation(activity)
+            consentInfo = info
 
             // Si ya existe consentimiento válido de una sesión previa, permitimos cargar sin esperar a la red.
             if (info.canRequestAds()) {
@@ -67,22 +69,30 @@ object ConsentManager {
                         if (formError != null) {
                             Log.w(TAG, "Formulario de consentimiento no disponible aún: ${formError.message}")
                         }
-                        if (info.canRequestAds() || formError != null) {
+                        if (info.canRequestAds()) {
                             notifyReady()
                         } else {
-                            Log.i(TAG, "Sin consentimiento: anuncios deshabilitados por el usuario.")
+                            Log.i(TAG, "Sin consentimiento válido (canRequestAds=false): no se inicializa AdMob.")
                         }
                     }
                 },
                 { requestError ->
-                    Log.w(TAG, "No se pudo actualizar el consentimiento (${requestError.MessageSafe}): continuando con anuncios limitados.")
-                    notifyReady()
+                    Log.w(TAG, "No se pudo actualizar el consentimiento (${requestError.MessageSafe}).")
+                    if (info.canRequestAds()) {
+                        notifyReady()
+                    } else {
+                        Log.i(TAG, "Sin consentimiento previo tras error de actualización (canRequestAds=false): no se inicializa AdMob.")
+                    }
                 },
             )
         } catch (e: Exception) {
             // Nunca debe tumbar el arranque de la app.
             Log.w(TAG, "Error inicializando UMP: ${e.message}")
-            notifyReady()
+            if (consentInfo?.canRequestAds() == true) {
+                notifyReady()
+            } else {
+                Log.i(TAG, "Excepción UMP sin consentimiento previo (canRequestAds=false): no se inicializa AdMob.")
+            }
         }
     }
 

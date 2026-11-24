@@ -94,6 +94,7 @@ fun MainNavigation() {
     var activeCityName by remember { mutableStateOf("Ciudad de México") }
     var activeTargetScore by remember { mutableStateOf(20) }
     var activeVenueId by remember { mutableStateOf<String?>("mexico") }
+    var activeChallengeNumber by remember { mutableStateOf<Int?>(null) }
     var activePlayerCount by remember { mutableIntStateOf(4) }
     var activeIsTeamGame by remember { mutableStateOf(false) }
     var activeDifficulty by remember { mutableStateOf(Difficulty.STANDARD) }
@@ -156,6 +157,7 @@ fun MainNavigation() {
                         onStartNewTournament = {
                             DominoSoundManager.playTileClack(isDouble = true)
                             careerProgress = JourneyProgress()
+                            venues = WorldTourRepository.getInitialVenues()
                             CareerProgressStore.save(context, careerProgress)
                             currentScreen = AppScreen.VENUE_STAGE
                         },
@@ -165,6 +167,7 @@ fun MainNavigation() {
                             activeCityName = DominoStrings.modeName(config.gameMode)
                             activeTargetScore = config.targetScore
                             activeVenueId = null
+                            activeChallengeNumber = null
                             activeDaily = null
                             activePlayerCount = config.playerCount
                             activeIsTeamGame = config.isTeamGame
@@ -190,6 +193,7 @@ fun MainNavigation() {
                             activeCityName = DominoStrings.modeName(dailyChallenge.mode)
                             activeTargetScore = dailyChallenge.targetScore
                             activeVenueId = null
+                            activeChallengeNumber = null
                             activePlayerCount = 2
                             activeIsTeamGame = false
                             activeDifficulty = dailyChallenge.difficulty
@@ -234,6 +238,7 @@ fun MainNavigation() {
                             activeCityName = currentChallenge.venueName
                             activeTargetScore = currentChallenge.targetScore
                             activeVenueId = currentChallenge.venueId
+                            activeChallengeNumber = currentChallenge.challengeNumber
                             activePlayerCount = currentChallenge.playerCount
                             activeIsTeamGame = currentChallenge.isTeamGame
                             activeRivalName = currentChallenge.rivalName
@@ -241,7 +246,6 @@ fun MainNavigation() {
                             activeDifficulty = currentChallenge.difficulty
                             activeDaily = null
                             activeHumanCount = 1
-                            MatchSnapshotStore.clear(context)
                             currentScreen = AppScreen.MATCH_TABLE
                         },
                         onBack = {
@@ -267,11 +271,22 @@ fun MainNavigation() {
                     // Solo la carrera se reanuda desde un guardado: las partidas libres y el
                     // desafio diario empiezan siempre de cero (antes, un guardado viejo con
                     // venueId nulo resucitaba una partida distinta con otro modo y objetivo).
-                    val savedSnapshot = remember(activeVenueId) {
+                    val savedSnapshot = remember(activeVenueId, activeChallengeNumber) {
                         if (activeVenueId == null) {
                             null
                         } else {
-                            MatchSnapshotStore.load(context)?.takeIf { it.venueId == activeVenueId }
+                            val loaded = MatchSnapshotStore.load(context)
+                            if (loaded != null &&
+                                loaded.venueId == activeVenueId &&
+                                loaded.challengeNumber == activeChallengeNumber
+                            ) {
+                                loaded
+                            } else {
+                                if (loaded != null) {
+                                    MatchSnapshotStore.clear(context)
+                                }
+                                null
+                            }
                         }
                     }
 
@@ -289,6 +304,7 @@ fun MainNavigation() {
                             setOf(0)
                         },
                         playerNames = playerNames,
+                        challengeNumber = activeChallengeNumber,
                         resumeFrom = savedSnapshot,
                         dailySeed = activeDaily?.seed,
                         onMatchFinished = { won, _, finishedEngine ->
@@ -366,8 +382,23 @@ fun MainNavigation() {
                                 isDailyChallenge = false
                             )
 
+                            val progressAfterWin = if (won) {
+                                // ¡RETO SUPERADO! La transicion (avanzar de sede, desbloquear la
+                                // siguiente y marcar el final de la gira) vive en CareerFlow, que
+                                // tiene sus propios tests. Se aplica antes de evaluar logros para
+                                // que "gira completa" vea las sedes completadas al día.
+                                CareerFlow.afterWin(
+                                    progress = careerProgress,
+                                    venueIndex = careerProgress.currentVenueIndex,
+                                    challengeIndex = careerProgress.currentChallengeIndex,
+                                    venueId = currentChallenge.venueId
+                                )
+                            } else {
+                                careerProgress
+                            }
+
                             val (updatedProgress, newAchievements) = AchievementCatalog.applyReport(
-                                progress = careerProgress,
+                                progress = progressAfterWin,
                                 report = report,
                                 dailyStreak = 0
                             )
@@ -382,23 +413,10 @@ fun MainNavigation() {
                             }
 
                             if (won) {
-                                // ¡RETO SUPERADO! La transicion (avanzar de sede, desbloquear la
-                                // siguiente y marcar el final de la gira) vive en CareerFlow, que
-                                // tiene sus propios tests. Antes, al ganar el ultimo reto la
-                                // carrera se quedaba clavada en "Reto 5 de 5" para siempre.
-                                careerProgress = CareerFlow.afterWin(
-                                    progress = careerProgress,
-                                    venueIndex = careerProgress.currentVenueIndex,
-                                    challengeIndex = careerProgress.currentChallengeIndex,
-                                    venueId = currentChallenge.venueId
-                                )
                                 CareerProgressStore.save(context, careerProgress)
-                                // Regresa directamente a la pantalla de sede con el siguiente reto ya listo
-                                currentScreen = AppScreen.VENUE_STAGE
-                            } else {
-                                // Sin economia no hay bancarrota: si pierdes, repites el reto.
-                                currentScreen = AppScreen.VENUE_STAGE
                             }
+                            // Regresa directamente a la pantalla de sede (siguiente reto o reintento).
+                            currentScreen = AppScreen.VENUE_STAGE
                         },
                         onBack = {
                             DominoSoundManager.playTileTap()
@@ -422,6 +440,7 @@ fun MainNavigation() {
                             activeCityName = DominoStrings.modeName(mode)
                             activeTargetScore = 50
                             activeVenueId = null
+                            activeChallengeNumber = null
                             activePlayerCount = 4
                             activeIsTeamGame = false
                             activeDifficulty = Difficulty.STANDARD

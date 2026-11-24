@@ -537,5 +537,43 @@ class DominoEngineTest {
         assertFalse("Victoria por puntos no debe marcarse como mesa trancada", enginePoints.lastRoundWasBlocked)
         assertEquals("No debe haber trancas en el acumulador", 0, enginePoints.matchBlockedRounds)
     }
+
+    @Test
+    fun testMatchDrewFromBoneyardCountsOnlyHumanDraws() {
+        val engine = DominoEngine(
+            gameMode = GameMode.DRAW,
+            targetScore = 100,
+            playerCount = 2,
+            playerNames = listOf("Tú", "Rival"),
+            humanPlayerIndices = setOf(0)
+        )
+        engine.startNewRound()
+
+        // 1. Si roba la IA (asiento 1), no activa matchDrewFromBoneyard.
+        engine.currentPlayerIndex = 1
+        assertNotNull("La IA debe poder robar del pozo", engine.drawTile(1, 0))
+        assertFalse(
+            "El robo de la IA no debe activar matchDrewFromBoneyard",
+            engine.matchDrewFromBoneyard
+        )
+
+        // 2. Si roba un humano (asiento 0), pasa a true.
+        engine.advanceTurn()
+        assertEquals(0, engine.currentPlayerIndex)
+        assertNotNull("El humano debe poder robar del pozo", engine.drawTile(0, 0))
+        assertTrue(
+            "El robo del humano debe activar matchDrewFromBoneyard",
+            engine.matchDrewFromBoneyard
+        )
+
+        // 3. Si la IA vuelve a robar despues, matchDrewFromBoneyard sigue siendo true.
+        engine.advanceTurn()
+        assertEquals(1, engine.currentPlayerIndex)
+        assertNotNull(engine.drawTile(1, 0))
+        assertTrue(
+            "Tras robar un humano, un robo posterior de la IA no debe resetear la bandera",
+            engine.matchDrewFromBoneyard
+        )
+    }
 }
 

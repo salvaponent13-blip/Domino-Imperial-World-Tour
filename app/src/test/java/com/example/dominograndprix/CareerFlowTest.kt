@@ -109,4 +109,27 @@ class CareerFlowTest {
         assertEquals(7, CareerFlow.VENUES)
         assertEquals(5, CareerFlow.CHALLENGES_PER_VENUE)
     }
+
+    @Test
+    fun winningChallengesOneToFourDoesNotCompleteTheVenue() {
+        var current = progress(venue = 0, challenge = 0)
+        for (challengeIdx in 0..3) {
+            current = CareerFlow.afterWin(current, venueIndex = 0, challengeIndex = challengeIdx, venueId = "mexico")
+            assertFalse(
+                "Ganar el reto ${challengeIdx + 1}/5 no debe marcar la sede como completada",
+                current.completedVenueIds.contains("mexico")
+            )
+        }
+
+        // Al ganar el reto 5/5 (indice 4) si queda completada la sede.
+        val afterFifth = CareerFlow.afterWin(current, venueIndex = 0, challengeIndex = 4, venueId = "mexico")
+        assertTrue(
+            "Ganar el reto 5/5 debe marcar la sede como completada",
+            afterFifth.completedVenueIds.contains("mexico")
+        )
+
+        // Repetir el reto 5/5 no duplica entradas.
+        val repeated = CareerFlow.afterWin(afterFifth, venueIndex = 0, challengeIndex = 4, venueId = "mexico")
+        assertEquals(1, repeated.completedVenueIds.size)
+    }
 }
